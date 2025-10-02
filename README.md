@@ -37,58 +37,14 @@ Flujo de trabajo:
         1. Lista Auditoria
      
 
-reciclados/
-├─ infra/
-│  └─ docker-compose.yml
-│
-├─ web/                      # React + Tailwind (JavaScript)
-│  ├─ index.html
-│  ├─ package.json
-│  ├─ postcss.config.js
-│  ├─ tailwind.config.js
-│  ├─ vite.config.js
-│  └─ src/
-│     ├─ main.jsx
-│     ├─ index.css
-│     ├─ styles/
-│     │  └─ components.css   # tus clases @apply (btn, card, input, etc.)
-│     ├─ api.js              # axios/fetch wrapper + setToken()
-│     ├─ layouts/
-│     │  ├─ AuthLayout.jsx   # layout de login (con <Outlet/>)
-│     │  └─ AppLayout.jsx    # layout de app (navbar+sidebar+<Outlet/>)
-│     ├─ pages/
-│     │  ├─ LoginPage.jsx
-│     │  ├─ HomePage.jsx
-│     │  └─ ProvidersPage.jsx
-│     ├─ components/
-│     │  ├─ Button.jsx
-│     │  ├─ TextInput.jsx
-│     │  ├─ Select.jsx
-│     │  ├─ Checkbox.jsx
-│     │  ├─ Card.jsx
-│     │  ├─ Modal.jsx
-│     │  ├─ SectionHeader.jsx
-│     │  ├─ SidebarLink.jsx
-│     │  └─ DataTable.jsx
-│     └─ assets/
-│        └─ logo.svg         # opcional
-│
-├─ api/                      # Node.js + Express + pg (JavaScript)
-│  ├─ package.json
-│  ├─ .env.example           # PORT, JWT_SECRET, DATABASE_URL
-│  ├─ src/
-│  │  ├─ server.js           # app.use(...), rutas y arranque
-│  │  ├─ db.js               # pg Pool (con env)
-│  │  ├─ routes/
-│  │  │  ├─ auth.js          # POST /v1/auth/login
-│  │  │  └─ providers.js     # CRUD /v1/providers
-│  │  ├─ middleware/
-│  │  │  └─ auth.js          # requireAuth (si lo separan)
-│  │  └─ utils/
-│  │     └─ responses.js     # opcional: helpers de respuesta
-│  └─ sql/
-│     ├─ 001_init.sql        # tablas users, suppliers, etc.
-│     └─ 002_seed.sql        # usuario admin, datos mínimos
-│
-├─ .gitignore
-└─ README.md                 # cómo correr infra/web/api
+Conexion con Docker y pg
+Esquema tabla usuarios y roles
+Cargar esquema y seed (roles/usuarios)
+
+
+Paso 3 — API (Express) mínima para /v1/auth/login
+- npm init -y
+npm i express cors morgan dotenv jsonwebtoken bcryptjs pg
+npm i -D nodemon
+
+3.2 .env (API)

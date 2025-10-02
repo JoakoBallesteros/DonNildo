@@ -1,0 +1,42 @@
+# Asegurarte de estar actualizado
+git checkout main
+git pull origin main
+
+# Crear rama desde main para tu tarea
+git checkout -b (NOMBRE DE LA RAMA)
+
+
+# Trabajar, agregar archivos y commitear en unidades pequeñas
+git add .
+git commit -m "feat(web): página de login con POST /auth/login"
+
+# Subir la rama al remoto
+git push -u origin feature/web-auth-login
+
+# En GitHub: crear Pull Request a main, pedir review a tus compañeros
+# (activar "Require PR" en branch protection si quieren)
+
+# Cuando aprueban: Merge con "Squash and merge" (deja un solo commit lindo en main)
+# Volver a tu local y actualizar
+git checkout main
+git pull origin main
+
+
+
+# Ver servicios arriba
+docker compose -f infra/docker-compose.yml ps
+
+# Ver logs de la DB
+docker logs -f dn_db
+
+# Entrar a la DB con psql (dentro del contenedor)
+docker exec -it dn_db psql -U reciclados -d reciclados
+
+# Aplicar un .sql en la DB
+docker exec -i dn_db psql -U reciclados -d reciclados < api/sql/001_init.sql
+
+# Apagar contenedores (mantener datos)
+docker compose -f infra/docker-compose.yml down
+
+# Apagar y BORRAR datos (reseteo total)
+docker compose -f infra/docker-compose.yml down -v
