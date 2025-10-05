@@ -42,9 +42,21 @@ Esquema tabla usuarios y roles
 Cargar esquema y seed (roles/usuarios)
 
 
-Paso 3 — API (Express) mínima para /v1/auth/login
-- npm init -y
-npm i express cors morgan dotenv jsonwebtoken bcryptjs pg
-npm i -D nodemon
+Resumen (README corto)
 
-3.2 .env (API)
+Clonar repo.
+
+docker compose -f infra/docker-compose.yml up -d
+
+cp api/.env.example api/.env (o npm run setup:env) y editar secretos si hace falta.
+
+Semillas (en PowerShell):
+
+Get-Content -Raw ".\api\sql\001_init.sql" | docker exec -i dn_db psql -U reciclados -d reciclados
+Get-Content -Raw ".\api\sql\002_seed.sql" | docker exec -i dn_db psql -U reciclados -d reciclados
+
+
+cd api && npm i && npm run dev
+
+Probar: POST http://localhost:4000/v1/auth/login con {"mail":"admin@local.com","password":"admin123"}
+y luego GET /v1/me con Authorization: Bearer <token>.

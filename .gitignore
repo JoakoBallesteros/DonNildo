@@ -1,0 +1,47 @@
+# --- Raíz / monorepo ---
+.env
+.env.*           # ej: .env.local, .env.production
+*.env
+
+# Permitir plantillas de ejemplo en cualquier subcarpeta
+!**/.env.example
+# Node
+node_modules/
+**/node_modules/
+
+# Builds
+dist/
+build/
+coverage/
+.cache/
+.temp/
+.vite/
+.next/
+out/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# Editor/OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Docker
+**/.docker/
+**/docker-data/
+*.pid
+*.seed
+
+# Tests
+.junit/
+coverage/
+
+# Misc
+*.sqlite3
+**/*.local.json
