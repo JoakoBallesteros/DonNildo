@@ -60,3 +60,5 @@ cd api && npm i && npm run dev
 
 Probar: POST http://localhost:4000/v1/auth/login con {"mail":"admin@local.com","password":"admin123"}
 y luego GET /v1/me con Authorization: Bearer <token>.
+
+
