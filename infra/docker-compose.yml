@@ -9,9 +9,16 @@ services:
       POSTGRES_PASSWORD: reciclados
       POSTGRES_DB: reciclados
     ports:
-      - "5432:5432"            # si está ocupado, cambiá a "5433:5432"
+      - "5432:5432"                   # si está ocupado, cambiá a "5433:5432"
     volumes:
       - dbdata:/var/lib/postgresql/data
+      - ../api/sql:/docker-entrypoint-initdb.d:ro   # <--- corre 001_init.sql / 002_seed.sql la PRIMERA vez
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reciclados -d reciclados"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
 
   pgadmin:
     image: dpage/pgadmin4
@@ -22,7 +29,9 @@ services:
     ports:
       - "5050:80"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   dbdata:
