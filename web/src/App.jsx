@@ -1,8 +1,12 @@
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import LoginPage from './pages/LoginPage.jsx'
+
 export default function App() {
   return (
-    <main style={{ padding: 24 }}>
-      <h1>Hola 👋</h1>
-      <p>Proyecto listo para empezar.</p>
-    </main>
-  );
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<LoginPage />} />
+      </Routes>
+    </BrowserRouter>
+  )
 }
