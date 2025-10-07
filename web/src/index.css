@@ -1,3 +1,9 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* The following styles will work after Tailwind CSS is built with PostCSS or a bundler */
+
+html, body, #root {
+  height: 100%;
+}
