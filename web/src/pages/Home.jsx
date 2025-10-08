@@ -13,7 +13,7 @@ export default function Home() {
           className="w-40 h-40 md:w-56 md:h-56 object-contain rounded-full"
         />
         <h2 className="text-3xl md:text-4xl font-bold text-emerald-900">
-          Sistema de gestión
+          Don Nildo
         </h2>
       </div>
 
