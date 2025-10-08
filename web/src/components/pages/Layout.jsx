@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
-import Sidebar from "./Sidebar.jsx";
-import HamburgerButton from "./buttons/HamburgerButton.jsx";
+import Sidebar from "../pages/Sidebar.jsx";
+import HamburgerButton from "../buttons/HamburgerButton.jsx";
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
