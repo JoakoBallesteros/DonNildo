@@ -13,7 +13,7 @@ export default function LoginForm() {
       await login(mail, password);
       // redirigir o mostrar dashboard
     } catch (e) {
-      setError("Usuario o contraseña inválidos " + e.message);
+      setError("Usuario o contraseña inválidos" + e);
     }
   };
 
