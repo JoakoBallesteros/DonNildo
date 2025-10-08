@@ -2,7 +2,7 @@
 import {useState} from "react";
 import {NavLink} from "react-router-dom";
 import {ChevronRight} from "lucide-react";
-import HamburgerButton from "./HamburgerButton.jsx";
+import HamburgerButton from "./buttons/HamburgerButton.jsx";
 
 const linkBase  ="block w-full rounded-xl px-4 py-3 text-base font-semibold tracking-[0.2px] transition-colors";
 const active    ="bg-emerald-700 text-white";
