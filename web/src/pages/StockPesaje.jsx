@@ -1,4 +1,4 @@
-import PageContainer from "../components/PageContainer";
+import PageContainer from "../components/pages/PageContainer";
 export default function StockPesaje() {
   return (
     <PageContainer> 

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import PageContainer from '../components/PageContainer.jsx'
+import PageContainer from '../components/pages/PageContainer.jsx'
 
 const pillBase = 'px-4 py-2 rounded-full text-sm font-semibold transition';
 const pillOn  = 'bg-emerald-700 text-white shadow';

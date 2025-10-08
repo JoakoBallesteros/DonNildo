@@ -1,6 +1,6 @@
 // src/App.jsx
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import Layout from './components/Layout.jsx'
+import Layout from './components/pages/Layout.jsx'
 import Home from './pages/Home.jsx'
 import Compras from './pages/Compras.jsx'
 import Ventas from './pages/Ventas.jsx'

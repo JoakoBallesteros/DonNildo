@@ -1,4 +1,4 @@
-import LoginForm from "../components/LoginForm";
+import LoginForm from "../components/pages/LoginForm";
 import logo from "../img/LogoDonNildo.png";
 
 export default function LoginPage() {

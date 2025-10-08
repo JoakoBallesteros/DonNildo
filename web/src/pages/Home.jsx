@@ -1,4 +1,4 @@
-import NavCard from '../components/NavCard.jsx'
+import NavCard from '../components/pages/NavCard.jsx'
 import { ShoppingCart, TrendingUp, Archive, BarChart3 } from 'lucide-react'
 import logo from '../img/LogoDonNildo.png'
 
