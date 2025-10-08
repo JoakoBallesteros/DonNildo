@@ -1,13 +1,20 @@
-export default function PageContainer({ title, actions, children, noDivider=false }) {
+export default function PageContainer({ title, actions, children, noDivider = false }) {
   return (
-    <section className="max-w-7xl mx-auto">
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
-        <div className={`flex items-center justify-between px-5 md:px-7 py-4 ${noDivider ? '' : 'border-b border-slate-200'}`}>
-          <h2 className="text-2xl md:text-3xl font-bold text-emerald-900">{title}</h2>
-          <div className="flex gap-2">{actions}</div>
+    <section className="flex justify-center w-full px-6 py-6">
+      <div className="w-full max-w-[1750px] bg-white rounded-2xl shadow-sm px-12 py-8">
+        {/* Encabezado */}
+        <div
+          className={`flex flex-col md:flex-row md:items-center md:justify-between gap-4 ${
+            noDivider ? "" : "pb-6"
+          }`}
+        >
+          <h2 className="text-3xl font-bold text-[#154734]">{title}</h2>
+          <div className="flex gap-3">{actions}</div>
         </div>
-        <div className="p-5 md:p-7">{children}</div>
+
+        {/* Contenido */}
+        <div className="mt-6 space-y-10">{children}</div>
       </div>
     </section>
-  )
+  );
 }
