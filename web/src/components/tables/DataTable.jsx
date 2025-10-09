@@ -51,53 +51,44 @@ export default function DataTable({
           </tr>
         </thead>
 
-        <tbody className={tbodyClass}>
-          {data.length === 0 ? (
-            <tr>
-              <td
-                className="px-4 py-6 text-slate-500 text-center"
-                colSpan={columns.length}
-              >
-                {emptyLabel}
-              </td>
-            </tr>
-          ) : (
-            data.map((row, ri) => (
-              <tr
-                key={rowKey(row, ri)}
-                className={`${rowClass} ${
-                  zebra && ri % 2 === 1 ? "bg-slate-50/40" : ""
-                }`}
-                onClick={onRowClick ? () => onRowClick(row, ri) : undefined}
-              >
-                {columns.map((col, ci) => {
-                  const content = col.render
-                    ? col.render(row, ri)
-                    : typeof col.accessor === "function"
-                    ? col.accessor(row, ri)
-                    : col.accessor
-                    ? row[col.accessor]
-                    : null;
+       <tbody>
+  {data.length === 0 ? (
+    <tr>
+      <td
+        className="px-4 py-6 text-slate-500 text-center border-t border-[#edf2ef]"
+        colSpan={columns.length}
+      >
+        No hay datos
+      </td>
+    </tr>
+  ) : (
+    data.map((row, ri) => (
+      <tr
+        key={ri}
+        className={`hover:bg-[#f6faf7] transition border-t border-[#edf2ef]`}
+      >
+        {columns.map((col, ci) => {
+          const content = col.render
+            ? col.render(row, ri)
+            : typeof col.accessor === "function"
+            ? col.accessor(row, ri)
+            : col.accessor
+            ? row[col.accessor]
+            : null;
 
-                  return (
-                    <td
-                      key={col.id ?? ci}
-                      className={`${cellClass} ${col.cellClass || ""} ${
-                        col.align === "center"
-                          ? "text-center"
-                          : col.align === "right"
-                          ? "text-right"
-                          : "text-left"
-                      }`}
-                    >
-                      {content}
-                    </td>
-                  );
-                })}
-              </tr>
-            ))
-          )}
-        </tbody>
+          return (
+            <td
+              key={ci}
+              className={`px-4 py-3 border-r border-[#edf2ef] last:border-none`}
+            >
+              {content}
+            </td>
+          );
+        })}
+      </tr>
+    ))
+  )}
+</tbody>
       </table>
     </div>
   );
