@@ -46,6 +46,9 @@ export default function DataTable({
         </thead>
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> cd900643af3719029ccae24137627e0f94aea49d
         <tbody>
           {ventas.map((venta, i) => (
             <tr key={i} className="hover:bg-[#f6faf7] transition">
@@ -90,6 +93,7 @@ export default function DataTable({
                     <Download size={16} />
                   </button>
                 </div>
+<<<<<<< HEAD
 =======
         <tbody className={tbodyClass}>
           {data.length === 0 ? (
@@ -97,6 +101,8 @@ export default function DataTable({
               <td className="px-4 py-6 text-slate-500 text-center" colSpan={columns.length}>
                 {emptyLabel}
 >>>>>>> e10a8d987b9b3e46c313bc02a7e2d302091e2048
+=======
+>>>>>>> cd900643af3719029ccae24137627e0f94aea49d
               </td>
             </tr>
           ) : (
