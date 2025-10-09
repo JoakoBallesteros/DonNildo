@@ -45,11 +45,50 @@ export default function DataTable({
           </tr>
         </thead>
 
-        <tbody className={tbodyClass}>
-          {data.length === 0 ? (
-            <tr>
-              <td className="px-4 py-6 text-slate-500 text-center" colSpan={columns.length}>
-                {emptyLabel}
+        <tbody>
+          {ventas.map((venta, i) => (
+            <tr key={i} className="hover:bg-[#f6faf7] transition">
+              <td className="px-4 py-3 border-r border-[#edf2ef]">{venta.numero}</td>
+              <td className="px-4 py-3 border-r border-[#edf2ef]">{venta.tipo}</td>
+              <td className="px-4 py-3 border-r border-[#edf2ef]">{venta.fecha}</td>
+              <td className="px-4 py-3 border-r border-[#edf2ef]">${venta.total}</td>
+
+              <td className="px-4 py-3 border-r border-[#edf2ef]">
+                <button
+                  onClick={() => handleOpenModal(venta)}
+                  className="px-3 py-1 border border-[#154734] text-[#154734] rounded-md hover:bg-[#e8f4ef] transition"
+                >
+                  Ver Detalle
+                </button>
+              </td>
+
+              <td className="px-4 py-3 border-r border-[#edf2ef]">
+                {venta.observaciones}
+              </td>
+
+              <td className="px-4 py-3 w-[170px] border-r border-[#edf2ef] last:border-none">
+                <div className="flex justify-between items-center">
+                  <div className="flex flex-col gap-2">
+                    <ActionButton
+                      type="edit"
+                      text="MODIFICAR"
+                      className="w-[100px] py-1.5"
+                      onClick={() => handleEditModal(venta)}
+                    />
+                    <ActionButton
+                      type="delete"
+                      text="ANULAR"
+                      className="w-[100px] py-1.5"
+                    />
+                  </div>
+
+                  <button
+                    title="Descargar"
+                    className="border border-[#154734] text-[#154734] rounded-md hover:bg-[#a8acaa] transition p-1 flex items-center justify-center w-[34px] h-[34px]"
+                  >
+                    <Download size={16} />
+                  </button>
+                </div>
               </td>
             </tr>
           ) : (
