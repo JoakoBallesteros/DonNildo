@@ -90,7 +90,7 @@ export default function DataTable({ headers, data }) {
 
                   <button
                     title="Descargar"
-                    className="border border-[#154734] text-[#154734] rounded-md hover:bg-[#e8f4ef] transition p-1 flex items-center justify-center w-[34px] h-[34px]"
+                    className="border border-[#154734] text-[#154734] rounded-md hover:bg-[#a8acaa] transition p-1 flex items-center justify-center w-[34px] h-[34px]"
                   >
                     <Download size={16} />
                   </button>
