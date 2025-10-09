@@ -1,7 +1,27 @@
 import React from "react";
 
-export default function VentaDetalleModal({ isOpen, onClose, data }) {
+/**
+ * 🔹 DetailModal (versión generalizada)
+ *
+ * Props:
+ * - isOpen: boolean → controla si se muestra el modal
+ * - onClose: función → se ejecuta al cerrar el modal
+ * - title: string → título del modal
+ * - columns: array → nombres de columnas [{key, label}]
+ * - data: objeto con la información principal (ej: { numero, fecha, total, items: [] })
+ * - itemsKey: string → nombre de la propiedad que contiene los ítems (ej: "productos", "detalles", etc.)
+ */
+export default function DetailModal({
+  isOpen,
+  onClose,
+  title = "Detalle",
+  columns = [],
+  data = {},
+  itemsKey = "items",
+}) {
   if (!isOpen) return null;
+
+  const items = data[itemsKey] || [];
 
   return (
     <div className="fixed inset-0 bg-black/40 flex justify-center items-start pt-24 z-50">
@@ -9,7 +29,7 @@ export default function VentaDetalleModal({ isOpen, onClose, data }) {
         {/* Header */}
         <div className="flex justify-between items-center border-b border-slate-200 pb-3 mb-4">
           <h3 className="text-xl font-bold text-[#154734]">
-            Detalle de Venta Nº {data?.numero || ""}
+            {title} Nº {data?.numero || ""}
           </h3>
           <button
             onClick={onClose}
@@ -19,43 +39,41 @@ export default function VentaDetalleModal({ isOpen, onClose, data }) {
           </button>
         </div>
 
-        {/* Detalles de la venta */}
+        {/* Tabla de detalles */}
         <table className="w-full text-sm text-left border-collapse">
           <thead className="bg-[#e8f4ef] text-[#154734]">
             <tr>
-              <th className="px-3 py-2">Tipo</th>
-              <th className="px-3 py-2">Producto</th>
-              <th className="px-3 py-2">Cantidad</th>
-              <th className="px-3 py-2">Medida</th>
-              <th className="px-3 py-2">Precio Unitario</th>
-              <th className="px-3 py-2">SubTotal</th>
-              <th className="px-3 py-2">Fecha</th>
+              {columns.map((col) => (
+                <th key={col.key} className="px-3 py-2">
+                  {col.label}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {data?.productos?.map((item, index) => (
+            {items.map((item, index) => (
               <tr
                 key={index}
                 className="border-t border-slate-100 hover:bg-[#f6faf7]"
               >
-                <td className="px-3 py-2">{item.tipo}</td>
-                <td className="px-3 py-2">{item.producto}</td>
-                <td className="px-3 py-2">{item.cantidad}</td>
-                <td className="px-3 py-2">{item.medida}</td>
-                <td className="px-3 py-2">${item.precio}</td>
-                <td className="px-3 py-2">${item.subtotal}</td>
-                <td className="px-3 py-2">{data.fecha}</td>
+                {columns.map((col) => (
+                  <td key={col.key} className="px-3 py-2">
+                    {item[col.key] ?? ""}
+                  </td>
+                ))}
               </tr>
             ))}
           </tbody>
         </table>
 
         {/* Total */}
-        <div className="flex justify-end mt-6 border-t border-slate-200 pt-4">
-          <p className="text-lg font-semibold text-[#154734]">
-            Total: ${data?.total || 0}
-          </p>
-        </div>
+        {data.total !== undefined && (
+          <div className="flex justify-end mt-6 border-t border-slate-200 pt-4">
+            <p className="text-lg font-semibold text-[#154734]">
+              Total: ${data?.total || 0}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
