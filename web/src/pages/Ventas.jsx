@@ -4,7 +4,7 @@ import PageContainer from "../components/pages/PageContainer";
 import DataTable from "../components/tables/DataTable";
 import ActionButton from "../components/buttons/ActionButton";
 import Modal from "../components/modals/Modals";
-
+import FilterBar from "../components/forms/FilterBars";
 // MOCK
 const DATA = [
   {
@@ -31,6 +31,25 @@ const DATA = [
         subtotal: 1500,
       },
     ],
+    
+  },
+  {
+    numero: 2,
+    tipo: "Caja",
+    fecha: "09/10/2025",
+    total: 3500,
+    observaciones: "—",
+    productos: [
+      {
+        tipo: "Caja",
+        producto: "Cartón reciclado",
+        cantidad: 10,
+        medida: "kg",
+        precio: 200,
+        subtotal: 2000,
+      },
+    ],
+    
   },
 ];
 
@@ -87,7 +106,7 @@ export default function Ventas() {
             <button
               type="button"
               aria-label="Descargar comprobante"
-              className="grid place-items-center h-9 w-9 rounded-md border border-[#154734] text-[#154734] bg-white hover:bg-[#e8f4ef] focus:outline-none focus:ring-2 focus:ring-[#154734]/30"
+              className="grid place-items-center h-9 w-9 rounded-md border ml-2 text-[#000000] bg-white hover:bg-[#e8f4ef] focus:outline-none focus:ring-2 focus:ring-[#154734]/30"
             >
               <Download className="h-4 w-4" />
             </button>
@@ -107,56 +126,9 @@ export default function Ventas() {
         </button>
       }
     >
-      {/* Pills */}
-      <div className="flex gap-3 mb-6">
-        {["todo", "materiales", "cajas", "mixtas"].map((k) => (
-          <button
-            key={k}
-            onClick={() => setFiltro(k)}
-            className={`px-4 py-1.5 rounded-full font-medium transition ${
-              filtro === k
-                ? "bg-[#154734] text-white shadow-sm"
-                : "bg-[#e8f4ef] text-[#154734] hover:bg-[#dbeee6]"
-            }`}
-          >
-            {k[0].toUpperCase() + k.slice(1)}
-          </button>
-        ))}
-      </div>
+     
 
-      {/* Barra filtros (idéntica a la tuya) */}
-      <div className="bg-[#f7fbf8] rounded-xl p-5 flex flex-wrap gap-4 items-end border border-[#e2ede8] mb-6">
-        <div className="flex flex-col">
-          <label className="text-sm text-[#154734] font-semibold mb-1">
-            Buscar
-          </label>
-          <input
-            placeholder="Proveedor, orden..."
-            className="border border-[#d8e4df] rounded-md px-3 py-2 w-64 focus:outline-none focus:ring-1 focus:ring-[#154734]"
-          />
-        </div>
-        <div className="flex flex-col">
-          <label className="text-sm text-[#154734] font-semibold mb-1">
-            Desde
-          </label>
-          <input
-            placeholder="dd/mm/aaaa"
-            className="border border-[#d8e4df] rounded-md px-3 py-2 w-40 focus:outline-none focus:ring-1 focus:ring-[#154734]"
-          />
-        </div>
-        <div className="flex flex-col">
-          <label className="text-sm text-[#154734] font-semibold mb-1">
-            Hasta
-          </label>
-          <input
-            placeholder="dd/mm/aaaa"
-            className="border border-[#d8e4df] rounded-md px-3 py-2 w-40 focus:outline-none focus:ring-1 focus:ring-[#154734]"
-          />
-        </div>
-        <button className="ml-auto bg-[#154734] text-white px-6 py-2 rounded-md hover:bg-[#103a2b]">
-          Aplicar Filtros
-        </button>
-      </div>
+     <FilterBar onFilter={(selected) => setFiltro(selected.toLowerCase())} />
 
       <DataTable columns={columns} data={ventas} stickyHeader />
 

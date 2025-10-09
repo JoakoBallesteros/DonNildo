@@ -28,14 +28,20 @@ export default function DataTable({
       <table className={tableClass}>
         <thead
           className={theadClass}
-          style={stickyHeader ? { position: "sticky", top: 0, zIndex: 1 } : undefined}
+          style={
+            stickyHeader ? { position: "sticky", top: 0, zIndex: 1 } : undefined
+          }
         >
           <tr>
             {columns.map((col, i) => (
               <th
                 key={col.id ?? i}
                 className={`${headerClass} ${col.headerClass || ""} ${
-                  col.align === "center" ? "text-center" : col.align === "right" ? "text-right" : "text-left"
+                  col.align === "center"
+                    ? "text-center"
+                    : col.align === "right"
+                    ? "text-right"
+                    : "text-left"
                 }`}
                 style={{ width: col.width }}
               >
@@ -45,97 +51,44 @@ export default function DataTable({
           </tr>
         </thead>
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> cd900643af3719029ccae24137627e0f94aea49d
-        <tbody>
-          {ventas.map((venta, i) => (
-            <tr key={i} className="hover:bg-[#f6faf7] transition">
-              <td className="px-4 py-3 border-r border-[#edf2ef]">{venta.numero}</td>
-              <td className="px-4 py-3 border-r border-[#edf2ef]">{venta.tipo}</td>
-              <td className="px-4 py-3 border-r border-[#edf2ef]">{venta.fecha}</td>
-              <td className="px-4 py-3 border-r border-[#edf2ef]">${venta.total}</td>
+       <tbody>
+  {data.length === 0 ? (
+    <tr>
+      <td
+        className="px-4 py-6 text-slate-500 text-center border-t border-[#edf2ef]"
+        colSpan={columns.length}
+      >
+        No hay datos
+      </td>
+    </tr>
+  ) : (
+    data.map((row, ri) => (
+      <tr
+        key={ri}
+        className={`hover:bg-[#f6faf7] transition border-t border-[#edf2ef]`}
+      >
+        {columns.map((col, ci) => {
+          const content = col.render
+            ? col.render(row, ri)
+            : typeof col.accessor === "function"
+            ? col.accessor(row, ri)
+            : col.accessor
+            ? row[col.accessor]
+            : null;
 
-              <td className="px-4 py-3 border-r border-[#edf2ef]">
-                <button
-                  onClick={() => handleOpenModal(venta)}
-                  className="px-3 py-1 border border-[#154734] text-[#154734] rounded-md hover:bg-[#e8f4ef] transition"
-                >
-                  Ver Detalle
-                </button>
-              </td>
-
-              <td className="px-4 py-3 border-r border-[#edf2ef]">
-                {venta.observaciones}
-              </td>
-
-              <td className="px-4 py-3 w-[170px] border-r border-[#edf2ef] last:border-none">
-                <div className="flex justify-between items-center">
-                  <div className="flex flex-col gap-2">
-                    <ActionButton
-                      type="edit"
-                      text="MODIFICAR"
-                      className="w-[100px] py-1.5"
-                      onClick={() => handleEditModal(venta)}
-                    />
-                    <ActionButton
-                      type="delete"
-                      text="ANULAR"
-                      className="w-[100px] py-1.5"
-                    />
-                  </div>
-
-                  <button
-                    title="Descargar"
-                    className="border border-[#154734] text-[#154734] rounded-md hover:bg-[#a8acaa] transition p-1 flex items-center justify-center w-[34px] h-[34px]"
-                  >
-                    <Download size={16} />
-                  </button>
-                </div>
-<<<<<<< HEAD
-=======
-        <tbody className={tbodyClass}>
-          {data.length === 0 ? (
-            <tr>
-              <td className="px-4 py-6 text-slate-500 text-center" colSpan={columns.length}>
-                {emptyLabel}
->>>>>>> e10a8d987b9b3e46c313bc02a7e2d302091e2048
-=======
->>>>>>> cd900643af3719029ccae24137627e0f94aea49d
-              </td>
-            </tr>
-          ) : (
-            data.map((row, ri) => (
-              <tr
-                key={rowKey(row, ri)}
-                className={`${rowClass} ${zebra && ri % 2 === 1 ? "bg-slate-50/40" : ""}`}
-                onClick={onRowClick ? () => onRowClick(row, ri) : undefined}
-              >
-                {columns.map((col, ci) => {
-                  const content = col.render
-                    ? col.render(row, ri)
-                    : typeof col.accessor === "function"
-                      ? col.accessor(row, ri)
-                      : col.accessor
-                        ? row[col.accessor]
-                        : null;
-
-                  return (
-                    <td
-                      key={col.id ?? ci}
-                      className={`${cellClass} ${col.cellClass || ""} ${
-                        col.align === "center" ? "text-center" : col.align === "right" ? "text-right" : "text-left"
-                      }`}
-                    >
-                      {content}
-                    </td>
-                  );
-                })}
-              </tr>
-            ))
-          )}
-        </tbody>
+          return (
+            <td
+              key={ci}
+              className={`px-4 py-3 border-r border-[#edf2ef] last:border-none`}
+            >
+              {content}
+            </td>
+          );
+        })}
+      </tr>
+    ))
+  )}
+</tbody>
       </table>
     </div>
   );
