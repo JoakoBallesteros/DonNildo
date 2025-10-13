@@ -5,6 +5,8 @@ import FilterBar from "../components/forms/FilterBars";
 import DataTable from "../components/tables/DataTable";
 import DetailModal from "../components/modals/Details";
 import Modified from "../components/modals/modified";
+import { useNavigate } from "react-router-dom";
+
 
 // 🔹 Datos de ejemplo (mock)
 const DATA = [
@@ -36,7 +38,7 @@ export default function Ventas() {
   const [selectedVenta, setSelectedVenta] = useState(null);
   const [isDetailOpen, setDetailOpen] = useState(false);
   const [isEditOpen, setEditOpen] = useState(false);
-
+  const navigate = useNavigate();
 
   const [filtroTipo, setFiltroTipo] = useState("Todo");
   const [filtros, setFiltros] = useState({ buscar: "", desde: "", hasta: "" });
@@ -47,7 +49,7 @@ export default function Ventas() {
     setFiltros({ buscar, desde, hasta });
     if (tipo) setFiltroTipo(tipo);
   };
-
+     
 
   const reiniciarFiltros = () => {
     setFiltros({ buscar: "", desde: "", hasta: "" });
@@ -173,7 +175,10 @@ export default function Ventas() {
     <PageContainer
       title="Lista de Ventas"
       actions={
-        <button className="bg-[#154734] text-white px-4 py-2 rounded-md hover:bg-[#103a2b] transition">
+        <button
+          onClick={() => navigate("/ventas/nueva")}
+          className="bg-[#154734] text-white px-4 py-2 rounded-md hover:bg-[#103a2b] transition"
+        >
           Añadir nueva venta
         </button>
       }
