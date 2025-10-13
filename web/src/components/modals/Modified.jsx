@@ -1,49 +1,79 @@
 import React, { useState, useEffect } from "react";
 import Modal from "./Modals";
 
-/**
- * Modal genérico para edición de datos
- * Ejemplo de uso:
- * <Modified
- *   isOpen={isOpen}
- *   onClose={onClose}
- *   title="Editar producto"
- *   data={objeto}
- *   fields={[{key:"nombre",label:"Nombre"},{key:"precio",type:"number"}]}
- *   onSave={(data)=>console.log(data)}
- * />
- */
 export default function Modified({
   isOpen,
   onClose,
   title = "Modificar",
   data = {},
-  fields = [],
+  itemsKey,
+  items,
+  columns = [],
   onSave,
+  computeTotal,
+  extraFooter,
+  size = "max-w-5xl",
 }) {
+  const [list, setList] = useState([]);
   const [formData, setFormData] = useState({});
 
+  const listMode = Boolean(itemsKey) || Array.isArray(items);
+
+  // ✅ Cargar data cada vez que cambia y el modal esté abierto
   useEffect(() => {
-    if (data) setFormData(data);
-  }, [data]);
+    if (!isOpen || !data) return;
 
-  if (!isOpen) return null;
+    const src = Array.isArray(items)
+      ? items
+      : listMode
+      ? data?.[itemsKey] || []
+      : [];
 
-  const handleChange = (key, value) => {
-    setFormData((prev) => ({ ...prev, [key]: value }));
+    // Clonamos los datos
+    setList(src.map((r) => ({ ...r })));
+    setFormData({ ...data });
+  }, [isOpen, data, itemsKey, items, listMode]);
+
+  if (!isOpen || !data) return null;
+
+  const handleChange = (i, key, value) => {
+    const updated = [...list];
+    updated[i][key] = value;
+
+    if (["cantidad", "precio"].includes(key)) {
+      const cantidad = parseFloat(updated[i].cantidad) || 0;
+      const precio = parseFloat(updated[i].precio) || 0;
+      updated[i].subtotal = cantidad * precio;
+    }
+
+    setList(updated);
   };
 
   const handleSave = () => {
-    if (onSave) onSave(formData);
+    const updated = { ...formData };
+    if (listMode && itemsKey) updated[itemsKey] = list;
+    if (typeof computeTotal === "function") {
+      updated.total = computeTotal(list);
+    }
+    if (onSave) onSave(updated);
     onClose();
   };
+
+  // Si aún no se cargó el array, mostrar “Cargando...”
+  if (listMode && list.length === 0) {
+    return (
+      <Modal isOpen={isOpen} title={title} onClose={onClose} size={size}>
+        <div className="text-center text-slate-500 py-8">Cargando datos...</div>
+      </Modal>
+    );
+  }
 
   return (
     <Modal
       isOpen={isOpen}
       title={title}
       onClose={onClose}
-      size="max-w-3xl"
+      size={size}
       footer={
         <div className="flex justify-end gap-2">
           <button
@@ -56,48 +86,71 @@ export default function Modified({
             onClick={handleSave}
             className="bg-[#154734] text-white px-6 py-2 rounded-md hover:bg-[#103a2b]"
           >
-            Guardar Cambios
+            Guardar cambios
           </button>
         </div>
       }
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {fields.map((f) => (
-          <div key={f.key} className="flex flex-col">
-            <label className="text-sm font-semibold text-[#154734] mb-1">
-              {f.label || f.key}
-            </label>
-
-            {f.type === "textarea" ? (
-              <textarea
-                value={formData[f.key] || ""}
-                onChange={(e) => handleChange(f.key, e.target.value)}
-                className="border border-slate-200 rounded-md px-3 py-2 resize-none"
-                rows={3}
-              />
-            ) : f.type === "select" ? (
-              <select
-                value={formData[f.key] || ""}
-                onChange={(e) => handleChange(f.key, e.target.value)}
-                className="border border-slate-200 rounded-md px-3 py-2"
-              >
-                {f.options?.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
+      {columns.length > 0 ? (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm border-collapse">
+            <thead className="bg-[#e8f4ef] text-[#154734]">
+              <tr>
+                {columns.map((col) => (
+                  <th
+                    key={col.key}
+                    className="px-3 py-2 text-center font-semibold"
+                    style={{ width: col.width }}
+                  >
+                    {col.label}
+                  </th>
                 ))}
-              </select>
-            ) : (
-              <input
-                type={f.type || "text"}
-                value={formData[f.key] || ""}
-                onChange={(e) => handleChange(f.key, e.target.value)}
-                className="border border-slate-200 rounded-md px-3 py-2"
-              />
-            )}
-          </div>
-        ))}
-      </div>
+              </tr>
+            </thead>
+            <tbody>
+              {list.map((row, i) => (
+                <tr
+                  key={i}
+                  className="border-t border-slate-100 hover:bg-[#f6faf7]"
+                >
+                  {columns.map((col) => (
+                    <td key={col.key} className="px-3 py-2 text-center">
+                      {col.readOnly ? (
+                        <span>{row[col.key]}</span>
+                      ) : (
+                        <input
+                          type={col.type || "text"}
+                          value={row[col.key] ?? ""}
+                          onChange={(e) =>
+                            handleChange(
+                              i,
+                              col.key,
+                              col.type === "number"
+                                ? Number(e.target.value)
+                                : e.target.value
+                            )
+                          }
+                          className="border border-slate-200 rounded-md px-2 py-1 w-full text-center"
+                        />
+                      )}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="text-slate-500 text-center py-8">
+          Sin columnas definidas.
+        </div>
+      )}
+
+      {extraFooter ? (
+        <div className="mt-4 border-t border-slate-200 pt-4">
+          {extraFooter}
+        </div>
+      ) : null}
     </Modal>
   );
 }
