@@ -1,18 +1,21 @@
 export default function ActionButton({
   type = "edit",
-  text,
+  text = "",
   onClick,
   className = "",
 }) {
-  const styles =
-    type === "edit"
-      ? "bg-[#0c7c59] hover:bg-[#0a6648]"
-      : "bg-[#b32121] hover:bg-[#941b1b]";
+  const base =
+    "w-[110px] py-1.5 rounded-md text-white font-medium text-sm transition";
+
+  const styles = {
+    edit: "bg-[#0f7a4e] hover:bg-[#0d6843]", // Verde
+    delete: "bg-[#b91c1c] hover:bg-[#991b1b]", // Rojo
+  };
 
   return (
     <button
       onClick={onClick}
-      className={`${styles} text-white px-1 py-1.5 rounded-md text-sm font-semibold transition ${className}`}
+      className={`${base} ${styles[type] || ""} ${className}`}
     >
       {text}
     </button>
