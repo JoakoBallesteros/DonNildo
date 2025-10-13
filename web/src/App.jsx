@@ -6,6 +6,7 @@ import Compras from "./pages/Compras.jsx";
 import Reportes from "./pages/Reportes.jsx";
 import Seguridad from "./pages/Seguridad.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
+import RegistrarCompra from "./pages/RegistrarCompra.jsx";
 
 /* Stock */
 import StockList from "./pages/StockList.jsx";
@@ -25,7 +26,13 @@ export default function App() {
 
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
-          <Route path="compras" element={<Compras />} />
+
+          {/* 👇 Rutas anidadas para compras */}
+          <Route path="compras" element={<Outlet />}>
+            <Route index element={<Compras />} />
+            <Route path="nueva" element={<RegistrarCompra />} />
+          </Route>
+
           <Route path="ventas" element={<Ventas />} />
           <Route path="ventas/nueva" element={<RegistrarVentas />} />
           {/* 👇 Ruta padre con Outlet (importado arriba) */}
