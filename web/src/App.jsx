@@ -3,7 +3,6 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom
 import Layout from "./components/pages/Layout.jsx";
 import Home from "./pages/Home.jsx";
 import Compras from "./pages/Compras.jsx";
-import Ventas from "./pages/Ventas.jsx";
 import Reportes from "./pages/Reportes.jsx";
 import Seguridad from "./pages/Seguridad.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
@@ -12,6 +11,11 @@ import LoginPage from "./pages/LoginPage.jsx";
 import StockList from "./pages/StockList.jsx";
 import StockNuevoProducto from "./pages/StockNuevoProducto.jsx";
 import StockPesaje from "./pages/StockPesaje.jsx";
+
+/* Ventas */
+import Ventas from "./pages/ListaVentas.jsx";
+import RegistrarVentas from "./pages/RegistrarVentas.jsx";
+
 
 export default function App() {
   return (
@@ -23,7 +27,7 @@ export default function App() {
           <Route index element={<Home />} />
           <Route path="compras" element={<Compras />} />
           <Route path="ventas" element={<Ventas />} />
-
+          <Route path="ventas/nueva" element={<RegistrarVentas />} />
           {/* 👇 Ruta padre con Outlet (importado arriba) */}
           <Route path="stock" element={<Outlet />}>
             <Route index element={<StockList />} />
