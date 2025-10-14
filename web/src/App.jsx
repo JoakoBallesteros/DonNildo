@@ -17,6 +17,10 @@ import StockPesaje from "./pages/StockPesaje.jsx";
 import Ventas from "./pages/ListaVentas.jsx";
 import RegistrarVentas from "./pages/RegistrarVentas.jsx";
 
+/* Reportes */
+import ReportesNuevo from "./pages/ReportesNuevo";
+
+
 
 export default function App() {
   return (
@@ -43,6 +47,7 @@ export default function App() {
           </Route>
 
           <Route path="reportes" element={<Reportes />} />
+          <Route path="/reportes/nuevo" element={<ReportesNuevo />} />
           <Route path="seguridad" element={<Seguridad />} />
         </Route>
 
