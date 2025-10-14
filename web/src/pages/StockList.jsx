@@ -1,4 +1,5 @@
 // src/pages/StockList.jsx
+// src/pages/StockList.jsx
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Download } from "lucide-react";
@@ -6,6 +7,10 @@ import PageContainer from "../components/pages/PageContainer";
 import FilterBar from "../components/forms/FilterBars";
 import DataTable from "../components/tables/DataTable";
 import Modified from "../components/modals/modified";
+
+// 💡 nuevos imports para crear desde modal
+import Modal from "../components/modals/Modals";
+import ProductFormTabs from "../components/forms/ProductFormTabs";
 
 // ===== MOCK (ejemplos de Material y Caja)
 const STOCK = [
@@ -22,12 +27,12 @@ const STOCK = [
     id: "caj-001",
     tipo: "Caja",
     referencia: "Caja corrugada",
-    categoria: "Mediana",           // Sólo para Cajas
+    categoria: "Mediana",
     unidad: "u",
     disponible: 50,
     ultimoMov: "2025-10-05",
     precio: 1200,
-    medidas: { l: 40, a: 30, h: 20 } // Largo × Ancho × Alto (cm)
+    medidas: { l: 40, a: 30, h: 20 },
   },
 ];
 
@@ -53,6 +58,9 @@ export default function StockList() {
   // === Modal editar (una sola fila)
   const [isEditOpen, setEditOpen] = useState(false);
   const [editRow, setEditRow] = useState(null);
+
+  // === Modal crear nuevo producto (reutiliza ProductFormTabs)
+  const [isNewOpen, setNewOpen] = useState(false);
 
   // Mapeo de pills -> tipo
   const tipoMap = {
@@ -108,22 +116,32 @@ export default function StockList() {
     { label: "Referencia / material", type: "text", placeholder: "Buscar…", name: "buscar" },
     ...(filtroTipo === "Cajas"
       ? [
-          { label: "Categoría", type: "select", name: "categoria", options: [
-            { value: "", label: "Todas" },
-            { value: "Chica", label: "Chica" },
-            { value: "Mediana", label: "Mediana" },
-            { value: "Grande", label: "Grande" },
-          ]},
+          {
+            label: "Categoría",
+            type: "select",
+            name: "categoria",
+            options: [
+              { value: "", label: "Todas" },
+              { value: "Chica", label: "Chica" },
+              { value: "Mediana", label: "Mediana" },
+              { value: "Grande", label: "Grande" },
+            ],
+          },
           { label: "Largo (cm)", type: "number", name: "medidaL", placeholder: "Ej: 40" },
           { label: "Ancho (cm)", type: "number", name: "medidaA", placeholder: "Ej: 30" },
-          { label: "Alto (cm)",  type: "number", name: "medidaH", placeholder: "Ej: 20" },
+          { label: "Alto (cm)", type: "number", name: "medidaH", placeholder: "Ej: 20" },
         ]
       : [
-          { label: "Unidad", type: "select", name: "medida", options: [
-            { value: "", label: "Todas" },
-            { value: "kg", label: "kg" },
-            { value: "u", label: "u" },
-          ]},
+          {
+            label: "Unidad",
+            type: "select",
+            name: "medida",
+            options: [
+              { value: "", label: "Todas" },
+              { value: "kg", label: "kg" },
+              { value: "u", label: "u" },
+            ],
+          },
         ]),
     { label: "Desde", type: "date", name: "desde" },
     { label: "Hasta", type: "date", name: "hasta" },
@@ -222,7 +240,7 @@ export default function StockList() {
             }}
             className="bg-[#154734] text-white px-3 py-1 text-xs rounded-md hover:bg-[#1E5A3E]"
           >
-            Modificar
+            MODIFICAR
           </button>
         ),
       },
@@ -239,7 +257,39 @@ export default function StockList() {
   const handleSaveEdited = (payload) => {
     const updated = payload?.rows?.[0];
     if (!updated || !editRow) return;
-    setItems((prev) => prev.map((r) => (r.id === editRow.id ? { ...r, ...updated } : r)));
+    setItems((prev) =>
+      prev.map((r) => (r.id === editRow.id ? { ...r, ...updated } : r))
+    );
+  };
+
+  // === Helper: mapear valores del formulario a una fila de tabla
+  const mapFormToRow = (v) => {
+    if (v.tipo === "Caja") {
+      const medida = `${v.medidas.l}x${v.medidas.a}x${v.medidas.h} cm`;
+      return {
+        id: crypto.randomUUID?.() || String(Date.now()),
+        tipo: "Caja",
+        referencia: v.referencia,
+        categoria: v.categoria,
+        medidas: v.medidas,
+        unidad: "u",
+        disponible: 0,
+        ultimoMov: new Date().toISOString().slice(0, 10),
+        precio: v.precio,
+        medida, // si en algún lado querés string
+      };
+    } else {
+      return {
+        id: crypto.randomUUID?.() || String(Date.now()),
+        tipo: "Material",
+        referencia: v.referencia,
+        categoria: "—",
+        unidad: v.unidad, // "kg" | "u"
+        disponible: v.cantidad || 0,
+        ultimoMov: new Date().toISOString().slice(0, 10),
+        precio: v.precio,
+      };
+    }
   };
 
   return (
@@ -249,7 +299,7 @@ export default function StockList() {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => nav("nuevo-producto")}
+            onClick={() => setNewOpen(true)}
             className="rounded-md border border-[#154734] text-[#154734] px-4 py-2 hover:bg-[#e8f4ef]"
           >
             + Nuevo producto
@@ -301,7 +351,36 @@ export default function StockList() {
         </button>
       </div>
 
-      {/* === Modal editar con Modified (una sola fila empaquetada en "rows") */}
+      {/* === Modal CREAR nuevo producto (reutiliza ProductFormTabs) */}
+      <Modal
+        isOpen={isNewOpen}
+        title="Registrar nuevo producto"
+        onClose={() => setNewOpen(false)}
+        size="max-w-2xl"
+      >
+        <ProductFormTabs
+          mode="create"
+          initialValues={{
+            tipo: "Caja", // abre en Caja por defecto (podés cambiarlo)
+            referencia: "",
+            categoria: "",
+            medidas: { l: "", a: "", h: "" },
+            unidad: "u",
+            cantidad: "",
+            precio: "",
+            notas: "",
+          }}
+          labels={{ caja: "Caja", material: "Producto" }} // podés dejar "Material" si preferís
+          onCancel={() => setNewOpen(false)}
+          onSubmit={(values) => {
+            const nuevaFila = mapFormToRow(values);
+            setItems((prev) => [nuevaFila, ...prev]);
+            setNewOpen(false);
+          }}
+        />
+      </Modal>
+
+      {/* === Modal EDITAR con Modified (una sola fila empaquetada en "rows") */}
       {editRow && (
         <Modified
           isOpen={isEditOpen}

@@ -8,6 +8,7 @@ export default function FilterBar({
   onFilterSelect,
   resetSignal,
   selectedFilter: externalSelected,
+  applyLabel = "Aplicar Filtros", // 👈 nuevo prop (default igual que antes)
 }) {
   const [selectedFilter, setSelectedFilter] = useState(filters[0] || "");
   const [formData, setFormData] = useState({});
@@ -39,7 +40,7 @@ export default function FilterBar({
   useEffect(() => {
     setFormData({});
     setSelectedFilter(filters[0] || "");
-  }, [resetSignal]);
+  }, [resetSignal, filters]);
 
   return (
     <div className="mb-6">
@@ -98,14 +99,12 @@ export default function FilterBar({
           ))}
 
           {/* Botón aplicar */}
-          <div className="flex justify-end">
-            <button
-              onClick={handleApply}
-              className="bg-[#154734] text-white px-6 py-2 rounded-md hover:bg-[#103a2b]"
-            >
-              Aplicar Filtros
-            </button>
-          </div>
+          <button
+            onClick={handleApply}
+            className="bg-[#154734] text-white px-6 py-2 rounded-md hover:bg-[#103a2b]"
+          >
+            {applyLabel}
+          </button>
 
           {/* Reiniciar */}
           <div className="flex justify-start">
