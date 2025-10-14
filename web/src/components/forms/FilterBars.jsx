@@ -1,3 +1,4 @@
+// src/components/forms/FilterBars.jsx
 import { useEffect, useState } from "react";
 
 export default function FilterBar({
@@ -5,22 +6,18 @@ export default function FilterBar({
   fields = [],
   onApply,
   onReset,
-  onFilterSelect,
+  onFilterSelect,         // recibe el nuevo valor de la pill
   resetSignal,
-  selectedFilter: externalSelected,
-  applyLabel = "Aplicar Filtros", // 👈 nuevo prop (default igual que antes)
+  selectedFilter,         // 👈 CONTROLADO: viene del padre (p.ej. "Todo"|"Cajas"|"Materiales")
+  applyLabel = "Aplicar Filtros",
 }) {
-  const [selectedFilter, setSelectedFilter] = useState(filters[0] || "");
+  // solo guardamos los campos del formulario
   const [formData, setFormData] = useState({});
 
-  // Sync con el padre
-  useEffect(() => {
-    if (externalSelected) setSelectedFilter(externalSelected);
-  }, [externalSelected]);
+  const current = selectedFilter ?? filters[0] ?? ""; // para render
 
   const handleSelect = (filter) => {
-    setSelectedFilter(filter);
-    onFilterSelect?.(filter);
+    onFilterSelect?.(filter); // no seteamos estado local de la pill
   };
 
   const handleChange = (e) => {
@@ -28,7 +25,7 @@ export default function FilterBar({
   };
 
   const handleApply = () => {
-    onApply?.({ ...formData, tipo: selectedFilter });
+    onApply?.({ ...formData, tipo: current });
   };
 
   const handleReset = () => {
@@ -36,23 +33,23 @@ export default function FilterBar({
     onReset?.();
   };
 
-  // Limpiar cuando llega resetSignal
+  // limpiar cuando llega resetSignal
   useEffect(() => {
     setFormData({});
-    setSelectedFilter(filters[0] || "");
-  }, [resetSignal, filters]);
+  }, [resetSignal]);
 
   return (
     <div className="mb-6">
-      {/* 🔹 Botones de filtro superiores */}
+      {/* 🔹 Pills */}
       {filters.length > 0 && (
         <div className="flex gap-3 mb-4">
           {filters.map((f) => (
             <button
               key={f}
+              type="button"                             // evita submit accidental
               onClick={() => handleSelect(f)}
               className={`px-4 py-1.5 rounded-full font-medium transition ${
-                selectedFilter === f
+                current === f
                   ? "bg-[#154734] text-white shadow-sm"
                   : "bg-[#e8f4ef] text-[#154734] hover:bg-[#dbeee6]"
               }`}
@@ -100,6 +97,7 @@ export default function FilterBar({
 
           {/* Botón aplicar */}
           <button
+            type="button"
             onClick={handleApply}
             className="bg-[#154734] text-white px-6 py-2 rounded-md hover:bg-[#103a2b]"
           >
@@ -109,6 +107,7 @@ export default function FilterBar({
           {/* Reiniciar */}
           <div className="flex justify-start">
             <button
+              type="button"
               onClick={handleReset}
               className="text-[#154734] underline text-sm hover:text-[#0d2e22]"
             >
@@ -120,3 +119,4 @@ export default function FilterBar({
     </div>
   );
 }
+
