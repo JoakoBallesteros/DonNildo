@@ -7,19 +7,19 @@ export default function FilterBar({
   onReset,
   onFilterSelect,
   resetSignal,
-  selectedFilter: externalSelected, // 👈 nuevo prop
+  selectedFilter: externalSelected,
 }) {
   const [selectedFilter, setSelectedFilter] = useState(filters[0] || "");
   const [formData, setFormData] = useState({});
 
-  // 🔹 sincroniza el valor desde el padre
+  // Sync con el padre
   useEffect(() => {
     if (externalSelected) setSelectedFilter(externalSelected);
   }, [externalSelected]);
 
   const handleSelect = (filter) => {
     setSelectedFilter(filter);
-    if (onFilterSelect) onFilterSelect(filter);
+    onFilterSelect?.(filter);
   };
 
   const handleChange = (e) => {
@@ -27,15 +27,15 @@ export default function FilterBar({
   };
 
   const handleApply = () => {
-    if (onApply) onApply({ ...formData, tipo: selectedFilter });
+    onApply?.({ ...formData, tipo: selectedFilter });
   };
 
   const handleReset = () => {
     setFormData({});
-    if (onReset) onReset();
+    onReset?.();
   };
 
-  // Limpia campos cuando se reinicia
+  // Limpiar cuando llega resetSignal
   useEffect(() => {
     setFormData({});
     setSelectedFilter(filters[0] || "");
@@ -70,14 +70,30 @@ export default function FilterBar({
               <label className="text-sm text-[#154734] mb-1 font-semibold">
                 {field.label}
               </label>
-              <input
-                type={field.type}
-                name={field.name}
-                value={formData[field.name] || ""}
-                onChange={handleChange}
-                placeholder={field.placeholder}
-                className="border border-[#d8e4df] rounded-md px-3 py-2 w-full focus:outline-none focus:ring-1 focus:ring-[#154734]"
-              />
+
+              {field.type === "select" ? (
+                <select
+                  name={field.name}
+                  value={formData[field.name] ?? ""}
+                  onChange={handleChange}
+                  className="border border-[#d8e4df] rounded-md px-3 py-2 w-full focus:outline-none focus:ring-1 focus:ring-[#154734]"
+                >
+                  {(field.options || []).map((opt) => (
+                    <option key={String(opt.value)} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type={field.type}
+                  name={field.name}
+                  value={formData[field.name] ?? ""}
+                  onChange={handleChange}
+                  placeholder={field.placeholder}
+                  className="border border-[#d8e4df] rounded-md px-3 py-2 w-full focus:outline-none focus:ring-1 focus:ring-[#154734]"
+                />
+              )}
             </div>
           ))}
 
@@ -95,7 +111,7 @@ export default function FilterBar({
           <div className="flex justify-start">
             <button
               onClick={handleReset}
-              className="text-[#154734] underline text-sm hover:text-[#0d2e22] "
+              className="text-[#154734] underline text-sm hover:text-[#0d2e22]"
             >
               Reiniciar filtro
             </button>

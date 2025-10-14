@@ -1,86 +1,197 @@
-import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+// src/pages/StockList.jsx
+import React, { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Download } from "lucide-react";
 import PageContainer from "../components/pages/PageContainer";
+import FilterBar from "../components/forms/FilterBars";
 import DataTable from "../components/tables/DataTable";
-import ActionButton from "../components/buttons/ActionButton";
-import Modal from "../components/modals/Modals";
-import { useNavigate } from "react-router-dom";
+import Modified from "../components/modals/modified";
 
-// MOCK
+// ===== MOCK (ejemplos de Material y Caja)
 const STOCK = [
   {
     id: "mat-001",
     tipo: "Material",
     referencia: "Cartón",
-    categoria: "—",
-    medida: "—",
-    disponible: 200, // kg o unidades
     unidad: "kg",
+    disponible: 200,
     ultimoMov: "2025-10-08",
     precio: 7000,
   },
+  {
+    id: "caj-001",
+    tipo: "Caja",
+    referencia: "Caja corrugada",
+    categoria: "Mediana",           // Sólo para Cajas
+    unidad: "u",
+    disponible: 50,
+    ultimoMov: "2025-10-05",
+    precio: 1200,
+    medidas: { l: 40, a: 30, h: 20 } // Largo × Ancho × Alto (cm)
+  },
 ];
 
-export default function Stock() {
+export default function StockList() {
+  const nav = useNavigate();
+
   const [items, setItems] = useState(STOCK);
-  const [tab, setTab] = useState("todo");
-  const [filters, setFilters] = useState({
-    q: "",
+
+  // === Filtros (mismo patrón que Ventas)
+  const [filtroTipo, setFiltroTipo] = useState("Todo"); // pills
+  const [filtros, setFiltros] = useState({
+    buscar: "",
     categoria: "",
     medida: "",
+    medidaL: "",
+    medidaA: "",
+    medidaH: "",
     desde: "",
     hasta: "",
   });
+  const [resetSignal, setResetSignal] = useState(0);
 
-  const nav = useNavigate();
-  // Modal de edición (global o por fila)
-  const [editOpen, setEditOpen] = useState(false);
+  // === Modal editar (una sola fila)
+  const [isEditOpen, setEditOpen] = useState(false);
   const [editRow, setEditRow] = useState(null);
 
-  const openEditGlobal = () => {
-    setEditRow(items[0] ?? null); // o null y eliges con un select dentro
-    setEditOpen(true);
-  };
-  const openEditRow = (row) => {
-    setEditRow(row);
-    setEditOpen(true);
-  };
-  const closeEdit = () => {
-    setEditOpen(false);
-    setEditRow(null);
+  // Mapeo de pills -> tipo
+  const tipoMap = {
+    Todo: null,
+    Cajas: "Caja",
+    Materiales: "Material",
   };
 
-  const handleSave = () => {
-    // demo: persiste cambios mínimos; conectá con tu API
-    if (!editRow) return closeEdit();
-    setItems((prev) =>
-      prev.map((r) => (r.id === editRow.id ? { ...r, ...editRow } : r))
-    );
-    closeEdit();
+  // Handler del FilterBar
+  const aplicarFiltros = ({
+    buscar,
+    categoria,
+    medida,
+    medidaL,
+    medidaA,
+    medidaH,
+    desde,
+    hasta,
+    tipo,
+  }) => {
+    setFiltros({
+      buscar: buscar || "",
+      categoria: categoria ?? "",
+      medida: medida ?? "",
+      medidaL: medidaL ?? "",
+      medidaA: medidaA ?? "",
+      medidaH: medidaH ?? "",
+      desde: desde || "",
+      hasta: hasta || "",
+    });
+    if (tipo) setFiltroTipo(tipo);
   };
 
-  const handleChangeReferencia = (id) => {
-    const base = items.find((x) => x.id === id);
-    if (!base) return;
-    // Si querés que solo se actualice referencia y tipo, podés limitar el spread
-    setEditRow((prev) => ({
-      ...prev,
-      id: base.id,
-      referencia: base.referencia,
-      tipo: base.tipo, // <- se calcula solo
-      // opcional: sincronizar otros campos del seleccionado
-      medida: base.medida,
-      unidad: base.unidad,
-    }));
+  const reiniciarFiltros = () => {
+    setFiltros({
+      buscar: "",
+      categoria: "",
+      medida: "",
+      medidaL: "",
+      medidaA: "",
+      medidaH: "",
+      desde: "",
+      hasta: "",
+    });
+    setFiltroTipo("Todo");
+    setResetSignal((n) => n + 1);
   };
 
+  const handleFilterSelect = (tipo) => setFiltroTipo(tipo);
+
+  // Campos dinámicos del FilterBar según el pill activo
+  const filterFields = [
+    { label: "Referencia / material", type: "text", placeholder: "Buscar…", name: "buscar" },
+    ...(filtroTipo === "Cajas"
+      ? [
+          { label: "Categoría", type: "select", name: "categoria", options: [
+            { value: "", label: "Todas" },
+            { value: "Chica", label: "Chica" },
+            { value: "Mediana", label: "Mediana" },
+            { value: "Grande", label: "Grande" },
+          ]},
+          { label: "Largo (cm)", type: "number", name: "medidaL", placeholder: "Ej: 40" },
+          { label: "Ancho (cm)", type: "number", name: "medidaA", placeholder: "Ej: 30" },
+          { label: "Alto (cm)",  type: "number", name: "medidaH", placeholder: "Ej: 20" },
+        ]
+      : [
+          { label: "Unidad", type: "select", name: "medida", options: [
+            { value: "", label: "Todas" },
+            { value: "kg", label: "kg" },
+            { value: "u", label: "u" },
+          ]},
+        ]),
+    { label: "Desde", type: "date", name: "desde" },
+    { label: "Hasta", type: "date", name: "hasta" },
+  ];
+
+  // === Filtrado (cliente)
+  const dataFiltrada = items.filter((r) => {
+    // 1) por pill (tipo)
+    const tSel = tipoMap[filtroTipo];
+    if (tSel && r.tipo.toLowerCase() !== tSel.toLowerCase()) return false;
+
+    // 2) búsqueda de texto
+    if (filtros.buscar) {
+      const t = filtros.buscar.toLowerCase();
+      const hit =
+        r.referencia.toLowerCase().includes(t) ||
+        r.tipo.toLowerCase().includes(t);
+      if (!hit) return false;
+    }
+
+    // 3) filtros específicos
+    if (filtroTipo === "Cajas") {
+      // Categoría (Chica/Mediana/Grande)
+      if (filtros.categoria && r.categoria !== filtros.categoria) return false;
+
+      // Medidas exactas si se ingresan (match estricto)
+      const L = Number(filtros.medidaL || 0);
+      const A = Number(filtros.medidaA || 0);
+      const H = Number(filtros.medidaH || 0);
+      if (L || A || H) {
+        const ml = r.medidas?.l ?? null;
+        const ma = r.medidas?.a ?? null;
+        const mh = r.medidas?.h ?? null;
+        if (L && ml !== L) return false;
+        if (A && ma !== A) return false;
+        if (H && mh !== H) return false;
+      }
+    } else {
+      // Materiales o Todo → filtro por unidad (kg/u)
+      if (filtros.medida && filtros.medida !== r.unidad) return false;
+    }
+
+    // 4) fechas (ultimoMov: YYYY-MM-DD)
+    const f = new Date(r.ultimoMov);
+    if (filtros.desde && f < new Date(filtros.desde)) return false;
+    if (filtros.hasta && f > new Date(filtros.hasta)) return false;
+
+    return true;
+  });
+
+  // === Columnas (mismo look que Ventas)
   const columns = useMemo(
     () => [
       { id: "tipo", header: "Tipo", accessor: "tipo" },
       { id: "referencia", header: "Referencia", accessor: "referencia" },
-      { id: "categoria", header: "Categoría", accessor: "categoria" },
-      { id: "medida", header: "Medida", accessor: "medida" },
+      {
+        id: "categoria",
+        header: "Categoría",
+        accessor: (r) => (r.tipo === "Caja" ? r.categoria || "—" : "—"),
+      },
+      {
+        id: "medida",
+        header: "Medida",
+        accessor: (r) =>
+          r.tipo === "Caja" && r.medidas
+            ? `${r.medidas.l}x${r.medidas.a}x${r.medidas.h} cm`
+            : "—",
+      },
       {
         id: "disp",
         header: "Disponible (u/kg)",
@@ -100,28 +211,35 @@ export default function Stock() {
         align: "right",
       },
       {
-        id: "acc",
+        id: "acciones",
         header: "Acciones",
-        align: "right",
-        width: 120,
-        render: (r) => (
-          <div className="flex justify-end">
-            <ActionButton
-              type="edit"
-              text="Modificar"
-              className="px-3 py-1.5"
-              onClick={() => openEditRow(r)}
-            />
-          </div>
+        align: "center",
+        render: (row) => (
+          <button
+            onClick={() => {
+              setEditRow(row);
+              setEditOpen(true);
+            }}
+            className="bg-[#154734] text-white px-3 py-1 text-xs rounded-md hover:bg-[#1E5A3E]"
+          >
+            Modificar
+          </button>
         ),
       },
     ],
     []
   );
 
+  // === Export (mock)
   const onExport = () => {
-    // Conectá con tu export (CSV/XLSX/PDF)
-    console.log("Exportar stock filtrado…", { tab, filters, items });
+    console.log("Exportar stock…", { filtroTipo, filtros });
+  };
+
+  // === Guardar cambios desde el modal Modified
+  const handleSaveEdited = (payload) => {
+    const updated = payload?.rows?.[0];
+    if (!updated || !editRow) return;
+    setItems((prev) => prev.map((r) => (r.id === editRow.id ? { ...r, ...updated } : r)));
   };
 
   return (
@@ -136,133 +254,43 @@ export default function Stock() {
           >
             + Nuevo producto
           </button>
-          <button type="button" onClick={() => nav("pesaje")} className="rounded-md border border-[#154734] text-[#154734] px-4 py-2 hover:bg-[#e8f4ef]">
-            Registrar Pesaje
-          </button>
-        
           <button
-            onClick={openEditGlobal}
-            className="bg-[#154734] text-white px-4 py-2 rounded-md hover:bg-[#103a2b]"
+            type="button"
+            onClick={() => nav("pesaje")}
+            className="rounded-md border border-[#154734] text-[#154734] px-4 py-2 hover:bg-[#e8f4ef]"
           >
-            Modificar Stock
+            Registrar Pesaje
           </button>
         </div>
       }
     >
-      {/* Pills */}
-      <div className="flex gap-3 mb-6">
-        {["todo", "cajas", "productos"].map((k) => (
-          <button
-            key={k}
-            onClick={() => setTab(k)}
-            className={`px-4 py-1.5 rounded-full font-medium transition ${
-              tab === k
-                ? "bg-[#154734] text-white shadow-sm"
-                : "bg-[#e8f4ef] text-[#154734] hover:bg-[#dbeee6]"
-            }`}
-          >
-            {k[0].toUpperCase() + k.slice(1)}
-          </button>
-        ))}
+      {/* === Pills y filtros (mismo comp. que Ventas) */}
+      <FilterBar
+        filters={["Todo", "Cajas", "Materiales"]}
+        fields={filterFields}
+        onApply={aplicarFiltros}
+        onReset={reiniciarFiltros}
+        onFilterSelect={handleFilterSelect}
+        resetSignal={resetSignal}
+        selectedFilter={filtroTipo}
+      />
+
+      {/* === Tabla */}
+      <div className="mt-6">
+        <DataTable
+          columns={columns}
+          data={dataFiltrada}
+          zebra={false}
+          stickyHeader={false}
+          tableClass="w-full text-sm text-left border-collapse"
+          theadClass="bg-[#e8f4ef] text-[#154734]"
+          rowClass="hover:bg-[#f6faf7] border-t border-[#edf2ef]"
+          headerClass="px-4 py-3 font-semibold"
+          cellClass="px-4 py-4"
+        />
       </div>
 
-      {/* Barra de filtros */}
-      <div className="bg-[#f7fbf8] rounded-xl p-5 flex flex-wrap gap-4 items-end border border-[#e2ede8] mb-6">
-        <div className="flex flex-col">
-          <label className="text-sm text-[#154734] font-semibold mb-1">
-            Referencia / material
-          </label>
-          <input
-            value={filters.q}
-            onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
-            placeholder="Referencia / material"
-            className="border border-[#d8e4df] rounded-md px-3 py-2 w-72 focus:outline-none focus:ring-1 focus:ring-[#154734]"
-          />
-        </div>
-        <div className="flex flex-col">
-          <label className="text-sm text-[#154734] font-semibold mb-1">
-            Categoría
-          </label>
-          <select
-            value={filters.categoria}
-            onChange={(e) =>
-              setFilters((f) => ({ ...f, categoria: e.target.value }))
-            }
-            className="border border-[#d8e4df] rounded-md px-3 py-2 w-56 focus:outline-none focus:ring-1 focus:ring-[#154734]"
-          >
-            <option value="">Todas</option>
-            <option value="—">—</option>
-            <option value="A">A</option>
-          </select>
-        </div>
-        <div className="flex flex-col">
-          <label className="text-sm text-[#154734] font-semibold mb-1">
-            Medida
-          </label>
-          <select
-            value={filters.medida}
-            onChange={(e) =>
-              setFilters((f) => ({ ...f, medida: e.target.value }))
-            }
-            className="border border-[#d8e4df] rounded-md px-3 py-2 w-56 focus:outline-none focus:ring-1 focus:ring-[#154734]"
-          >
-            <option value="">Todas</option>
-            <option value="kg">kg</option>
-            <option value="u">u</option>
-          </select>
-        </div>
-        <div className="flex flex-col">
-          <label className="text-sm text-[#154734] font-semibold mb-1">
-            Fecha desde
-          </label>
-          <input
-            type="date"
-            value={filters.desde}
-            onChange={(e) =>
-              setFilters((f) => ({ ...f, desde: e.target.value }))
-            }
-            className="border border-[#d8e4df] rounded-md px-3 py-2 w-56 focus:outline-none focus:ring-1 focus:ring-[#154734]"
-          />
-        </div>
-        <div className="flex flex-col">
-          <label className="text-sm text-[#154734] font-semibold mb-1">
-            Fecha hasta
-          </label>
-          <input
-            type="date"
-            value={filters.hasta}
-            onChange={(e) =>
-              setFilters((f) => ({ ...f, hasta: e.target.value }))
-            }
-            className="border border-[#d8e4df] rounded-md px-3 py-2 w-56 focus:outline-none focus:ring-1 focus:ring-[#154734]"
-          />
-        </div>
-
-        <div className="ml-auto flex items-center gap-4">
-          <button className="bg-[#154734] text-white px-6 py-2 rounded-md hover:bg-[#103a2b]">
-            Aplicar Filtros
-          </button>
-          <button
-            className="text-[#154734] underline underline-offset-2"
-            onClick={() =>
-              setFilters({
-                q: "",
-                categoria: "",
-                medida: "",
-                desde: "",
-                hasta: "",
-              })
-            }
-          >
-            Reiniciar filtro
-          </button>
-        </div>
-      </div>
-
-      {/* Tabla */}
-      <DataTable columns={columns} data={items} stickyHeader />
-
-      {/* Export */}
+      {/* === Export */}
       <div className="mt-6 flex justify-end">
         <button
           onClick={onExport}
@@ -273,117 +301,26 @@ export default function Stock() {
         </button>
       </div>
 
-      {/* Modal Editar */}
-      <Modal
-        isOpen={editOpen}
-        title={editRow ? `Modificar: ${editRow.referencia}` : "Modificar Stock"}
-        onClose={closeEdit}
-        footer={
-          <div className="flex justify-end gap-2">
-            <button
-              onClick={closeEdit}
-              className="rounded-md border border-[#154734] text-[#154734] px-4 py-2 hover:bg-[#e8f4ef]"
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={handleSave}
-              className="bg-[#154734] text-white px-6 py-2 rounded-md hover:bg-[#103a2b]"
-            >
-              Guardar cambios
-            </button>
-          </div>
-        }
-        size="max-w-3xl"
-      >
-        {editRow ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Field label="Referencia">
-              <select
-                value={editRow.id}
-                onChange={(e) => handleChangeReferencia(e.target.value)}
-                className="border border-slate-200 rounded-md px-3 py-2 w-full"
-              >
-                {items.map((it) => (
-                  <option key={it.id} value={it.id}>
-                    {it.referencia}
-                  </option>
-                ))}
-              </select>
-            </Field>
-
-            <Field label="Tipo">
-              <input
-                value={editRow.tipo}
-                readOnly
-                className="border border-slate-200 rounded-md px-3 py-2 w-full bg-slate-50 text-slate-700"
-              />
-            </Field>
-            <Field label="Disponible">
-              <input
-                type="number"
-                value={editRow.disponible}
-                onChange={(e) =>
-                  setEditRow((r) => ({
-                    ...r,
-                    disponible: Number(e.target.value),
-                  }))
-                }
-                className="border border-slate-200 rounded-md px-3 py-2 w-full"
-              />
-            </Field>
-            <Field label="Unidad">
-              <select
-                value={editRow.unidad}
-                onChange={(e) =>
-                  setEditRow((r) => ({ ...r, unidad: e.target.value }))
-                }
-                className="border border-slate-200 rounded-md px-3 py-2 w-full"
-              >
-                <option value="kg">kg</option>
-                <option value="u">u</option>
-              </select>
-            </Field>
-            <Field label="Precio unitario">
-              <input
-                type="number"
-                value={editRow.precio}
-                onChange={(e) =>
-                  setEditRow((r) => ({ ...r, precio: Number(e.target.value) }))
-                }
-                className="border border-slate-200 rounded-md px-3 py-2 w-full"
-              />
-            </Field>
-            <Field label="Último movimiento">
-              <input
-                type="date"
-                value={editRow.ultimoMov}
-                onChange={(e) =>
-                  setEditRow((r) => ({ ...r, ultimoMov: e.target.value }))
-                }
-                className="border border-slate-200 rounded-md px-3 py-2 w-full"
-              />
-            </Field>
-          </div>
-        ) : (
-          <p className="text-sm text-slate-600">
-            Elegí un producto de la tabla para modificar, o usa este modal para
-            ajustar el stock general.
-          </p>
-        )}
-      </Modal>
+      {/* === Modal editar con Modified (una sola fila empaquetada en "rows") */}
+      {editRow && (
+        <Modified
+          isOpen={isEditOpen}
+          onClose={() => setEditOpen(false)}
+          title={`Modificar stock de ${editRow.referencia}`}
+          data={{ rows: [editRow] }}
+          itemsKey="rows"
+          columns={[
+            { key: "referencia", label: "Referencia", readOnly: true },
+            { key: "tipo", label: "Tipo", readOnly: true },
+            { key: "categoria", label: "Categoría" }, // visible sólo si es Caja
+            { key: "disponible", label: "Disponible", type: "number", align: "text-center" },
+            { key: "unidad", label: "Unidad", align: "text-center" },
+            { key: "precio", label: "Precio unitario", type: "number", align: "text-center" },
+            { key: "ultimoMov", label: "Últ. mov.", align: "text-center" },
+          ]}
+          onSave={handleSaveEdited}
+        />
+      )}
     </PageContainer>
-  );
-}
-
-/** Helpers UI internos para mantener el mismo look */
-function Field({ label, children }) {
-  return (
-    <div className="flex flex-col">
-      <label className="text-sm font-semibold text-[#154734] mb-1">
-        {label}
-      </label>
-      {children}
-    </div>
   );
 }
