@@ -7,28 +7,65 @@ import DetailModal from "../components/modals/Details";
 import Modified from "../components/modals/modified";
 import { useNavigate } from "react-router-dom";
 
-
-// 🔹 Datos de ejemplo (mock)
+// 🔹 Datos simulados coherentes con RegistrarVentas
 const DATA = [
   {
-    numero: 1,
-    tipo: "Mixta",
-    fecha: "08/10/2025",
-    total: 3500,
+    numero: 101,
+    tipo: "Caja",
+    fecha: "2025-10-10",
+    total: 15000,
     observaciones: "—",
     productos: [
-      { tipo: "Caja", producto: "Cartón reciclado", cantidad: 10, medida: "kg", precio: 200, subtotal: 2000 },
-      { tipo: "Producto", producto: "Papel Kraft", cantidad: 5, medida: "kg", precio: 300, subtotal: 1500 },
+      {
+        tipo: "Caja",
+        producto: "Caja de cartón",
+        cantidad: 10,
+        medida: "u",
+        precio: 1500,
+        subtotal: 15000,
+      },
     ],
   },
   {
-    numero: 2,
+    numero: 102,
     tipo: "Producto",
-    fecha: "09/10/2025",
-    total: 1250,
+    fecha: "2025-10-11",
+    total: 12000,
     observaciones: "Sin observaciones",
     productos: [
-      { tipo: "Producto", producto: "Cartón blanco", cantidad: 2, medida: "kg", precio: 625, subtotal: 1250 },
+      {
+        tipo: "Producto",
+        producto: "Papel Kraft",
+        cantidad: 20,
+        medida: "kg",
+        precio: 600,
+        subtotal: 12000,
+      },
+    ],
+  },
+  {
+    numero: 103,
+    tipo: "Mixta",
+    fecha: "2025-10-12",
+    total: 18000,
+    observaciones: "Venta combinada",
+    productos: [
+      {
+        tipo: "Caja",
+        producto: "Combinado EcoPack",
+        cantidad: 5,
+        medida: "u",
+        precio: 2000,
+        subtotal: 10000,
+      },
+      {
+        tipo: "Producto",
+        producto: "Papel Kraft",
+        cantidad: 10,
+        medida: "kg",
+        precio: 800,
+        subtotal: 8000,
+      },
     ],
   },
 ];
@@ -44,12 +81,11 @@ export default function Ventas() {
   const [filtros, setFiltros] = useState({ buscar: "", desde: "", hasta: "" });
   const [resetSignal, setResetSignal] = useState(0);
 
- 
+  // 🔹 Aplicar filtros
   const aplicarFiltros = ({ buscar, desde, hasta, tipo }) => {
     setFiltros({ buscar, desde, hasta });
     if (tipo) setFiltroTipo(tipo);
   };
-     
 
   const reiniciarFiltros = () => {
     setFiltros({ buscar: "", desde: "", hasta: "" });
@@ -57,12 +93,8 @@ export default function Ventas() {
     setResetSignal((prev) => prev + 1);
   };
 
+  const handleFilterSelect = (tipo) => setFiltroTipo(tipo);
 
-  const handleFilterSelect = (tipo) => {
-    setFiltroTipo(tipo);
-  };
-
- 
   const tipoMap = {
     Todo: null,
     Productos: "Producto",
@@ -70,14 +102,12 @@ export default function Ventas() {
     Mixtas: "Mixta",
   };
 
-  // Filtrar ventas según los filtros aplicados
+  // 🔹 Filtrado de ventas
   const ventasFiltradas = ventas.filter((v) => {
-    // Tipo
     const tipoSeleccionado = tipoMap[filtroTipo];
     if (tipoSeleccionado && v.tipo.toLowerCase() !== tipoSeleccionado.toLowerCase())
       return false;
 
-    // Buscar
     if (filtros.buscar) {
       const texto = filtros.buscar.toLowerCase();
       const coincide =
@@ -87,8 +117,9 @@ export default function Ventas() {
       if (!coincide) return false;
     }
 
-    // Fechas
-    const [d, m, y] = v.fecha.split("/");
+    const [y, m, d] = v.fecha.includes("-")
+      ? v.fecha.split("-")
+      : v.fecha.split("/").reverse();
     const fechaVenta = new Date(`${y}-${m}-${d}`);
     if (filtros.desde && fechaVenta < new Date(filtros.desde)) return false;
     if (filtros.hasta && fechaVenta > new Date(filtros.hasta)) return false;
@@ -96,33 +127,35 @@ export default function Ventas() {
     return true;
   });
 
-  // Abrir modal de detalle
+  // 🔹 Modales
   const handleVerDetalle = (venta) => {
     setSelectedVenta(venta);
     setDetailOpen(true);
   };
 
-  // Abrir modal de modificación
   const handleModificar = (venta) => {
     setSelectedVenta(venta);
     setEditOpen(true);
   };
 
-  // Guardar cambios
   const handleGuardarCambios = (updated) => {
     setVentas((prev) => prev.map((v) => (v.numero === updated.numero ? updated : v)));
   };
 
-  // Columnas de la tabla
+  const handleAnular = (numero) => {
+    setVentas((prev) => prev.filter((v) => v.numero !== numero));
+  };
+
+  // 🔹 Columnas de la tabla
   const columns = [
-    { id: "numero", header: "N° Venta", accessor: "numero" },
-    { id: "tipo", header: "Tipo", accessor: "tipo" },
-    { id: "fecha", header: "Fecha", accessor: "fecha" },
+    { id: "numero", header: "N° Venta", accessor: "numero", align: "center" },
+    { id: "tipo", header: "Tipo", accessor: "tipo", align: "center" },
+    { id: "fecha", header: "Fecha", accessor: "fecha", align: "center" },
     {
       id: "total",
-      header: "Total",
-      render: (row) => `$${row.total}`,
-      align: "right",
+      header: "Total ($)",
+      render: (row) => `$${row.total.toLocaleString("es-AR")}`,
+      align: "center",
     },
     {
       id: "detalle",
@@ -137,7 +170,12 @@ export default function Ventas() {
         </button>
       ),
     },
-    { id: "observaciones", header: "Observaciones", accessor: "observaciones" },
+    {
+      id: "observaciones",
+      header: "Observaciones",
+      accessor: "observaciones",
+      align: "center",
+    },
     {
       id: "acciones",
       header: "Acciones",
@@ -183,7 +221,7 @@ export default function Ventas() {
         </button>
       }
     >
-      {/* Barra de filtros */}
+      {/* 🔹 Barra de filtros */}
       <FilterBar
         filters={["Todo", "Productos", "Cajas", "Mixtas"]}
         fields={[
@@ -198,22 +236,22 @@ export default function Ventas() {
         selectedFilter={filtroTipo}
       />
 
-      {/* Tabla de ventas */}
+      {/* 🔹 Tabla */}
       <div className="mt-6">
         <DataTable
           columns={columns}
           data={ventasFiltradas}
           zebra={false}
           stickyHeader={false}
-          tableClass="w-full text-sm text-left border-collapse"
+          tableClass="w-full text-sm text-center border-collapse"
           theadClass="bg-[#e8f4ef] text-[#154734]"
           rowClass="hover:bg-[#f6faf7] border-t border-[#edf2ef]"
-          headerClass="px-4 py-3 font-semibold"
-          cellClass="px-4 py-4"
+          headerClass="px-4 py-3 font-semibold text-center"
+          cellClass="px-4 py-4 text-center"
         />
       </div>
 
-      {/* Modal de detalle */}
+      {/* 🔹 Modal Detalle */}
       <DetailModal
         isOpen={isDetailOpen}
         onClose={() => setDetailOpen(false)}
@@ -230,7 +268,7 @@ export default function Ventas() {
         ]}
       />
 
-      {/* Modal de modificación */}
+      {/* 🔹 Modal Modificar */}
       {selectedVenta && (
         <Modified
           isOpen={isEditOpen}
@@ -267,7 +305,7 @@ export default function Ventas() {
               </p>
             </div>
           }
-          onSave={(updatedVenta) => handleGuardarCambios(updatedVenta)}
+          onSave={handleGuardarCambios}
         />
       )}
     </PageContainer>

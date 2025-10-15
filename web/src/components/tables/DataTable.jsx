@@ -4,7 +4,6 @@ export default function DataTable({
   columns = [],
   data = [],
   rowKey = (_, i) => i,
-  onRowClick,
   emptyLabel = "No hay datos",
   // clases
   tableClass = "w-full text-sm border-collapse table-fixed",
@@ -128,7 +127,7 @@ export default function DataTable({
   }, [data, columns, enableFilters, filters, enableSort, sort]);
 
   return (
-    <div className="overflow-x-auto bg-white rounded-xl relative">
+    <div className="relative bg-white rounded-xl max-h-[300px] overflow-y-auto border border-[#e3e9e5]">
       <table className={tableClass}>
         <colgroup>
           {columns.map((col, i) => (
@@ -272,6 +271,9 @@ export default function DataTable({
           )}
         </tbody>
       </table>
+
+      {/* 🔹 Quita cualquier padding o fondo inferior sobrante */}
+      <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-transparent" />
     </div>
   );
 }
