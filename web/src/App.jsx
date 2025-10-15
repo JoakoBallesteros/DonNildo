@@ -1,10 +1,15 @@
 // src/App.jsx
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  Outlet,
+} from "react-router-dom";
 import Layout from "./components/pages/Layout.jsx";
 import Home from "./pages/Home.jsx";
 import Compras from "./pages/Compras.jsx";
-import Reportes from "./pages/Reportes.jsx";
-import Seguridad from "./pages/Seguridad.jsx";
+
 import LoginPage from "./pages/LoginPage.jsx";
 import RegistrarCompra from "./pages/RegistrarCompra.jsx";
 
@@ -18,9 +23,13 @@ import Ventas from "./pages/ListaVentas.jsx";
 import RegistrarVentas from "./pages/RegistrarVentas.jsx";
 
 /* Reportes */
+import Reportes from "./pages/Reportes.jsx";
 import ReportesNuevo from "./pages/ReportesNuevo";
 
-
+/* Seguridad*/
+import SegUsuarios from "./pages/SegUsuarios";
+import SegAuditoria from "./pages/SegAuditoria";
+import SegRoles from "./pages/SegRoles";
 
 export default function App() {
   return (
@@ -39,7 +48,7 @@ export default function App() {
 
           <Route path="ventas" element={<Ventas />} />
           <Route path="ventas/nueva" element={<RegistrarVentas />} />
-          {/* 👇 Ruta padre con Outlet (importado arriba) */}
+          
           <Route path="stock" element={<Outlet />}>
             <Route index element={<StockList />} />
             <Route path="nuevo-producto" element={<StockNuevoProducto />} />
@@ -48,7 +57,9 @@ export default function App() {
 
           <Route path="reportes" element={<Reportes />} />
           <Route path="/reportes/nuevo" element={<ReportesNuevo />} />
-          <Route path="seguridad" element={<Seguridad />} />
+          <Route path="/seguridad" element={<SegUsuarios />} />
+          <Route path="/seguridad/auditoria" element={<SegAuditoria />} />
+          <Route path="/seguridad/roles" element={<SegRoles />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

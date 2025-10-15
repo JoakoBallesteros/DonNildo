@@ -12,6 +12,7 @@ const inactive = "text-emerald-900/85 hover:bg-emerald-100";
 export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
   const [stockOpen, setStockOpen] = useState(true);
   const [reportesOpen, setReportesOpen] = useState(false);
+  const [securityOpen, setSecurityOpen] = useState(false);
 
   return (
     <>
@@ -169,18 +170,50 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
                 </div>
               )}
 
+              <div className="relative mx-1">
+                <NavLink
+                  to="/seguridad"
+                  end
+                  className={({ isActive }) =>
+                    `pr-10 ${linkBase} ${isActive ? active : inactive}`
+                  }
+                >
+                  Seguridad
+                </NavLink>
+                <button
+                  type="button"
+                  aria-expanded={securityOpen}
+                  onClick={() => setSecurityOpen((o) => !o)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 grid place-items-center rounded-lg hover:bg-emerald-100"
+                >
+                  <ChevronRight
+                    className={`w-4 h-4 transition-transform ${
+                      securityOpen ? "rotate-90" : ""
+                    }`}
+                  />
+                </button>
+              </div>
 
-
-
-
-              <NavLink
-                to="/seguridad"
-                className={({ isActive }) =>
-                  `mx-1 ${linkBase} ${isActive ? active : inactive}`
-                }
-              >
-                Seguridad
-              </NavLink>
+              {securityOpen && (
+                <div className="pl-5 space-y-1">
+                  <NavLink
+                    to="/seguridad/auditoria"
+                    className={({ isActive }) =>
+                      `mx-1 ${linkBase} ${isActive ? active : inactive}`
+                    }
+                  >
+                    Auditoría
+                  </NavLink>
+                  <NavLink
+                    to="/seguridad/roles"
+                    className={({ isActive }) =>
+                      `mx-1 ${linkBase} ${isActive ? active : inactive}`
+                    }
+                  >
+                    Gestión de roles
+                  </NavLink>
+                </div>
+              )}
               <NavLink
                 to="/login"
                 className={({ isActive }) =>
