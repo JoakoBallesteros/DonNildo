@@ -1,7 +1,34 @@
+// src/pages/RegistrarCompra.jsx
 import { useMemo, useState } from "react";
 import { Plus, ChevronDown, Calendar } from "lucide-react";
 
-// ====== Mock básico ======
+// Botones reutilizables
+import PrimaryButton from "../components/buttons/PrimaryButton.jsx";
+import IconButton from "../components/buttons/IconButton.jsx";
+import ActionButton from "../components/buttons/ActionButton.jsx";
+
+// Formulario de producto (el mismo que usa tu StockNuevoProducto)
+// lo montamos directo dentro del modal para evitar el PageContainer.
+import ProductFormTabs from "../components/forms/ProductFormTabs.jsx";
+
+/* ============ Modal simple ============ */
+function Modal({ isOpen, title, onClose, children, maxWidth = "max-w-2xl" }) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-[100]">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} aria-hidden />
+      <div className={`absolute left-1/2 top-1/2 w-[95vw] ${maxWidth} -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white shadow-xl border border-emerald-100`}>
+        <div className="flex items-center justify-between px-5 py-3 border-b">
+          <h3 className="text-lg font-semibold text-emerald-900">{title}</h3>
+          <button onClick={onClose} className="rounded px-2 py-1 text-sm hover:bg-gray-100">✕</button>
+        </div>
+        <div className="p-5">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+/* ====== Mock básico ====== */
 const PRODUCTOS = [
   { id: "p1", nombre: "Cartón corrugado", tipo: "Productos", medida: "kg", precioRef: 250 },
   { id: "p2", nombre: "Papel blanco",      tipo: "Productos", medida: "kg", precioRef: 300 },
@@ -14,36 +41,36 @@ const PROVEEDORES = [
   { id: "prov3", nombre: "Vidrios Industriales" },
 ];
 
-// Helpers
-const fmt = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 2 });
+/* ====== Helpers ====== */
+const fmt    = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 2 });
 const fmtNum = new Intl.NumberFormat("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
 function toNumber(v) {
   if (typeof v === "number") return v;
   if (!v) return 0;
-  // admite comas o puntos
   return Number(String(v).replace(/\./g, "").replace(",", ".").replace(/[^\d.]/g, "")) || 0;
 }
 
-// ====== Componente ======
-export default function CompraNueva() {
+/* ====== Página ====== */
+export default function RegistrarCompra() {
   // Form principal
-  const [producto, setProducto] = useState(null);
+  const [producto, setProducto]         = useState(null);
   const [busquedaProd, setBusquedaProd] = useState("");
-  const [cantidad, setCantidad] = useState("");
-  const [precioUnit, setPrecioUnit] = useState("");
-  const [proveedor, setProveedor] = useState("");
-  const [fecha, setFecha] = useState("");
-  const [obs, setObs] = useState("");
+  const [cantidad, setCantidad]         = useState("");
+  const [precioUnit, setPrecioUnit]     = useState("");
+  const [proveedor, setProveedor]       = useState("");
+  const [fecha, setFecha]               = useState("");
+  const [obs, setObs]                   = useState("");
 
   // Items agregados (próximos a confirmar)
-  const [items, setItems] = useState([]);
+  const [items, setItems]               = useState([]);
+
+  // Modal “Nuevo producto”
+  const [newProdOpen, setNewProdOpen]   = useState(false);
 
   const subtotalCalc = useMemo(() => {
     const q = toNumber(cantidad);
     const p = toNumber(precioUnit);
-    if (!q || !p) return 0;
-    return q * p;
+    return q && p ? q * p : 0;
   }, [cantidad, precioUnit]);
 
   const productosFiltrados = useMemo(() => {
@@ -55,14 +82,13 @@ export default function CompraNueva() {
   function onSelectProducto(p) {
     setProducto(p);
     setBusquedaProd(p.nombre);
-    // si no hay p.unit sugerido, lo dejamos como está
     if (!precioUnit) setPrecioUnit(String(p.precioRef));
   }
 
   function addItem() {
     if (!producto) return;
     const cant = toNumber(cantidad);
-    const pu = toNumber(precioUnit);
+    const pu   = toNumber(precioUnit);
     if (cant <= 0 || pu <= 0) return;
 
     const nuevo = {
@@ -94,16 +120,16 @@ export default function CompraNueva() {
 
   // Subtotales por tipo
   const subCajas = useMemo(() => {
-    const list = items.filter((i) => i.tipo === "Cajas");
-    const cant = list.reduce((a, b) => a + b.cantidad, 0);
+    const list  = items.filter((i) => i.tipo === "Cajas");
+    const cant  = list.reduce((a, b) => a + b.cantidad, 0);
     const total = list.reduce((a, b) => a + b.subtotal, 0);
     return { cant, total };
   }, [items]);
 
   const subProductos = useMemo(() => {
-    const list = items.filter((i) => i.tipo === "Productos");
+    const list   = items.filter((i) => i.tipo === "Productos");
     const cantKg = list.reduce((a, b) => a + b.cantidad, 0);
-    const total = list.reduce((a, b) => a + b.subtotal, 0);
+    const total  = list.reduce((a, b) => a + b.subtotal, 0);
     return { cantKg, total };
   }, [items]);
 
@@ -122,10 +148,17 @@ export default function CompraNueva() {
   }
 
   function onGuardar() {
-    // acá podrías postear a tu API
-    // fetch(`${import.meta.env.VITE_API_URL}/compras`, { method: 'POST', body: JSON.stringify({ proveedor, fecha, items }) })
+    // TODO: integrar con API
     console.log("Guardar compra:", { proveedor, fecha, items });
     onCancelar();
+  }
+
+  // Handlers del modal “Nuevo producto”
+  function handleCreateProductSubmit(values) {
+    // acá enviarías a la API y, si querés, auto-seleccionar el producto creado:
+    // setProducto({ id: 'nuevo...', nombre: values.referencia, tipo: values.tipo, medida: values.unidad, precioRef: toNumber(values.precio) })
+    console.log("Crear producto", values);
+    setNewProdOpen(false);
   }
 
   return (
@@ -134,9 +167,16 @@ export default function CompraNueva() {
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-4">
           <h2 className="text-2xl font-bold text-emerald-900">Registrar Compra</h2>
-          <button className="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm hover:bg-gray-50">
-            <Plus className="h-4 w-4" /> Nuevo producto
-          </button>
+
+          <IconButton
+            title="Crear nuevo producto"
+            variant="outline"
+            className="rounded-full"
+            onClick={() => setNewProdOpen(true)}
+          >
+            <Plus className="h-4 w-4" />
+            <span className="text-sm">Nuevo producto</span>
+          </IconButton>
         </div>
 
         {/* Datos de la compra */}
@@ -175,7 +215,8 @@ export default function CompraNueva() {
                             onClick={() => onSelectProducto(p)}
                             className="w-full px-3 py-2 text-left text-sm hover:bg-emerald-50"
                           >
-                            {p.nombre} <span className="text-gray-500">({p.tipo} · {p.medida})</span>
+                            {p.nombre}{" "}
+                            <span className="text-gray-500">({p.tipo} · {p.medida})</span>
                           </button>
                         ))}
                       </div>
@@ -263,12 +304,15 @@ export default function CompraNueva() {
 
                 {/* Botón Añadir */}
                 <div className="col-span-1 md:col-span-2 flex justify-end">
-                  <button
+                  <PrimaryButton
                     onClick={addItem}
-                    className="inline-flex items-center gap-2 rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
-                  >
-                    <Plus className="h-4 w-4" /> Añadir
-                  </button>
+                    className="rounded-full"
+                    text={
+                      <span className="inline-flex items-center gap-2">
+                        <Plus className="h-4 w-4" /> Añadir
+                      </span>
+                    }
+                  />
                 </div>
               </div>
             </div>
@@ -304,15 +348,16 @@ export default function CompraNueva() {
                     <td className="px-4 py-3">{i.obs}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <button className="text-[11px] tracking-wide rounded-md bg-emerald-700 text-white px-3 py-1.5 hover:bg-emerald-800">
-                          MODIFICAR
-                        </button>
-                        <button
+                        <ActionButton
+                          type="edit"
+                          text="MODIFICAR"
+                          onClick={() => { /* abrir modal editar ítem si querés */ }}
+                        />
+                        <ActionButton
+                          type="delete"
+                          text="ANULAR"
                           onClick={() => eliminarItem(i.id)}
-                          className="text-[11px] tracking-wide rounded-md bg-red-700 text-white px-3 py-1.5 hover:bg-red-800"
-                        >
-                          ANULAR
-                        </button>
+                        />
                       </div>
                     </td>
                   </tr>
@@ -339,7 +384,6 @@ export default function CompraNueva() {
               Productos: {fmtNum.format(subProductos.cantKg)} kg — {fmt.format(subProductos.total)}
             </div>
             <div className="ml-auto">
-              {/* Total compra a la derecha */}
               <div className="rounded-xl border border-emerald-100 bg-white px-4 py-2 inline-flex items-center gap-3">
                 <span className="text-emerald-900 font-semibold">Total compra:</span>
                 <span className="text-emerald-900 font-bold">{fmt.format(totalCompra)}</span>
@@ -349,21 +393,35 @@ export default function CompraNueva() {
 
           {/* Footer botones */}
           <div className="flex justify-center gap-4 my-6">
-            <button
-              onClick={onCancelar}
-              className="rounded-full border px-6 py-2 font-medium text-emerald-900 hover:bg-gray-50"
-            >
-              CANCELAR
-            </button>
-            <button
-              onClick={onGuardar}
-              className="rounded-full bg-emerald-700 px-6 py-2 font-semibold text-white hover:bg-emerald-800"
-            >
-              GUARDAR
-            </button>
+            <IconButton title="Cancelar" variant="outline" onClick={onCancelar} label="CANCELAR" />
+            <PrimaryButton onClick={onGuardar} className="rounded-full" text="GUARDAR" />
           </div>
         </div>
       </div>
+
+      {/* === MODAL: Nuevo producto (usa ProductFormTabs) === */}
+      <Modal
+        isOpen={newProdOpen}
+        title="Registrar nuevo producto"
+        onClose={() => setNewProdOpen(false)}
+        maxWidth="max-w-2xl"
+      >
+        <ProductFormTabs
+          mode="create"
+          initialValues={{
+            tipo: "Caja",
+            referencia: "",
+            categoria: "",
+            medidas: { l: "", a: "", h: "" },
+            unidad: "u",
+            cantidad: "",
+            precio: "",
+            notas: "",
+          }}
+          onSubmit={handleCreateProductSubmit}
+          onCancel={() => setNewProdOpen(false)}
+        />
+      </Modal>
     </div>
   );
 }
