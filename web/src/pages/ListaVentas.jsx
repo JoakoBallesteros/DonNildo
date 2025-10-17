@@ -31,7 +31,7 @@ const DATA = [
     tipo: "Producto",
     fecha: "2025-10-11",
     total: 12000,
-    observaciones: "Sin observaciones",
+    observaciones: "—",
     productos: [
       {
         tipo: "Producto",

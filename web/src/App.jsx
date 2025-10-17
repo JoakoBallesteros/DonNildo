@@ -40,7 +40,7 @@ export default function App() {
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
 
-          {/* 👇 Rutas anidadas para compras */}
+          {/*  Rutas anidadas para compras */}
           <Route path="compras" element={<Outlet />}>
             <Route index element={<Compras />} />
             <Route path="nueva" element={<RegistrarCompra />} />
