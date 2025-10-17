@@ -127,8 +127,9 @@ export default function DataTable({
     return out;
   }, [data, columns, enableFilters, filters, enableSort, sort]);
 
-  return (
-    <div className="overflow-x-auto bg-white rounded-xl relative">
+ return (
+    // 🔹 Contenedor con scroll vertical y header fijo
+    <div className="relative bg-white rounded-xl border border-[#e3e9e5] max-h-[320px] overflow-y-auto overflow-x-auto">
       <table className={tableClass}>
         <colgroup>
           {columns.map((col, i) => (
@@ -136,15 +137,8 @@ export default function DataTable({
           ))}
         </colgroup>
 
-        <thead
-          className={theadClass}
-          style={
-            stickyHeader
-              ? { position: "sticky", top: 0, zIndex: 1, background: "white" }
-              : undefined
-          }
-        >
-          <tr>
+        <thead className={theadClass}>
+          <tr className="sticky top-0 bg-[#e8f4ef] z-20 shadow-sm">
             {columns.map((col, i) => (
               <th
                 key={col.id ?? i}
@@ -152,7 +146,6 @@ export default function DataTable({
                 onClick={() => toggleSort(col)}
                 title={enableSort && col.sortable ? "Ordenar" : undefined}
               >
-                {/* 👇 wrapper a ancho completo y justificado según align */}
                 <div className={`w-full flex items-center gap-2 ${headerJustify(col.align)}`}>
                   <span>{col.header}</span>
                   {sortIcon(col)}
@@ -162,7 +155,7 @@ export default function DataTable({
           </tr>
 
           {enableFilters && (
-            <tr className="bg-white/70">
+            <tr className="sticky top-[42px] bg-white z-10">
               {columns.map((col, i) => {
                 if (!col.filter) {
                   return <th key={`f-${col.id ?? i}`} className={`${headerClass}`} />;
@@ -190,7 +183,9 @@ export default function DataTable({
                           className="w-1/2 border border-[#dfe8e4] rounded-md px-2 py-1 text-sm"
                           placeholder="Min"
                           value={filters[col.id]?.min ?? ""}
-                          onChange={(e) => setFilter(col.id, { ...(filters[col.id] || {}), min: e.target.value })}
+                          onChange={(e) =>
+                            setFilter(col.id, { ...(filters[col.id] || {}), min: e.target.value })
+                          }
                           onClick={(e) => e.stopPropagation()}
                         />
                         <input
@@ -198,7 +193,9 @@ export default function DataTable({
                           className="w-1/2 border border-[#dfe8e4] rounded-md px-2 py-1 text-sm"
                           placeholder="Max"
                           value={filters[col.id]?.max ?? ""}
-                          onChange={(e) => setFilter(col.id, { ...(filters[col.id] || {}), max: e.target.value })}
+                          onChange={(e) =>
+                            setFilter(col.id, { ...(filters[col.id] || {}), max: e.target.value })
+                          }
                           onClick={(e) => e.stopPropagation()}
                         />
                       </div>
@@ -213,14 +210,18 @@ export default function DataTable({
                           type="date"
                           className="w-1/2 border border-[#dfe8e4] rounded-md px-2 py-1 text-sm"
                           value={filters[col.id]?.min ?? ""}
-                          onChange={(e) => setFilter(col.id, { ...(filters[col.id] || {}), min: e.target.value })}
+                          onChange={(e) =>
+                            setFilter(col.id, { ...(filters[col.id] || {}), min: e.target.value })
+                          }
                           onClick={(e) => e.stopPropagation()}
                         />
                         <input
                           type="date"
                           className="w-1/2 border border-[#dfe8e4] rounded-md px-2 py-1 text-sm"
                           value={filters[col.id]?.max ?? ""}
-                          onChange={(e) => setFilter(col.id, { ...(filters[col.id] || {}), max: e.target.value })}
+                          onChange={(e) =>
+                            setFilter(col.id, { ...(filters[col.id] || {}), max: e.target.value })
+                          }
                           onClick={(e) => e.stopPropagation()}
                         />
                       </div>
@@ -236,7 +237,10 @@ export default function DataTable({
         <tbody className={tbodyClass}>
           {processed.length === 0 ? (
             <tr>
-              <td className="px-4 py-6 text-slate-500 text-center border-t border-[#edf2ef]" colSpan={columns.length}>
+              <td
+                className="px-4 py-6 text-slate-500 text-center border-t border-[#edf2ef]"
+                colSpan={columns.length}
+              >
                 {emptyLabel}
               </td>
             </tr>
@@ -245,7 +249,9 @@ export default function DataTable({
               <tr
                 key={rowKey(row, ri)}
                 onClick={onRowClick ? () => onRowClick(row, ri) : undefined}
-                className={`${rowClass} ${zebra && ri % 2 ? "bg-[#fafdfb]" : ""} border-t border-[#edf2ef]`}
+                className={`${rowClass} ${
+                  zebra && ri % 2 ? "bg-[#fafdfb]" : ""
+                } border-t border-[#edf2ef]`}
               >
                 {columns.map((col, ci) => {
                   const content = col.render
@@ -263,7 +269,7 @@ export default function DataTable({
                         col.nowrap ? "whitespace-nowrap" : ""
                       }`}
                     >
-                      {content}
+                         {content}
                     </td>
                   );
                 })}
@@ -275,4 +281,3 @@ export default function DataTable({
     </div>
   );
 }
-
