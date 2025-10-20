@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { Download } from "lucide-react";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
 import PageContainer from "../components/pages/PageContainer";
 import FilterBar from "../components/forms/FilterBars";
 import DataTable from "../components/tables/DataTable";
@@ -146,7 +148,43 @@ export default function Ventas() {
     setVentas((prev) => prev.filter((v) => v.numero !== numero));
   };
 
-  // 🔹 Columnas de la tabla
+  // 🔹 Descarga PDF
+  const handleDownloadPDF = (venta) => {
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text(`Detalle de Venta N° ${venta.numero}`, 14, 20);
+
+    const tableColumn = [
+      "Tipo",
+      "Producto",
+      "Cantidad",
+      "Medida",
+      "Precio Unitario",
+      "Subtotal",
+    ];
+
+    const tableRows = (venta.productos || []).map((p) => [
+      p.tipo,
+      p.producto,
+      p.cantidad,
+      p.medida,
+      `$${p.precio}`,
+      `$${p.subtotal}`,
+    ]);
+
+    doc.autoTable({
+      startY: 30,
+      head: [tableColumn],
+      body: tableRows,
+    });
+
+    const finalY = doc.lastAutoTable.finalY + 10;
+    doc.text(`Total: $${venta.total}`, 14, finalY);
+
+    doc.save(`Venta_${venta.numero}.pdf`);
+  };
+
+  // 🔹 Columnas
   const columns = [
     { id: "numero", header: "N° Venta", accessor: "numero", align: "center" },
     { id: "tipo", header: "Tipo", accessor: "tipo", align: "center" },
@@ -181,8 +219,8 @@ export default function Ventas() {
       header: "Acciones",
       align: "center",
       render: (row) => (
-        <div className="flex justify-center items-start gap-2">
-          <div className="flex flex-col gap-1">
+        <div className="flex justify-center items-center gap-2">
+          <div className="flex flex-col items-center gap-1">
             <button
               onClick={() => handleModificar(row)}
               className="bg-[#154734] text-white px-3 py-1 text-xs rounded-md hover:bg-[#1E5A3E]"
@@ -190,16 +228,15 @@ export default function Ventas() {
               MODIFICAR
             </button>
             <button
-              onClick={() =>
-                setVentas((prev) => prev.filter((v) => v.numero !== row.numero))
-              }
-              className="bg-[#A30000] text-white px-3 py-1 text-xs rounded-md hover:bg-[#7A0000]"
+              onClick={() => handleAnular(row.numero)}
+              className="bg-[#A30000] text-white px-5 py-1 text-xs rounded-md hover:bg-[#7A0000]"
             >
               ANULAR
             </button>
           </div>
           <button
-            className="p-1 border border-[#d8e4df] rounded-md hover:bg-[#f7faf9] mt-1"
+            onClick={() => handleDownloadPDF(row)}
+            className="p-1 border border-[#d8e4df] rounded-md hover:bg-[#f7faf9] flex items-center justify-center"
             title="Descargar comprobante"
           >
             <Download className="w-4 h-4 text-[#154734]" />
@@ -225,7 +262,12 @@ export default function Ventas() {
       <FilterBar
         filters={["Todo", "Productos", "Cajas", "Mixtas"]}
         fields={[
-          { label: "Buscar", type: "text", placeholder: "N° venta, tipo u observación...", name: "buscar" },
+          {
+            label: "Buscar",
+            type: "text",
+            placeholder: "N° venta, tipo u observación...",
+            name: "buscar",
+          },
           { label: "Desde", type: "date", name: "desde" },
           { label: "Hasta", type: "date", name: "hasta" },
         ]}

@@ -33,5 +33,9 @@
   "bugs": {
     "url": "https://github.com/JoakoBallesteros/DonNildo/issues"
   },
-  "homepage": "https://github.com/JoakoBallesteros/DonNildo#readme"
+  "homepage": "https://github.com/JoakoBallesteros/DonNildo#readme",
+  "dependencies": {
+    "jspdf": "^3.0.3",
+    "jspdf-autotable": "^5.0.2"
+  }
 }

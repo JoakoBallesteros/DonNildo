@@ -10,7 +10,7 @@ export default function Home() {
         <img
           src={logo}
           alt="Reciclados Nildo — Packaging Sustentable"
-          className="w-40 h-40 md:w-56 md:h-56 object-contain rounded-full"
+          className="w-50 h-50 md:w-56 md:h-56 object-contain rounded-full"
         />
         <h2 className="text-3xl md:text-4xl font-bold text-emerald-900">
           Don Nildo
@@ -18,7 +18,7 @@ export default function Home() {
       </div>
 
       {/* Cuadrícula de botones grandes */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-25">
         <NavCard to="/compras"  icon={ShoppingCart} label="Compras" />
         <NavCard to="/ventas"   icon={TrendingUp}   label="Ventas" />
         <NavCard to="/stock"    icon={Archive}        label="Stock" />
