@@ -16,9 +16,9 @@ export default function RegistrarVentas() {
 
   const [errors, setErrors] = useState({});
   const [ventas, setVentas] = useState([
-    { tipo: "Caja", producto: "Caja de cartón", cantidad: 10, fecha: "2025-10-10", subtotal: 15000, descuento: 0 },
-    { tipo: "Producto", producto: "Papel Kraft", cantidad: 20, fecha: "2025-10-11", subtotal: 12000, descuento: 0 },
-    { tipo: "Producto", producto: "Stitch", cantidad: 20, fecha: "2025-10-11", subtotal: 12000, descuento: 0 },
+    { tipo: "Caja", producto: "Caja de cartón", cantidad: 10, fecha: "2025-10-10", subtotal: 15000, descuento: 0, precio: 1500 },
+    { tipo: "Producto", producto: "Papel Kraft", cantidad: 20, fecha: "2025-10-11", subtotal: 12000, descuento: 0, precio: 600 },
+    { tipo: "Producto", producto: "Stitch", cantidad: 20, fecha: "2025-10-11", subtotal: 12000, descuento: 0, precio: 600 },
   ]);
 
   const [selectedVenta, setSelectedVenta] = useState(null);
@@ -65,13 +65,20 @@ export default function RegistrarVentas() {
     setFormData({ producto: "", tipo: "", fecha: "", cantidad: "", subtotal: "", descuento: "" });
   };
 
+  // ✅ Abrir modal de edición
   const handleEditar = (venta) => {
-    setSelectedVenta({ ...venta });
+    // Lo pasamos como si fuera una lista de productos (para el Modified)
+    const data = { productos: [{ ...venta }] };
+    setSelectedVenta(data);
     setEditOpen(true);
   };
 
-  const handleGuardarCambios = (updatedVenta) => {
-    setVentas((prev) => prev.map((v) => (v.producto === updatedVenta.producto ? updatedVenta : v)));
+  // ✅ Guardar cambios desde el modal
+  const handleGuardarCambios = (updated) => {
+    const updatedItem = updated.productos[0];
+    setVentas((prev) =>
+      prev.map((v) => (v.producto === updatedItem.producto ? updatedItem : v))
+    );
     setEditOpen(false);
   };
 
@@ -107,7 +114,7 @@ export default function RegistrarVentas() {
             </button>
             <button
               onClick={() =>
-                setVentas((prev) => prev.filter((v) => v.numero !== row.numero))
+                setVentas((prev) => prev.filter((v) => v.producto !== row.producto))
               }
               className="bg-[#A30000] text-white px-3 py-1 text-xs rounded-md hover:bg-[#7A0000]"
             >
@@ -122,16 +129,13 @@ export default function RegistrarVentas() {
   return (
     <PageContainer title="Registrar Venta">
       <div className="flex flex-col min-h-[calc(100dvh-230px)] max-h-[calc(100dvh-230px)] justify-between overflow-hidden">
-        {/*  Contenido principal scrolleable */}
         <div className="flex-1 overflow-y-auto flex flex-col">
-          
-          {/* Bloque superior: formulario, filtros y botones */}
           <div className="bg-[#f7fbf8] border border-[#e2ede8] rounded-2xl p-4 mb-4 flex-shrink-0">
             <h2 className="text-[#154734] text-base font-semibold mb-3">
               Datos de la venta
             </h2>
 
-            {/* Tu formulario y filtros originales */}
+            {/* 🔹 Formulario */}
             <div className="grid grid-cols-[0.5fr_0.2fr] gap-4 mb-4 max-w-[700px]">
               <div>
                 <FormBuilder
@@ -170,7 +174,7 @@ export default function RegistrarVentas() {
               </div>
             </div>
 
-            {/* Campos inferiores */}
+            {/* 🔹 Campos inferiores */}
             <div className="grid grid-cols-6 gap-4 items-end">
               <FormBuilder
                 fields={[{ label: "Fecha", name: "fecha", type: "date" }]}
@@ -212,7 +216,7 @@ export default function RegistrarVentas() {
             </div>
           </div>
 
-          {/* 🔹 Tabla de productos */}
+          {/* 🔹 Tabla */}
           <h3 className="text-[#154734] text-sm font-semibold mb-2">
             Productos registrados
           </h3>
@@ -234,7 +238,7 @@ export default function RegistrarVentas() {
           )}
         </div>
 
-        {/* 🔹 Botones inferiores fijos */}
+        {/* 🔹 Botones inferiores */}
         <div className="flex justify-center items-center gap-4 mt-4 pb-2 flex-shrink-0">
           <button className="border border-[#154734] text-[#154734] px-6 py-2 rounded-md hover:bg-[#f0f7f3] transition">
             CANCELAR
@@ -246,6 +250,29 @@ export default function RegistrarVentas() {
             GUARDAR
           </button>
         </div>
+
+        {/* ✅ Modal de edición */}
+        {selectedVenta && (
+          <Modified
+            isOpen={isEditOpen}
+            onClose={() => setEditOpen(false)}
+            title={`Modificar producto`}
+            data={selectedVenta}
+            itemsKey="productos"
+            columns={[
+              { key: "tipo", label: "Tipo" },
+              { key: "producto", label: "Producto" },
+              { key: "cantidad", label: "Cantidad", type: "number" },
+              { key: "precio", label: "Precio Unitario", type: "number" },
+              { key: "descuento", label: "Descuento (%)", type: "number" },
+              { key: "subtotal", label: "Subtotal", readOnly: true },
+            ]}
+            computeTotal={(rows) =>
+              rows.reduce((sum, r) => sum + Number(r.subtotal || 0), 0)
+            }
+            onSave={handleGuardarCambios}
+          />
+        )}
       </div>
     </PageContainer>
   );
