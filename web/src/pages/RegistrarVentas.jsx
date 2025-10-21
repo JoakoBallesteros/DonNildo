@@ -65,21 +65,24 @@ export default function RegistrarVentas() {
     setFormData({ producto: "", tipo: "", fecha: "", cantidad: "", subtotal: "", descuento: "" });
   };
 
-  // ✅ Abrir modal de edición
-  const handleEditar = (venta) => {
-    // Lo pasamos como si fuera una lista de productos (para el Modified)
-    const data = { productos: [{ ...venta }] };
-    setSelectedVenta(data);
+  // 👉 Abrir modal con el índice, y pasando { productos: [row] }
+  const handleEditar = (venta, index) => {
+    setSelectedVenta({ productos: [{ ...venta }], index });
     setEditOpen(true);
   };
 
-  // ✅ Guardar cambios desde el modal
+  // 👉 Guardar: tomar updated.productos[0] y reemplazar por índice
   const handleGuardarCambios = (updated) => {
-    const updatedItem = updated.productos[0];
+    const edited = updated?.productos?.[0];
+    if (!edited) {
+      setEditOpen(false);
+      return;
+    }
     setVentas((prev) =>
-      prev.map((v) => (v.producto === updatedItem.producto ? updatedItem : v))
+      prev.map((v, i) => (i === selectedVenta.index ? edited : v))
     );
     setEditOpen(false);
+    setSelectedVenta(null);
   };
 
   const totalVenta = ventas.reduce((acc, v) => acc + Number(v.subtotal || 0), 0);
@@ -103,26 +106,29 @@ export default function RegistrarVentas() {
       id: "acciones",
       header: "Acciones",
       align: "center",
-      render: (row) => (
-        <div className="flex justify-center items-start gap-2">
-          <div className="flex flex-col gap-1">
-            <button
-              onClick={() => handleEditar(row)}
-              className="bg-[#154734] text-white px-3 py-1 text-xs rounded-md hover:bg-[#1E5A3E]"
-            >
-              MODIFICAR
-            </button>
-            <button
-              onClick={() =>
-                setVentas((prev) => prev.filter((v) => v.producto !== row.producto))
-              }
-              className="bg-[#A30000] text-white px-3 py-1 text-xs rounded-md hover:bg-[#7A0000]"
-            >
-              ANULAR
-            </button>
+      render: (row) => {
+        const i = ventas.indexOf(row); // sin cambiar tu DataTable
+        return (
+          <div className="flex justify-center items-start gap-2">
+            <div className="flex flex-col gap-1">
+              <button
+                onClick={() => handleEditar(row, i)}
+                className="bg-[#154734] text-white px-3 py-1 text-xs rounded-md hover:bg-[#1E5A3E]"
+              >
+                MODIFICAR
+              </button>
+              <button
+                onClick={() =>
+                  setVentas((prev) => prev.filter((_, idx) => idx !== i))
+                }
+                className="bg-[#A30000] text-white px-3 py-1 text-xs rounded-md hover:bg-[#7A0000]"
+              >
+                ANULAR
+              </button>
+            </div>
           </div>
-        </div>
-      ),
+        );
+      },
     },
   ];
 
@@ -135,7 +141,6 @@ export default function RegistrarVentas() {
               Datos de la venta
             </h2>
 
-            {/* 🔹 Formulario */}
             <div className="grid grid-cols-[0.5fr_0.2fr] gap-4 mb-4 max-w-[700px]">
               <div>
                 <FormBuilder
@@ -174,57 +179,21 @@ export default function RegistrarVentas() {
               </div>
             </div>
 
-            {/* 🔹 Campos inferiores */}
             <div className="grid grid-cols-6 gap-4 items-end">
-              <FormBuilder
-                fields={[{ label: "Fecha", name: "fecha", type: "date" }]}
-                values={formData}
-                onChange={handleChange}
-                errors={errors}
-                columns={1}
-              />
-              <FormBuilder
-                fields={[{ label: "Cant. (u/kg)", name: "cantidad", type: "number", placeholder: "0" }]}
-                values={formData}
-                onChange={handleChange}
-                errors={errors}
-                columns={1}
-              />
-              <FormBuilder
-                fields={[{ label: "Subtotal", name: "subtotal", type: "number", placeholder: "$" }]}
-                values={formData}
-                onChange={handleChange}
-                errors={errors}
-                columns={1}
-              />
-              <FormBuilder
-                fields={[{ label: "Descuento aplicado", name: "descuento", type: "number", placeholder: "%" }]}
-                values={formData}
-                onChange={handleChange}
-                errors={errors}
-                columns={1}
-              />
-              <button
-                onClick={handleAgregarProducto}
-                className="bg-[#154734] text-white px-4 py-2 rounded-md hover:bg-[#103a2b] transition w-full"
-              >
-                + Añadir
-              </button>
-              <button className="border border-[#154734] text-[#154734] px-4 py-2 rounded-md hover:bg-[#e8f4ef] transition w-full">
-                + Nuevo producto
-              </button>
+              <FormBuilder fields={[{ label: "Fecha", name: "fecha", type: "date" }]} values={formData} onChange={handleChange} errors={errors} columns={1} />
+              <FormBuilder fields={[{ label: "Cant. (u/kg)", name: "cantidad", type: "number", placeholder: "0" }]} values={formData} onChange={handleChange} errors={errors} columns={1} />
+              <FormBuilder fields={[{ label: "Subtotal", name: "subtotal", type: "number", placeholder: "$" }]} values={formData} onChange={handleChange} errors={errors} columns={1} />
+              <FormBuilder fields={[{ label: "Descuento aplicado", name: "descuento", type: "number", placeholder: "%" }]} values={formData} onChange={handleChange} errors={errors} columns={1} />
+              <button onClick={handleAgregarProducto} className="bg-[#154734] text-white px-4 py-2 rounded-md hover:bg-[#103a2b] transition w-full">+ Añadir</button>
+              <button className="border border-[#154734] text-[#154734] px-4 py-2 rounded-md hover:bg-[#e8f4ef] transition w-full">+ Nuevo producto</button>
             </div>
           </div>
 
-          {/* 🔹 Tabla */}
-          <h3 className="text-[#154734] text-sm font-semibold mb-2">
-            Productos registrados
-          </h3>
+          <h3 className="text-[#154734] text-sm font-semibold mb-2">Productos registrados</h3>
           <div className="flex-1 min-h-[150px] rounded-t-xl border-t border-[#e3e9e5]">
             <DataTable columns={columns} data={ventas} />
           </div>
 
-          {/* 🔹 Subtotales */}
           {ventas.length > 0 && (
             <div className="flex justify-between items-center text-[#154734] text-sm mt-3 mb-1 flex-shrink-0">
               <div>
@@ -238,7 +207,6 @@ export default function RegistrarVentas() {
           )}
         </div>
 
-        {/* 🔹 Botones inferiores */}
         <div className="flex justify-center items-center gap-4 mt-4 pb-2 flex-shrink-0">
           <button className="border border-[#154734] text-[#154734] px-6 py-2 rounded-md hover:bg-[#f0f7f3] transition">
             CANCELAR
@@ -251,14 +219,13 @@ export default function RegistrarVentas() {
           </button>
         </div>
 
-        {/* ✅ Modal de edición */}
         {selectedVenta && (
           <Modified
             isOpen={isEditOpen}
             onClose={() => setEditOpen(false)}
-            title={`Modificar producto`}
+            title={`Modificando ${selectedVenta.productos?.[0]?.producto || ""}`}
             data={selectedVenta}
-            itemsKey="productos"
+            itemsKey="productos"   // ⬅️ mantenemos productos
             columns={[
               { key: "tipo", label: "Tipo" },
               { key: "producto", label: "Producto" },
