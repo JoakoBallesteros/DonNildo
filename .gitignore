@@ -1,9 +1,9 @@
-# --- Raíz / monorepo ---
-.env
-.env.*           # ej: .env.local, .env.production
-*.env
+# Ignorar cualquier .env o .env.*
+**/.env
+**/.env.*
+**/*.env
 
-# Permitir plantillas de ejemplo en cualquier subcarpeta
+# Permitir plantillas de ejemplo
 !**/.env.example
 # Node
 node_modules/
