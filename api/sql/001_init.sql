@@ -1,72 +1,101 @@
--- ==========================================================
---  SCRIPT DE CREACIÓN DE BASE DE DATOS DON NILDO
---  Modelo físico generado desde D.E.R. (PostgreSQL)
---  Autor: Sofía Kosciani
---  Fecha: 2025-10-21
--- ==========================================================
-
--- ===========================================
--- 1. EXTENSIONES
--- ===========================================
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- ===========================================
 -- 2. TABLAS DE SEGURIDAD
 -- ===========================================
-
-CREATE TABLE roles (
+CREATE TABLE IF NOT EXISTS roles (
   id_rol SERIAL PRIMARY KEY,
   nombre TEXT NOT NULL UNIQUE,
   descripcion TEXT
 );
 
-CREATE TABLE usuarios (
+CREATE TABLE IF NOT EXISTS usuarios (
   id_usuario SERIAL PRIMARY KEY,
   dni TEXT UNIQUE,
   nombre TEXT NOT NULL,
-  hash_contrasena TEXT NOT NULL,
-  mail TEXT NOT NULL UNIQUE,
+  hash_contrasena TEXT, -- NULL si viene de Supabase Auth
+  mail TEXT NOT NULL,
   id_rol INT NOT NULL REFERENCES roles(id_rol) ON DELETE RESTRICT,
   estado TEXT NOT NULL DEFAULT 'ACTIVO',
+  id_auth UUID UNIQUE, -- vinculación con Supabase Auth
   created_at TIMESTAMP DEFAULT now()
 );
 
-CREATE INDEX idx_usuarios_mail ON usuarios(mail);
-CREATE INDEX idx_usuarios_estado ON usuarios(estado);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_usuarios_mail_lower_unique
+  ON usuarios (LOWER(mail));
+CREATE INDEX IF NOT EXISTS idx_usuarios_estado
+  ON usuarios (estado);
+
+-- Vincular a tabla interna de Supabase Auth (si existe)
+DO $$
+BEGIN
+  IF to_regclass('auth.users') IS NOT NULL THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_constraint WHERE conname = 'fk_usuarios_auth_users'
+    ) THEN
+      ALTER TABLE usuarios
+      ADD CONSTRAINT fk_usuarios_auth_users
+      FOREIGN KEY (id_auth)
+      REFERENCES auth.users (id)
+      ON DELETE SET NULL;
+    END IF;
+  END IF;
+END$$;
 
 -- ===========================================
 -- 3. CATÁLOGOS Y TABLAS AUXILIARES
 -- ===========================================
-
-CREATE TABLE categoria (
+CREATE TABLE IF NOT EXISTS categoria (
   id_categoria SERIAL PRIMARY KEY,
   nombre TEXT NOT NULL UNIQUE,
   descripcion TEXT
 );
 
-CREATE TABLE tipo_producto (
+CREATE TABLE IF NOT EXISTS tipo_producto (
   id_tipo_producto SERIAL PRIMARY KEY,
   nombre TEXT NOT NULL UNIQUE,
   descripcion TEXT
 );
 
-CREATE TABLE medida (
+CREATE TABLE IF NOT EXISTS medida (
   id_medida SERIAL PRIMARY KEY,
   nombre TEXT NOT NULL,
-  simbolo TEXT NOT NULL
+  simbolo TEXT NOT NULL,
+  alto NUMERIC(10,2),
+  ancho NUMERIC(10,2),
+  profundidad NUMERIC(10,2),
+  CONSTRAINT unique_medida_nombre_simbolo UNIQUE (nombre, simbolo)
 );
 
-CREATE TABLE estado (
+CREATE TABLE IF NOT EXISTS estado (
   id_estado SERIAL PRIMARY KEY,
   nombre TEXT NOT NULL UNIQUE,
   descripcion TEXT
 );
 
+CREATE TABLE IF NOT EXISTS tipo_movimiento (
+  id_tipo_movimiento SERIAL PRIMARY KEY,
+  nombre TEXT NOT NULL UNIQUE,
+  signo CHAR(1),
+  descripcion TEXT
+);
+
+CREATE TABLE IF NOT EXISTS tipo_transaccion (
+  id_tipo_transaccion SERIAL PRIMARY KEY,
+  nombre TEXT NOT NULL UNIQUE,
+  descripcion TEXT
+);
+
+CREATE TABLE IF NOT EXISTS politicas_seguridad (
+  id_politica SERIAL PRIMARY KEY,
+  nombre TEXT NOT NULL,
+  valor TEXT
+);
+
 -- ===========================================
 -- 4. PRODUCTOS Y STOCK
 -- ===========================================
-
-CREATE TABLE productos (
+CREATE TABLE IF NOT EXISTS productos (
   id_producto SERIAL PRIMARY KEY,
   nombre TEXT NOT NULL,
   descripcion TEXT,
@@ -74,167 +103,119 @@ CREATE TABLE productos (
   id_tipo_producto INT REFERENCES tipo_producto(id_tipo_producto) ON DELETE RESTRICT,
   id_medida INT REFERENCES medida(id_medida) ON DELETE RESTRICT,
   precio_unitario NUMERIC(12,2) NOT NULL,
-  stock_actual NUMERIC(14,3) DEFAULT 0,
-  estado BOOLEAN DEFAULT TRUE,
-  created_at TIMESTAMP DEFAULT now()
+  estado BOOLEAN DEFAULT TRUE
 );
 
-CREATE TABLE tipo_movimiento (
-  id_tipo_movimiento SERIAL PRIMARY KEY,
-  nombre TEXT NOT NULL UNIQUE,
-  descripcion TEXT
+CREATE TABLE IF NOT EXISTS stock (
+  id_stock SERIAL PRIMARY KEY,
+  id_producto INT NOT NULL REFERENCES productos(id_producto) ON DELETE CASCADE,
+  cantidad NUMERIC(14,3) NOT NULL,
+  fecha_ultima_actualiza TIMESTAMP DEFAULT now()
 );
 
-CREATE TABLE movimientos_stock (
+CREATE TABLE IF NOT EXISTS movimientos_stock (
   id_movimiento SERIAL PRIMARY KEY,
   id_producto INT NOT NULL REFERENCES productos(id_producto) ON DELETE CASCADE,
   id_tipo_movimiento INT NOT NULL REFERENCES tipo_movimiento(id_tipo_movimiento) ON DELETE RESTRICT,
   cantidad NUMERIC(14,3) NOT NULL,
   fecha TIMESTAMP DEFAULT now(),
-  observacion TEXT
+  unidad TEXT,
+  observaciones TEXT
 );
 
 -- ===========================================
--- 5. CLIENTES Y PROVEEDORES
+-- 5. PROVEEDORES
 -- ===========================================
-
-CREATE TABLE cliente (
-  id_cliente SERIAL PRIMARY KEY,
-  nombre TEXT NOT NULL,
-  direccion TEXT,
-  telefono TEXT,
-  mail TEXT
-);
-
-CREATE TABLE proveedor (
+CREATE TABLE IF NOT EXISTS proveedores (
   id_proveedor SERIAL PRIMARY KEY,
-  razon_social TEXT NOT NULL,
-  direccion TEXT,
-  telefono TEXT,
-  mail TEXT,
-  cuit TEXT
+  cuit TEXT UNIQUE,
+  nombre TEXT NOT NULL,
+  contacto TEXT,
+  direccion TEXT
 );
 
 -- ===========================================
--- 6. VENTAS
+-- 6. COMPRAS
 -- ===========================================
+CREATE TABLE IF NOT EXISTS orden_compra (
+  id_compra SERIAL PRIMARY KEY,
+  id_proveedor INT REFERENCES proveedores(id_proveedor) ON DELETE RESTRICT,
+  id_tipo_transaccion INT REFERENCES tipo_transaccion(id_tipo_transaccion) ON DELETE RESTRICT,
+  total NUMERIC(14,2) DEFAULT 0,
+  fecha DATE NOT NULL DEFAULT CURRENT_DATE,
+  observaciones TEXT,
+  estado TEXT
+);
 
-CREATE TABLE venta (
+CREATE TABLE IF NOT EXISTS detalle_compra (
+  id_detalle SERIAL PRIMARY KEY,
+  id_compra INT NOT NULL REFERENCES orden_compra(id_compra) ON DELETE CASCADE,
+  id_producto INT NOT NULL REFERENCES productos(id_producto) ON DELETE RESTRICT,
+  cantidad NUMERIC(14,3) NOT NULL,
+  precio_unitario NUMERIC(12,2) NOT NULL,
+  subtotal NUMERIC(14,2) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS remitos (
+  id_remito SERIAL PRIMARY KEY,
+  id_compra INT REFERENCES orden_compra(id_compra) ON DELETE CASCADE,
+  fecha DATE DEFAULT CURRENT_DATE,
+  proveedor TEXT,
+  tipo_compra TEXT,
+  producto TEXT,
+  cantidad NUMERIC(14,3),
+  importe NUMERIC(14,2),
+  observaciones TEXT
+);
+
+-- ===========================================
+-- 7. VENTAS
+-- ===========================================
+CREATE TABLE IF NOT EXISTS venta (
   id_venta SERIAL PRIMARY KEY,
   fecha DATE NOT NULL DEFAULT CURRENT_DATE,
-  id_cliente INT REFERENCES cliente(id_cliente) ON DELETE RESTRICT,
-  id_usuario INT REFERENCES usuarios(id_usuario) ON DELETE RESTRICT,
   id_estado INT REFERENCES estado(id_estado) ON DELETE RESTRICT,
   total NUMERIC(14,2) NOT NULL DEFAULT 0,
   observaciones TEXT
 );
 
-CREATE TABLE detalle_venta (
+CREATE TABLE IF NOT EXISTS detalle_venta (
   id_detalle_venta SERIAL PRIMARY KEY,
   id_venta INT NOT NULL REFERENCES venta(id_venta) ON DELETE CASCADE,
   id_producto INT NOT NULL REFERENCES productos(id_producto) ON DELETE RESTRICT,
   cantidad NUMERIC(14,3) NOT NULL,
   precio_unitario NUMERIC(12,2) NOT NULL,
-  descuento NUMERIC(5,2) DEFAULT 0,
   subtotal NUMERIC(14,2) NOT NULL
-);
-
--- ===========================================
--- 7. COMPRAS
--- ===========================================
-
-CREATE TABLE orden_compra (
-  id_orden_compra SERIAL PRIMARY KEY,
-  fecha DATE NOT NULL DEFAULT CURRENT_DATE,
-  id_proveedor INT REFERENCES proveedor(id_proveedor) ON DELETE RESTRICT,
-  id_usuario INT REFERENCES usuarios(id_usuario) ON DELETE RESTRICT,
-  id_estado INT REFERENCES estado(id_estado) ON DELETE RESTRICT,
-  total NUMERIC(14,2) NOT NULL DEFAULT 0,
-  observaciones TEXT
-);
-
-CREATE TABLE detalle_compra (
-  id_detalle_compra SERIAL PRIMARY KEY,
-  id_orden_compra INT NOT NULL REFERENCES orden_compra(id_orden_compra) ON DELETE CASCADE,
-  id_producto INT NOT NULL REFERENCES productos(id_producto) ON DELETE RESTRICT,
-  cantidad NUMERIC(14,3) NOT NULL,
-  precio_unitario NUMERIC(12,2) NOT NULL,
-  subtotal NUMERIC(14,2) NOT NULL
-);
-
-CREATE TABLE remito (
-  id_remito SERIAL PRIMARY KEY,
-  id_orden_compra INT NOT NULL REFERENCES orden_compra(id_orden_compra) ON DELETE CASCADE,
-  fecha DATE NOT NULL DEFAULT CURRENT_DATE,
-  numero TEXT,
-  observaciones TEXT
 );
 
 -- ===========================================
 -- 8. AUDITORÍA
 -- ===========================================
-
-CREATE TABLE tipo_transaccion (
-  id_tipo_transaccion SERIAL PRIMARY KEY,
-  nombre TEXT NOT NULL UNIQUE,
+CREATE TABLE IF NOT EXISTS auditoria (
+  id_auditoria SERIAL PRIMARY KEY,
+  id_usuario INT REFERENCES usuarios(id_usuario),
+  fecha_hora TIMESTAMP DEFAULT now(),
+  evento TEXT,
+  modulo TEXT,
   descripcion TEXT
 );
 
-CREATE TABLE log_auditoria (
+CREATE TABLE IF NOT EXISTS log_auditoria (
   id_log SERIAL PRIMARY KEY,
-  tabla_afectada TEXT NOT NULL,
-  id_registro_afectado INT,
-  tipo_operacion TEXT NOT NULL, -- INSERT / UPDATE / DELETE
-  usuario TEXT,
-  fecha TIMESTAMP DEFAULT now(),
-  datos_viejos JSONB,
-  datos_nuevos JSONB
+  id_usuario INT REFERENCES usuarios(id_usuario),
+  fecha_hora TIMESTAMP DEFAULT now(),
+  nivel TEXT,
+  origen TEXT,
+  mensaje TEXT
 );
 
 -- ===========================================
--- 9. FUNCIÓN Y TRIGGER DE AUDITORÍA
+-- 9. DATOS BASE
 -- ===========================================
-
-CREATE OR REPLACE FUNCTION fn_log_auditoria()
-RETURNS TRIGGER AS $$
-BEGIN
-  IF (TG_OP = 'DELETE') THEN
-    INSERT INTO log_auditoria(tabla_afectada, id_registro_afectado, tipo_operacion, usuario, datos_viejos)
-    VALUES (TG_TABLE_NAME, OLD.id_venta, TG_OP, current_user, to_jsonb(OLD));
-    RETURN OLD;
-  ELSIF (TG_OP = 'UPDATE') THEN
-    INSERT INTO log_auditoria(tabla_afectada, id_registro_afectado, tipo_operacion, usuario, datos_viejos, datos_nuevos)
-    VALUES (TG_TABLE_NAME, NEW.id_venta, TG_OP, current_user, to_jsonb(OLD), to_jsonb(NEW));
-    RETURN NEW;
-  ELSIF (TG_OP = 'INSERT') THEN
-    INSERT INTO log_auditoria(tabla_afectada, id_registro_afectado, tipo_operacion, usuario, datos_nuevos)
-    VALUES (TG_TABLE_NAME, NEW.id_venta, TG_OP, current_user, to_jsonb(NEW));
-    RETURN NEW;
-  END IF;
-  RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
-
--- TRIGGERS PARA TABLAS CLAVE
-CREATE TRIGGER tr_audit_venta
-AFTER INSERT OR UPDATE OR DELETE ON venta
-FOR EACH ROW EXECUTE FUNCTION fn_log_auditoria();
-
-CREATE TRIGGER tr_audit_producto
-AFTER INSERT OR UPDATE OR DELETE ON productos
-FOR EACH ROW EXECUTE FUNCTION fn_log_auditoria();
-
-CREATE TRIGGER tr_audit_usuarios
-AFTER INSERT OR UPDATE OR DELETE ON usuarios
-FOR EACH ROW EXECUTE FUNCTION fn_log_auditoria();
-
--- ===========================================
--- 10. DATOS BASE (ADMIN)
--- ===========================================
-
 INSERT INTO roles (nombre, descripcion)
-VALUES ('ADMIN', 'Administrador del sistema'),
-       ('OPERADOR', 'Operador de ventas y stock')
+VALUES 
+('ADMIN', 'Administrador del sistema'),
+('OPERADOR', 'Operador de ventas y stock')
 ON CONFLICT (nombre) DO NOTHING;
 
 INSERT INTO usuarios (dni, nombre, hash_contrasena, mail, id_rol, estado)
@@ -243,9 +224,17 @@ SELECT
   'Administrador',
   crypt('admin123', gen_salt('bf', 10)),
   'admin@local.com',
-  (SELECT id_rol FROM roles WHERE nombre='ADMIN'),
+  (SELECT id_rol FROM roles WHERE nombre = 'ADMIN'),
   'ACTIVO'
-WHERE NOT EXISTS (SELECT 1 FROM usuarios WHERE mail='admin@local.com');
+WHERE NOT EXISTS (SELECT 1 FROM usuarios WHERE mail = 'admin@local.com');
+
+INSERT INTO estado (nombre, descripcion)
+VALUES 
+('ACTIVO', 'Registro activo en el sistema'),
+('INACTIVO', 'Registro deshabilitado'),
+('ANULADO', 'Registro anulado'),
+('COMPLETADO', 'Proceso finalizado')
+ON CONFLICT (nombre) DO NOTHING;
 
 -- ===========================================
 -- FIN DEL SCRIPT
