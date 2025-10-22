@@ -5,6 +5,8 @@ import dotenv from 'dotenv'
 import { pool } from './db.mjs'
 import { requireAuth } from './middlewares/requireAuth.mjs'
 import { allowRoles } from './middlewares/allowRoles.mjs'
+import authRoutes from './routes/auth.mjs'
+
 
 dotenv.config()
 
@@ -12,6 +14,8 @@ const app = express()
 app.use(cors({ origin: process.env.CORS_ORIGIN || '*', credentials: true }))
 app.use(express.json())
 app.use(morgan('dev'))
+app.use('/v1/auth', authRoutes)
+
 
 console.log('MODE: supabase-only')
 console.log(

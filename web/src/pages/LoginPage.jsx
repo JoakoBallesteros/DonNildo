@@ -1,6 +1,7 @@
 import LoginForm from "../components/pages/LoginForm";
 import logo from "../img/LogoDonNildo.png";
 
+
 export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#154734] font-sans">

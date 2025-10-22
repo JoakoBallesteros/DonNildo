@@ -1,19 +1,44 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 
 export default function LoginForm() {
   const [mail, setMail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+    setLoading(true);
+
+    const baseUrl = (import.meta.env.VITE_API_URL || "http://localhost:4000").replace(/\/$/, "");
+
     try {
-      await login(mail, password);
-      // redirigir o mostrar dashboard
-    } catch (e) {
-      setError("Usuario o contraseña inválidos" + e);
+      const resp = await fetch(`${baseUrl}/v1/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: mail, password }),
+      });
+
+      if (!resp.ok) {
+        const details = await resp.json().catch(() => ({}));
+        throw new Error(details?.error || "Credenciales incorrectas");
+      }
+
+      const data = await resp.json();
+
+      localStorage.setItem("dn_token", data.token);
+      if (data.refreshToken) localStorage.setItem("dn_refresh", data.refreshToken);
+      localStorage.setItem("dn_user", JSON.stringify(data.user));
+
+      navigate("/"); // o la ruta que quieras mostrar tras el login
+    } catch (err) {
+      setError(err.message || "Usuario o contraseña inválidos");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -60,12 +85,15 @@ export default function LoginForm() {
       {/* Error */}
       {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
 
-      {/* Botón */}
+       {/* Botón */}
       <button
         type="submit"
-        className="bg-[#154734] hover:bg-[#2c865c] text-white font-semibold py-2 rounded-md transition w-full"
+        disabled={loading}
+        className={`bg-[#154734] text-white font-semibold py-2 rounded-md transition w-full ${
+          loading ? "opacity-75 cursor-not-allowed" : "hover:bg-[#2c865c]"
+        }`}
       >
-        Iniciar sesión
+        {loading ? "Iniciando sesión..." : "Iniciar sesión"}
       </button>
     </form>
   );

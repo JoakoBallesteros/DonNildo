@@ -214,14 +214,23 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
                   </NavLink>
                 </div>
               )}
-              <NavLink
-                to="/login"
-                className={({ isActive }) =>
-                  `mx-1 ${linkBase} ${isActive ? active : inactive}`
-                }
+              <button
+                onClick={() => {
+                  // 1. Limpiar todo el almacenamiento
+                  localStorage.removeItem("dn_token");
+                  localStorage.removeItem("dn_user");
+                  localStorage.removeItem("dn_refresh");
+                  sessionStorage.removeItem("dn_token");
+                  sessionStorage.removeItem("dn_user");
+                  sessionStorage.removeItem("dn_refresh");
+
+                  // 2. Redirigir y forzar recarga
+                  window.location.replace("/login");
+                }}
+                className={`mx-1 w-full text-left ${linkBase} ${inactive}`}
               >
                 Salir
-              </NavLink>
+              </button>
             </nav>
           </div>
         )}
