@@ -5,8 +5,8 @@
   "main": "src/server.mjs",
   "type": "module",
   "scripts": {
-    "dev": "dotenv -e .env.supabase -- nodemon src/server.mjs",
-    "start": "dotenv -e .env.supabase -- node src/server.mjs"
+    "dev": "nodemon src/server.mjs",
+    "start": "node src/server.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.76.1",
