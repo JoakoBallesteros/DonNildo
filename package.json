@@ -10,9 +10,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "up": "docker compose -f infra/docker-compose.yml up -d",
-    "down": "docker compose -f infra/docker-compose.yml down",
-    "reseed": "docker compose -f infra/docker-compose.yml down -v && docker compose -f infra/docker-compose.yml up -d",
+
     "dev:api": "npm run dev -w api",
     "dev:web": "npm run dev -w web",
     "dev": "concurrently -n API,WEB \"npm run dev:api\" \"npm run dev:web\""
