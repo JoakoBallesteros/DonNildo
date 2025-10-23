@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PageContainer from "../components/pages/PageContainer";
 import FormBuilder from "../components/forms/FormBuilder";
 import DataTable from "../components/tables/DataTable";
 import Modified from "../components/modals/modified";
+import { supa } from "../lib/supabaseClient";
 
 export default function RegistrarVentas() {
   const [formData, setFormData] = useState({
@@ -15,22 +16,68 @@ export default function RegistrarVentas() {
   });
 
   const [errors, setErrors] = useState({});
-  const [ventas, setVentas] = useState([
-    { tipo: "Caja", producto: "Caja de cartón", cantidad: 10, fecha: "2025-10-10", subtotal: 15000, descuento: 0, precio: 1500 },
-    { tipo: "Producto", producto: "Papel Kraft", cantidad: 20, fecha: "2025-10-11", subtotal: 12000, descuento: 0, precio: 600 },
-    { tipo: "Producto", producto: "Stitch", cantidad: 20, fecha: "2025-10-11", subtotal: 12000, descuento: 0, precio: 600 },
-  ]);
+  const [ventas, setVentas] = useState([]);
+  const [loading, setLoading] = useState(true);
+      useEffect(() => {
+        const fetchVentas = async () => {
+          try {
+            const { data, error } = await supa
+              .from("detalle_venta")
+              .select(`*, productos(nombre)`)
+             
 
+            if (error) throw error;
+            setVentas(data || []);
+          } catch (err) {
+            console.error("Error cargando ventas:", err.message);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        fetchVentas();
+      }, []);
   const [selectedVenta, setSelectedVenta] = useState(null);
   const [isEditOpen, setEditOpen] = useState(false);
 
-  const productosDisponibles = [
-    { nombre: "Caja de cartón", tipoVenta: "Caja" },
-    { nombre: "Papel Kraft", tipoVenta: "Producto" },
-    { nombre: "Combinado EcoPack", tipoVenta: "Mixta" },
-  ];
+  //Productos Disponibles
+  const [productosDisponibles, setProductosDisponibles] = useState([]);
+  useEffect(() => {
+  const fetchProductos = async () => {
+    try {
+      const { data, error } = await supa
+        .from("productos")
+        .select("id_producto, nombre, id_tipo_producto");
+
+      if (error) throw error;
+
+      // 💡 Si querés mostrar un tipo textual, podés mapearlo
+      const productosFormateados = data.map((p) => ({
+        nombre: p.nombre,
+        tipoVenta:
+          p.id_tipo_producto === 1
+            ? "Caja"
+            : p.id_tipo_producto === 2
+            ? "Producto"
+            : "Mixta",
+      }));
+
+      setProductosDisponibles(productosFormateados);
+    } catch (err) {
+      console.error("Error cargando productos:", err.message);
+    }
+  };
+
+  fetchProductos();
+}, []);
 
   const handleChange = (name, value) => {
+     // 🚫 Evitar negativos
+    if (["cantidad", "subtotal", "descuento"].includes(name)) {
+      const num = Number(value);
+      if (isNaN(num) || num < 0) return; // ignora valores negativos o no numéricos
+    }
+
     if (name === "producto") {
       const prod = productosDisponibles.find((p) => p.nombre === value);
       setFormData((prev) => ({
@@ -45,11 +92,15 @@ export default function RegistrarVentas() {
 
   const validarFormulario = () => {
     const nuevosErrores = {};
-    if (!formData.producto) nuevosErrores.producto = "Seleccioná un producto";
-    if (!formData.tipo) nuevosErrores.tipo = "Falta tipo de venta";
-    if (!formData.cantidad) nuevosErrores.cantidad = "Ingresá cantidad";
-    setErrors(nuevosErrores);
-    return Object.keys(nuevosErrores).length === 0;
+      if (!formData.producto) nuevosErrores.producto = "Seleccioná un producto";
+      if (!formData.tipo) nuevosErrores.tipo = "Falta tipo de venta";
+      if (!formData.cantidad || Number(formData.cantidad) <= 0) nuevosErrores.cantidad = "Ingresá una cantidad válida";
+      if (Number(formData.subtotal) < 0) nuevosErrores.subtotal = "El subtotal no puede ser negativo";
+      if (Number(formData.descuento) < 0 || Number(formData.descuento) > 100)
+        nuevosErrores.descuento = "El descuento debe estar entre 0% y 100%";
+      
+      setErrors(nuevosErrores);
+      return Object.keys(nuevosErrores).length === 0;
   };
 
   const calcularSubtotal = () => {
@@ -95,7 +146,6 @@ export default function RegistrarVentas() {
     { id: "tipo", header: "Tipo", accessor: "tipo", align: "center" },
     { id: "producto", header: "Producto", accessor: "producto" },
     { id: "cantidad", header: "Cantidad", accessor: "cantidad", align: "center" },
-    { id: "fecha", header: "Fecha", accessor: "fecha", align: "center" },
     {
       id: "subtotal",
       header: "Subtotal",
@@ -179,14 +229,25 @@ export default function RegistrarVentas() {
               </div>
             </div>
 
-            <div className="grid grid-cols-6 gap-4 items-end">
-              <FormBuilder fields={[{ label: "Fecha", name: "fecha", type: "date" }]} values={formData} onChange={handleChange} errors={errors} columns={1} />
+            <div className="grid grid-cols-6 gap-5 items-end">
               <FormBuilder fields={[{ label: "Cant. (u/kg)", name: "cantidad", type: "number", placeholder: "0" }]} values={formData} onChange={handleChange} errors={errors} columns={1} />
               <FormBuilder fields={[{ label: "Subtotal", name: "subtotal", type: "number", placeholder: "$" }]} values={formData} onChange={handleChange} errors={errors} columns={1} />
               <FormBuilder fields={[{ label: "Descuento aplicado", name: "descuento", type: "number", placeholder: "%" }]} values={formData} onChange={handleChange} errors={errors} columns={1} />
-              <button onClick={handleAgregarProducto} className="bg-[#154734] text-white px-4 py-2 rounded-md hover:bg-[#103a2b] transition w-full">+ Añadir</button>
-              <button className="border border-[#154734] text-[#154734] px-4 py-2 rounded-md hover:bg-[#e8f4ef] transition w-full">+ Nuevo producto</button>
+              <button
+                  onClick={handleAgregarProducto}
+                  className="bg-[#154734] text-white px-4 py-2 rounded-md hover:bg-[#103a2b] transition w-full ml-8"
+                >
+                  + Añadir
+                </button>
+
+                <button
+                  className="flex-wrap border border-[#154734] text-[#154734] px-4 py-2 rounded-md hover:bg-[#e8f4ef] transition w-full ml-7"
+                >
+                  + Nuevo producto
+                </button>
             </div>
+            
+             
           </div>
 
           <h3 className="text-[#154734] text-sm font-semibold mb-2">Productos registrados</h3>
@@ -207,16 +268,58 @@ export default function RegistrarVentas() {
           )}
         </div>
 
-        <div className="flex justify-center items-center gap-4 mt-4 pb-2 flex-shrink-0">
+        <div className="flex flex-wrap justify-center gap-3 mt-4 pb-2">
           <button className="border border-[#154734] text-[#154734] px-6 py-2 rounded-md hover:bg-[#f0f7f3] transition">
             CANCELAR
           </button>
           <button
-            onClick={() => console.log("Venta guardada:", ventas)}
-            className="bg-[#154734] text-white px-6 py-2 rounded-md hover:bg-[#103a2b] transition"
+            onClick={async () => {
+              try {
+                if (ventas.length === 0) {
+                  alert("⚠️ No hay productos cargados en la venta.");
+                  return;
+                }
+
+                // 1️⃣ Crear la venta principal con la fecha actual
+                const fechaActual = new Date().toISOString().split("T")[0]; // yyyy-mm-dd
+                const totalVenta = ventas.reduce((acc, v) => acc + Number(v.subtotal || 0), 0);
+
+                const { data: venta, error: ventaError } = await supa
+                  .from("venta")
+                  .insert([{ fecha: fechaActual, total: totalVenta }])
+                  .select()
+                  .single();
+
+                if (ventaError) throw ventaError;
+
+                // 2️⃣ Crear los registros de detalle_venta
+                const registros = ventas.map((v) => ({
+                  id_venta: venta.id_venta, // FK a la venta recién creada
+                  id_producto:
+                    productosDisponibles.find((p) => p.nombre === v.producto)?.id_producto || null,
+                  cantidad: Number(v.cantidad),
+                  precio_unitario: Number(v.subtotal) / Number(v.cantidad || 1), // precio unitario
+                  subtotal: Number(v.subtotal),
+                }));
+
+                const { error: detalleError } = await supa
+                  .from("detalle_venta")
+                  .insert(registros);
+
+                if (detalleError) throw detalleError;
+
+                alert("✅ Venta registrada correctamente");
+                setVentas([]); // limpiar grilla
+              } catch (err) {
+                console.error("Error al guardar venta:", err.message);
+                alert("❌ Error al guardar la venta: " + err.message);
+              }
+            }}
+            className="bg-[#154734] text-white px-6 py-2 rounded-lg hover:bg-[#103a2b] transition w-full sm:w-auto"
           >
             GUARDAR
           </button>
+
         </div>
 
         {selectedVenta && (

@@ -13,7 +13,7 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
   const [stockOpen, setStockOpen] = useState(true);
   const [reportesOpen, setReportesOpen] = useState(false);
   const [securityOpen, setSecurityOpen] = useState(false);
-
+  const [ventasOpen, setVentasOpen] = useState(false);
   return (
     <>
       {mobileOpen && (
@@ -63,15 +63,52 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
               >
                 Compras
               </NavLink>
+
+              {/* Ventas */}
+           <div className="relative mx-1">
+            <NavLink
+              to="/ventas"
+              end
+              className={({ isActive }) =>
+                `pr-10 ${linkBase} ${isActive ? active : inactive}`
+              }
+            >
+              Ventas
+            </NavLink>
+
+            {/* Botón desplegable */}
+            <button
+              type="button"
+              aria-label={
+                ventasOpen
+                  ? "Ocultar opciones de ventas"
+                  : "Mostrar opciones de ventas"
+              }
+              aria-expanded={ventasOpen}
+              onClick={() => setVentasOpen((o) => !o)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 grid place-items-center rounded-lg hover:bg-emerald-100"
+            >
+              <ChevronRight
+                className={`w-4 h-4 transition-transform ${
+                  ventasOpen ? "rotate-90" : ""
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Subopción de ventas */}
+          {ventasOpen && (
+            <div className="pl-5 space-y-1">
               <NavLink
-                to="/ventas"
+                to="/ventas/nueva"
                 className={({ isActive }) =>
                   `mx-1 ${linkBase} ${isActive ? active : inactive}`
                 }
               >
-                Ventas
+                Registrar nueva venta
               </NavLink>
-
+            </div>
+          )}
               {/* Stock */}
               <div className="relative mx-1">
                 <NavLink
@@ -136,7 +173,7 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
                   Reportes
                 </NavLink>
 
-                {/* Chevron: SOLO togglea el submenú, no navega */}
+                
                 <button
                   type="button"
                   aria-label={
