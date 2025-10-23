@@ -13,6 +13,7 @@ import Compras from "./pages/Compras.jsx";
 
 import LoginPage from "./pages/LoginPage.jsx";
 import RegistrarCompra from "./pages/RegistrarCompra.jsx";
+import AuthReset from "./pages/AuthReset.jsx";
 
 /* Stock */
 import StockList from "./pages/StockList.jsx";
@@ -40,6 +41,8 @@ export default function App() {
       <Routes>
         {/* RUTA LIBRE */}
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/auth/reset" element={<AuthReset />} />
+        
 
         {/* RUTAS PROTEGIDAS */}
         <Route element={<ProtectedRoute />}>
