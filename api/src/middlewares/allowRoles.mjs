@@ -1,8 +1,9 @@
+// api/src/middlewares/allowRoles.mjs
 export function allowRoles(...rolesPermitidos) {
   return (req, res, next) => {
-    const rol = req.user?.rol
-    if (!rol || !rolesPermitidos.includes(rol)) {
-      return res.status(403).json({ error: 'INSUFFICIENT_ROLE' })
+    if (!req.user?.role) return res.status(403).json({ error: 'FORBIDDEN' })
+    if (!rolesPermitidos.includes(req.user.role)) {
+      return res.status(403).json({ error: 'FORBIDDEN' })
     }
     next()
   }

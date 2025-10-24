@@ -1,6 +1,7 @@
 // src/components/pages/LoginForm.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { signIn } from "../../services/authService"; // 👈 NUEVO: login por SDK Supabase
 
 function getApiBaseUrl() {
   const raw = import.meta.env.VITE_API_URL || "http://localhost:4000";
@@ -26,34 +27,10 @@ export default function LoginForm() {
     setLoading(true);
 
     try {
-      const resp = await fetch(`${baseUrl}/v1/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: mail, password }),
-      });
+      // 👇 Login directo con Supabase (SDK). Se persiste/auto-refresca la sesión.
+      await signIn(mail, password);
 
-      // Si el servidor devolvió HTML (p.ej. 404 en Vite), evitamos intentar parsear JSON
-      const contentType = resp.headers.get("content-type") || "";
-      const tryJson = contentType.includes("application/json");
-
-      if (!resp.ok) {
-        const details = tryJson ? await resp.json().catch(() => ({})) : {};
-        const msg =
-          details?.error?.message ||
-          details?.message ||
-          (resp.status === 404
-            ? `Endpoint no encontrado: ${baseUrl}/v1/auth/login`
-            : `Error ${resp.status} al iniciar sesión`);
-        throw new Error(msg);
-      }
-
-      const data = tryJson ? await resp.json() : {};
-      if (!data?.token) throw new Error("Respuesta inválida del servidor");
-
-      localStorage.setItem("dn_token", data.token);
-      if (data.refreshToken) localStorage.setItem("dn_refresh", data.refreshToken);
-      localStorage.setItem("dn_user", JSON.stringify(data.user));
-
+      // recordarme (solo el mail)
       if (rememberMe) localStorage.setItem("dn_mail_recordado", mail);
       else localStorage.removeItem("dn_mail_recordado");
 
@@ -75,6 +52,7 @@ export default function LoginForm() {
     }
 
     try {
+      // 👇 Seguimos usando tu backend para el reset (está perfecto)
       const resp = await fetch(`${baseUrl}/v1/auth/password/reset`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

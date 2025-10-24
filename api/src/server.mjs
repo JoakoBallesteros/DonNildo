@@ -6,7 +6,8 @@ import { pool } from './db.mjs'
 import { requireAuth } from './middlewares/requireAuth.mjs'
 import { allowRoles } from './middlewares/allowRoles.mjs'
 import authRoutes from './routes/auth.mjs'
-
+import usuariosRoutes from './routes/usuarios.mjs';
+import rolesRoutes from './routes/roles.mjs';
 
 dotenv.config()
 
@@ -15,6 +16,8 @@ app.use(cors({ origin: process.env.CORS_ORIGIN || '*', credentials: true }))
 app.use(express.json())
 app.use(morgan('dev'))
 app.use('/v1/auth', authRoutes)
+app.use('/v1/usuarios', usuariosRoutes);
+app.use('/v1/roles', rolesRoutes);
 
 
 console.log('MODE: supabase-only')
