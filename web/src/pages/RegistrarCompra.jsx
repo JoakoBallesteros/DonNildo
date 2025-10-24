@@ -1,5 +1,5 @@
 // src/pages/RegistrarCompra.jsx
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Plus, ChevronDown, Calendar } from "lucide-react";
 
 // Botones reutilizables
@@ -7,26 +7,11 @@ import PrimaryButton from "../components/buttons/PrimaryButton.jsx";
 import IconButton from "../components/buttons/IconButton.jsx";
 import ActionButton from "../components/buttons/ActionButton.jsx";
 
-// Formulario de producto (el mismo que usa tu StockNuevoProducto)
-// lo montamos directo dentro del modal para evitar el PageContainer.
+// Formulario de producto
 import ProductFormTabs from "../components/forms/ProductFormTabs.jsx";
 
-/* ============ Modal simple ============ */
-function Modal({ isOpen, title, onClose, children, maxWidth = "max-w-2xl" }) {
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 z-[100]">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} aria-hidden />
-      <div className={`absolute left-1/2 top-1/2 w-[95vw] ${maxWidth} -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white shadow-xl border border-emerald-100`}>
-        <div className="flex items-center justify-between px-5 py-3 border-b">
-          <h3 className="text-lg font-semibold text-emerald-900">{title}</h3>
-          <button onClick={onClose} className="rounded px-2 py-1 text-sm hover:bg-gray-100">✕</button>
-        </div>
-        <div className="p-5">{children}</div>
-      </div>
-    </div>
-  );
-}
+// ▶️ usa TU modal genérico
+import Modal from "../components/modals/Modals.jsx";
 
 /* ====== Mock básico ====== */
 const PRODUCTOS = [
@@ -44,11 +29,8 @@ const PROVEEDORES = [
 /* ====== Helpers ====== */
 const fmt    = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 2 });
 const fmtNum = new Intl.NumberFormat("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-function toNumber(v) {
-  if (typeof v === "number") return v;
-  if (!v) return 0;
-  return Number(String(v).replace(/\./g, "").replace(",", ".").replace(/[^\d.]/g, "")) || 0;
-}
+const toNumber = (v) =>
+  Number(String(v ?? "").replace(/\./g, "").replace(",", ".").replace(/[^\d.]/g, "")) || 0;
 
 /* ====== Página ====== */
 export default function RegistrarCompra() {
@@ -67,6 +49,9 @@ export default function RegistrarCompra() {
   // Modal “Nuevo producto”
   const [newProdOpen, setNewProdOpen]   = useState(false);
 
+  // Focus helpers
+  const cantRef = useRef(null);
+
   const subtotalCalc = useMemo(() => {
     const q = toNumber(cantidad);
     const p = toNumber(precioUnit);
@@ -83,6 +68,8 @@ export default function RegistrarCompra() {
     setProducto(p);
     setBusquedaProd(p.nombre);
     if (!precioUnit) setPrecioUnit(String(p.precioRef));
+    // cierra el “dropdown” y va directo a cantidad
+    setTimeout(() => cantRef.current?.focus(), 0);
   }
 
   function addItem() {
@@ -155,11 +142,13 @@ export default function RegistrarCompra() {
 
   // Handlers del modal “Nuevo producto”
   function handleCreateProductSubmit(values) {
-    // acá enviarías a la API y, si querés, auto-seleccionar el producto creado:
-    // setProducto({ id: 'nuevo...', nombre: values.referencia, tipo: values.tipo, medida: values.unidad, precioRef: toNumber(values.precio) })
+    // TODO: enviar a API y si querés, auto-seleccionar
+    // setProducto({ id: 'nuevo', nombre: values.referencia, tipo: values.tipo, medida: values.unidad, precioRef: toNumber(values.precio) })
     console.log("Crear producto", values);
     setNewProdOpen(false);
   }
+
+  const addDisabled = !producto || toNumber(cantidad) <= 0 || toNumber(precioUnit) <= 0;
 
   return (
     <div className="p-6 md:p-8">
@@ -205,7 +194,7 @@ export default function RegistrarCompra() {
 
                     {/* Dropdown simple */}
                     {busquedaProd && !producto && (
-                      <div className="absolute z-10 mt-1 w-full rounded-md border bg-white shadow">
+                      <div className="absolute z-10 mt-1 w-full rounded-md border bg-white shadow max-h-56 overflow-auto">
                         {productosFiltrados.length === 0 && (
                           <div className="px-3 py-2 text-sm text-gray-500">Sin resultados</div>
                         )}
@@ -236,6 +225,7 @@ export default function RegistrarCompra() {
                   <div>
                     <label className="block text-sm text-emerald-900 mb-1">Cant. (u/kg)</label>
                     <input
+                      ref={cantRef}
                       inputMode="decimal"
                       value={cantidad}
                       onChange={(e) => setCantidad(e.target.value)}
@@ -306,7 +296,7 @@ export default function RegistrarCompra() {
                 <div className="col-span-1 md:col-span-2 flex justify-end">
                   <PrimaryButton
                     onClick={addItem}
-                    className="rounded-full"
+                    className={`rounded-full ${addDisabled ? "opacity-60 pointer-events-none" : ""}`}
                     text={
                       <span className="inline-flex items-center gap-2">
                         <Plus className="h-4 w-4" /> Añadir
@@ -351,7 +341,7 @@ export default function RegistrarCompra() {
                         <ActionButton
                           type="edit"
                           text="MODIFICAR"
-                          onClick={() => { /* abrir modal editar ítem si querés */ }}
+                          onClick={() => { /* podés abrir un modal de edición por ítem si lo necesitás */ }}
                         />
                         <ActionButton
                           type="delete"
@@ -404,7 +394,7 @@ export default function RegistrarCompra() {
         isOpen={newProdOpen}
         title="Registrar nuevo producto"
         onClose={() => setNewProdOpen(false)}
-        maxWidth="max-w-2xl"
+        size="max-w-2xl"
       >
         <ProductFormTabs
           mode="create"

@@ -50,31 +50,34 @@ router.get('/me', requireAuth, (req, res) => {
 // Password reset: siempre respondemos 200 para evitar "enumeración de cuentas"
 router.post('/password/reset', async (req, res) => {
   try {
-    if (!supa) return res.status(200).json({ ok: true }) // mismo motivo
+    if (!supa) return res.status(200).json({ ok: true }); // ocultamos detalles
 
-    const { email } = req.body || {}
-    if (!email) return res.status(400).json({ error: badRequest('Ingresá tu correo.') })
+    const { email } = req.body || {};
+    if (!email) return res.status(400).json({ error: badRequest('Ingresá tu correo.') });
 
-    const base =
-      process.env.RESET_REDIRECT_URL ||
-      (process.env.CORS_ORIGIN || '').replace(/\/$/, '') ||
-      null
-
-    if (!base) {
-      // seguimos ocultando detalles pero sin romper la UX
-      return res.status(200).json({ ok: true })
+    // ✅ Si viene RESET_REDIRECT_URL, úsala tal cual.
+    // Si no, armamos base desde CORS_ORIGIN y le agregamos /auth/reset.
+    let redirectTo = process.env.RESET_REDIRECT_URL;
+    if (!redirectTo) {
+      const base = (process.env.CORS_ORIGIN || '').replace(/\/$/, '');
+      if (!base) return res.status(200).json({ ok: true }); // sin base, no rompemos UX
+      redirectTo = `${base}/auth/reset`;
     }
 
-    const redirectTo = `${base}/auth/reset`
-    await supa.auth.resetPasswordForEmail(email, { redirectTo })
+    await supa.auth.resetPasswordForEmail(email, { redirectTo });
 
-    // Siempre OK (aunque el mail no exista) para no revelar usuarios válidos
-    return res.json({ ok: true, message: 'Si el correo es válido, te enviamos un enlace para restablecer tu contraseña.' })
+    return res.json({
+      ok: true,
+      message: 'Si el correo es válido, te enviamos un enlace para restablecer tu contraseña.',
+    });
   } catch (_e) {
-    // También OK por el mismo motivo
-    return res.json({ ok: true, message: 'Si el correo es válido, te enviamos un enlace para restablecer tu contraseña.' })
+    return res.json({
+      ok: true,
+      message: 'Si el correo es válido, te enviamos un enlace para restablecer tu contraseña.',
+    });
   }
-})
+});
 
 export default router
 
+ 

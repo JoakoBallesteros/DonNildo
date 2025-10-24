@@ -1,8 +1,14 @@
+// src/components/pages/LoginForm.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+function getApiBaseUrl() {
+  const raw = import.meta.env.VITE_API_URL || "http://localhost:4000";
+  const withScheme = /^https?:\/\//i.test(raw) ? raw : `http://${raw}`;
+  return withScheme.replace(/\/$/, "");
+}
+
 export default function LoginForm() {
-  // Cargamos el mail si estaba recordado
   const [mail, setMail] = useState(() => localStorage.getItem("dn_mail_recordado") || "");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(() => Boolean(localStorage.getItem("dn_mail_recordado")));
@@ -11,7 +17,7 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const baseUrl = (import.meta.env.VITE_API_URL || "http://localhost:4000").replace(/\/$/, "");
+  const baseUrl = getApiBaseUrl();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -26,20 +32,28 @@ export default function LoginForm() {
         body: JSON.stringify({ email: mail, password }),
       });
 
+      // Si el servidor devolvió HTML (p.ej. 404 en Vite), evitamos intentar parsear JSON
+      const contentType = resp.headers.get("content-type") || "";
+      const tryJson = contentType.includes("application/json");
+
       if (!resp.ok) {
-        const details = await resp.json().catch(() => ({}));
-        // Aseguramos mostrar SIEMPRE un string (evita [object Object])
-        throw new Error(details?.error?.message || details?.message || "Usuario o contraseña incorrectos");
+        const details = tryJson ? await resp.json().catch(() => ({})) : {};
+        const msg =
+          details?.error?.message ||
+          details?.message ||
+          (resp.status === 404
+            ? `Endpoint no encontrado: ${baseUrl}/v1/auth/login`
+            : `Error ${resp.status} al iniciar sesión`);
+        throw new Error(msg);
       }
 
-      const data = await resp.json();
+      const data = tryJson ? await resp.json() : {};
+      if (!data?.token) throw new Error("Respuesta inválida del servidor");
 
-      // Guardar sesión
       localStorage.setItem("dn_token", data.token);
       if (data.refreshToken) localStorage.setItem("dn_refresh", data.refreshToken);
       localStorage.setItem("dn_user", JSON.stringify(data.user));
 
-      // Recordarme
       if (rememberMe) localStorage.setItem("dn_mail_recordado", mail);
       else localStorage.removeItem("dn_mail_recordado");
 
@@ -67,12 +81,20 @@ export default function LoginForm() {
         body: JSON.stringify({ email: mail }),
       });
 
-      const data = await resp.json().catch(() => ({}));
+      const contentType = resp.headers.get("content-type") || "";
+      const tryJson = contentType.includes("application/json");
+      const data = tryJson ? await resp.json().catch(() => ({})) : {};
+
       if (!resp.ok) {
-        throw new Error(data?.error?.message || data?.message || "No se pudo enviar el correo");
+        const msg =
+          data?.error?.message ||
+          data?.message ||
+          (resp.status === 404
+            ? `Endpoint no encontrado: ${baseUrl}/v1/auth/password/reset`
+            : `Error ${resp.status} al enviar el correo`);
+        throw new Error(msg);
       }
 
-      // Por seguridad, siempre mismo mensaje público
       setSuccess("Si la cuenta existe, te enviamos un correo para restablecer la contraseña.");
     } catch (e) {
       setError(e?.message || "No se pudo enviar el correo");
@@ -81,7 +103,6 @@ export default function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col w-full">
-      {/* Usuario (email) */}
       <label className="text-left text-sm text-[#154734] font-medium mb-1">Usuario</label>
       <input
         type="email"
@@ -92,7 +113,6 @@ export default function LoginForm() {
         onChange={(e) => setMail(e.target.value)}
       />
 
-      {/* Contraseña */}
       <label className="text-left text-sm text-[#154734] font-medium mb-1">Contraseña</label>
       <input
         type="password"
@@ -103,7 +123,6 @@ export default function LoginForm() {
         onChange={(e) => setPassword(e.target.value)}
       />
 
-      {/* Recordarme + Olvidé */}
       <div className="flex justify-between items-center mb-6 text-sm">
         <label className="flex items-center gap-1 text-gray-600">
           <input
@@ -123,11 +142,9 @@ export default function LoginForm() {
         </button>
       </div>
 
-      {/* Mensajes */}
       {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
       {success && <p className="text-green-600 text-sm mb-4">{success}</p>}
 
-      {/* Botón */}
       <button
         type="submit"
         disabled={loading}
@@ -140,4 +157,3 @@ export default function LoginForm() {
     </form>
   );
 }
-
