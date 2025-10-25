@@ -6,7 +6,7 @@ import PageContainer from "../components/pages/PageContainer";
 import FilterBar from "../components/forms/FilterBars";
 import DataTable from "../components/tables/DataTable";
 import DetailModal from "../components/modals/Details";
-import Modified from "../components/modals/modified";
+import Modified from "../components/modals/Modified";
 import { useNavigate } from "react-router-dom";
 
 // 🔹 Datos simulados coherentes con RegistrarVentas
