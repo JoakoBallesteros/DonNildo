@@ -1,72 +1,143 @@
-import React, { useMemo, useState } from "react";
+// src/pages/SegRoles.jsx
+import { useEffect, useMemo, useState } from "react";
 import PageContainer from "../components/pages/PageContainer";
 import DataTable from "../components/tables/DataTable";
-
-const ROLES = [
-  { id: "ADMIN", label: "Administrador" },
-  { id: "SUPERVISOR", label: "Supervisor" },
-  { id: "OPERADOR", label: "Operador" },
-  { id: "CONSULTA", label: "Consulta" },
-];
-
-// usuarios de ejemplo (en real, podrías traerlos del store o API)
-const USERS = [
-  { id: "U-0001", nombre: "John Doe" },
-  { id: "U-0002", nombre: "María Pérez" },
-];
+import { supa } from "../lib/supabaseClient";
 
 export default function SegRoles() {
+  const [roles, setRoles] = useState([]);          // roles de la BD
+  const [usuarios, setUsuarios] = useState([]);    // usuarios de la BD
   const [rolSel, setRolSel] = useState("");
   const [usrSel, setUsrSel] = useState("");
-  const [rows, setRows] = useState([
-    { id: "R-1", rol: "Administrador", usuario: "John Doe" },
-  ]);
+  const [rows, setRows] = useState([]);
 
-  const onAssign = () => {
-    const rol = ROLES.find(r=>r.id===rolSel)?.label || "";
-    const usr = USERS.find(u=>u.id===usrSel)?.nombre || "";
+  // Cargar roles y usuarios al montar
+  useEffect(() => {
+    const fetchData = async () => {
+      const { data: rolesData } = await supa
+        .from("roles")
+        .select("id_rol, nombre");
+
+      const { data: usuariosData } = await supa
+        .from("usuarios")
+        .select("id_usuario, nombre, id_rol");
+
+      setRoles(rolesData || []);
+      setUsuarios(usuariosData || []);
+
+      // Montar filas iniciales con rol y usuario
+      const inicial = (usuariosData || [])
+        .filter(u => u.id_rol)            // solo usuarios con rol asignado
+        .map(u => {
+          const rol = rolesData?.find(r => r.id_rol === u.id_rol)?.nombre || "";
+          return { id: `${u.id_usuario}`, rol, usuario: u.nombre };
+        });
+      setRows(inicial);
+    };
+    fetchData();
+  }, []);
+
+  // Asignar rol a un usuario
+  const onAssign = async () => {
+    const rol = roles.find(r => r.id_rol === parseInt(rolSel));
+    const usr = usuarios.find(u => u.id_usuario === parseInt(usrSel));
     if (!rol || !usr) return;
-    // evitar duplicados
-    if (rows.some(r => r.rol===rol && r.usuario===usr)) return;
-    setRows(prev => [{ id: crypto.randomUUID?.() || String(Date.now()), rol, usuario: usr }, ...prev]);
+
+    // Evitar duplicados
+    if (rows.some(r => r.rol === rol.nombre && r.usuario === usr.nombre)) return;
+
+    // Actualizar en Supabase (esto requiere permisos INSERT/UPDATE en usuarios)
+    await supa
+      .from("usuarios")
+      .update({ id_rol: rol.id_rol })
+      .eq("id_usuario", usr.id_usuario);
+
+    setRows(prev => [
+      ...prev,
+      {
+        id: `${usr.id_usuario}-${rol.id_rol}`,
+        rol: rol.nombre,
+        usuario: usr.nombre,
+      },
+    ]);
   };
 
-  const onRemove = (row) => setRows(prev => prev.filter(r => r.id !== row.id));
+  // Remover rol (dejar id_rol en NULL)
+  const onRemove = async (row) => {
+    const usuario = usuarios.find(u => u.nombre === row.usuario);
+    if (!usuario) return;
 
-  const cols = useMemo(()=>[
-    { id: "rol", header: "Rol", accessor: "rol", width: 180, sortable: true },
-    { id: "usuario", header: "Usuario", accessor: "usuario", sortable: true },
+    await supa
+      .from("usuarios")
+      .update({ id_rol: null })
+      .eq("id_usuario", usuario.id_usuario);
+
+    setRows(prev => prev.filter(r => r.id !== row.id));
+  };
+
+  const cols = useMemo(() => [
+    { id: "rol", header: "Rol", accessor: "rol", width: 180 },
+    { id: "usuario", header: "Usuario", accessor: "usuario" },
     {
-      id: "acc", header: "Acciones", width: 140, align: "center",
-      render: (row)=>(
-        <button className="px-2 py-1 text-xs rounded-md bg-[#a30000] text-white" onClick={()=>onRemove(row)}>
+      id: "acc",
+      header: "Acciones",
+      width: 140,
+      align: "center",
+      render: (row) => (
+        <button
+          className="px-2 py-1 text-xs rounded-md bg-[#a30000] text-white"
+          onClick={() => onRemove(row)}
+        >
           Remover
         </button>
-      )
+      ),
     },
-  ],[]);
+  ], [rows]);
 
   return (
-    <PageContainer title="Gestión de Roles">
+    <PageContainer title="Gestión de roles">
       <div className="bg-white rounded-2xl border border-[#e3e9e5] p-5 md:p-6 mb-5">
         <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-4 items-end">
           <div>
-            <label className="text-sm font-semibold text-[#154734] mb-1 block">Seleccione un rol</label>
-            <select value={rolSel} onChange={(e)=>setRolSel(e.target.value)} className="w-full border border-[#d8e4df] rounded-md px-3 py-2">
+            <label className="text-sm font-semibold text-[#154734] mb-1 block">
+              Seleccione un rol
+            </label>
+            <select
+              value={rolSel}
+              onChange={(e) => setRolSel(e.target.value)}
+              className="w-full border border-[#d8e4df] rounded-md px-3 py-2"
+            >
               <option value="">—</option>
-              {ROLES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
+              {roles.map((r) => (
+                <option key={r.id_rol} value={r.id_rol}>
+                  {r.nombre}
+                </option>
+              ))}
             </select>
           </div>
           <div>
-            <label className="text-sm font-semibold text-[#154734] mb-1 block">Seleccione un usuario</label>
-            <select value={usrSel} onChange={(e)=>setUsrSel(e.target.value)} className="w-full border border-[#d8e4df] rounded-md px-3 py-2">
+            <label className="text-sm font-semibold text-[#154734] mb-1 block">
+              Seleccione un usuario
+            </label>
+            <select
+              value={usrSel}
+              onChange={(e) => setUsrSel(e.target.value)}
+              className="w-full border border-[#d8e4df] rounded-md px-3 py-2"
+            >
               <option value="">—</option>
-              {USERS.map(u => <option key={u.id} value={u.id}>{u.nombre}</option>)}
+              {usuarios.map((u) => (
+                <option key={u.id_usuario} value={u.id_usuario}>
+                  {u.nombre}
+                </option>
+              ))}
             </select>
           </div>
           <div className="flex md:justify-end">
-            <button onClick={onAssign} className="rounded-md bg-[#154734] text-white px-4 py-2 hover:bg-[#103a2b]">
-              Asignar Rol
+            <button
+              onClick={onAssign}
+              className="rounded-md bg-[#154734] text-white px-4 py-2 hover:bg-[#103a2b]"
+            >
+              Asignar rol
             </button>
           </div>
         </div>
@@ -84,10 +155,15 @@ export default function SegRoles() {
       />
 
       <div className="mt-6 flex justify-center gap-2">
-        <a href="/seguridad" className="px-4 py-2 rounded-md border border-[#154734] text-[#154734] hover:bg-[#e8f4ef]">
+        <a
+          href="/seguridad"
+          className="px-4 py-2 rounded-md border border-[#154734] text-[#154734] hover:bg-[#e8f4ef]"
+        >
           Cancelar
         </a>
-        <button className="px-5 py-2 rounded-md text-white bg-[#154734] hover:bg-[#103a2b]">
+        <button
+          className="px-5 py-2 rounded-md text-white bg-[#154734] hover:bg-[#103a2b]"
+        >
           Guardar
         </button>
       </div>

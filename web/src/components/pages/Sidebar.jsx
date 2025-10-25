@@ -8,6 +8,7 @@ const linkBase =
   "block w-full rounded-xl px-4 py-3 text-base font-semibold tracking-[0.2px] transition-colors";
 const active = "bg-emerald-700 text-white";
 const inactive = "text-emerald-900/85 hover:bg-emerald-100";
+ const userRole = localStorage.getItem("dn_role"); // 'ADMIN' o 'OPERADOR'
 
 export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
   const [stockOpen, setStockOpen] = useState(true);
@@ -207,50 +208,37 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
                 </div>
               )}
 
-              <div className="relative mx-1">
-                <NavLink
-                  to="/seguridad"
-                  end
-                  className={({ isActive }) =>
-                    `pr-10 ${linkBase} ${isActive ? active : inactive}`
-                  }
-                >
-                  Seguridad
-                </NavLink>
-                <button
-                  type="button"
-                  aria-expanded={securityOpen}
-                  onClick={() => setSecurityOpen((o) => !o)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 grid place-items-center rounded-lg hover:bg-emerald-100"
-                >
-                  <ChevronRight
-                    className={`w-4 h-4 transition-transform ${
-                      securityOpen ? "rotate-90" : ""
-                    }`}
-                  />
-                </button>
-              </div>
+            
 
-              {securityOpen && (
-                <div className="pl-5 space-y-1">
-                  <NavLink
-                    to="/seguridad/auditoria"
-                    className={({ isActive }) =>
-                      `mx-1 ${linkBase} ${isActive ? active : inactive}`
-                    }
-                  >
-                    Auditoría
-                  </NavLink>
-                  <NavLink
-                    to="/seguridad/roles"
-                    className={({ isActive }) =>
-                      `mx-1 ${linkBase} ${isActive ? active : inactive}`
-                    }
-                  >
-                    Gestión de roles
-                  </NavLink>
-                </div>
-              )}
+                {/* ...otras secciones... */}
+                {userRole === "ADMIN" && (
+                  <>
+                    <div className="relative mx-1">
+                      <NavLink to="/seguridad" end className={({ isActive }) => `pr-10 ${linkBase} ${isActive ? active : inactive}`}>
+                        Seguridad
+                      </NavLink>
+                      <button
+                        type="button"
+                        aria-expanded={securityOpen}
+                        onClick={() => setSecurityOpen((o) => !o)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 grid place-items-center rounded-lg hover:bg-emerald-100"
+                      >
+                        <ChevronRight className={`w-4 h-4 transition-transform ${securityOpen ? "rotate-90" : ""}`} />
+                      </button>
+                    </div>
+
+                    {securityOpen && (
+                      <div className="pl-5 space-y-1">
+                        <NavLink to="/seguridad/auditoria" className={({ isActive }) => `mx-1 ${linkBase} ${isActive ? active : inactive}`}>
+                          Auditoría
+                        </NavLink>
+                        <NavLink to="/seguridad/roles" className={({ isActive }) => `mx-1 ${linkBase} ${isActive ? active : inactive}`}>
+                          Gestión de roles
+                        </NavLink>
+                      </div>
+                    )}
+                  </>
+                )}
               <button
                 onClick={() => {
                   // 1. Limpiar todo el almacenamiento

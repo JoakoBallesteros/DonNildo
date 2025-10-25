@@ -7,7 +7,7 @@ export default function LoginPage() {
       <div className="grid w-full max-w-6xl grid-cols-1 md:grid-cols-2 gap-10 items-center">
         {/* Logo (oculto en mobile) */}
         <div className="hidden md:flex items-center justify-center">
-          <div className="rounded-full bg-white/10 p-4">
+          <div className="rounded-full">
             <img
               src={logo}
               alt="Logo Reciclados Nildo"

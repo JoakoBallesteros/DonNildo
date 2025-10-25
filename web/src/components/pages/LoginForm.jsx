@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { signIn } from "../../services/authService"; // 👈 NUEVO: login por SDK Supabase
+import { supa } from "../../lib/supabaseClient"; // asegúrate de importar supa
 
 function getApiBaseUrl() {
   const raw = import.meta.env.VITE_API_URL || "http://localhost:4000";
@@ -21,16 +22,28 @@ export default function LoginForm() {
   const baseUrl = getApiBaseUrl();
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError(null);
-    setSuccess(null);
-    setLoading(true);
+  e.preventDefault();
+  setError(null);
+  setSuccess(null);
+  setLoading(true);
 
-    try {
-      // 👇 Login directo con Supabase (SDK). Se persiste/auto-refresca la sesión.
-      await signIn(mail, password);
+  try {
+      await signIn(mail, password); // te logueas
 
-      // recordarme (solo el mail)
+      // Recuperar el usuario logueado desde supabase
+      const { data: { user }, error: userError } = await supa.auth.getUser();
+      if (userError) throw userError;
+
+      // Ahora puedes buscar su rol
+      const { data: rolData, error } = await supa
+        .from("usuarios")
+        .select("id_rol, roles(nombre)")
+        .eq("id_auth", user.id)
+        .single();
+
+      const roleName = rolData?.roles?.nombre || "";
+      localStorage.setItem("dn_role", roleName);
+
       if (rememberMe) localStorage.setItem("dn_mail_recordado", mail);
       else localStorage.removeItem("dn_mail_recordado");
 
@@ -41,7 +54,6 @@ export default function LoginForm() {
       setLoading(false);
     }
   };
-
   const handleForgotPassword = async () => {
     setError(null);
     setSuccess(null);
