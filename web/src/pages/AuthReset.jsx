@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
-
+import { useState, useEffect } from "react";
+import { createClient } from "@supabase/supabase-js";
 
 // Create a Supabase client using Vite env vars.  Make sure VITE_SUPABASE_URL
 // and VITE_SUPABASE_ANON_KEY are defined in your `.env` for the React app.
@@ -9,25 +8,24 @@ const supabase = createClient(
   import.meta.env.VITE_SUPABASE_ANON_KEY
 );
 
-
 export default function AuthReset() {
   const [ready, setReady] = useState(false);
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState("");
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
   // Determine where to send the user after a successful reset.  You can
   // customise this URL to match your own login route.
-  const redirectTo = '/login?reset=ok';
+  const redirectTo = "/login?reset=ok";
 
   useEffect(() => {
     // Extract the code query parameter from the URL.  Supabase appends
     // `?code=...` to the redirect URL in the password‑reset email.
     const params = new URLSearchParams(window.location.search);
-    const code = params.get('code');
+    const code = params.get("code");
     if (!code) {
-      setError('El enlace de restablecimiento no es válido o está incompleto.');
+      setError("El enlace de restablecimiento no es válido o está incompleto.");
       setReady(true);
       return;
     }
@@ -38,7 +36,7 @@ export default function AuthReset() {
       if (exchError) {
         setError(
           exchError.message ||
-            'No pudimos validar el enlace. Es posible que haya expirado.'
+            "No pudimos validar el enlace. Es posible que haya expirado."
         );
       }
       setReady(true);
@@ -50,23 +48,26 @@ export default function AuthReset() {
     setLoading(true);
     setError(null);
     setMessage(null);
-    // Attempt to update the user's password.  Supabase requires the user
-    // to be authenticated (via exchangeCodeForSession) for this to work.
-    const { error: updateError } = await supabase.auth.updateUser({
-      password,
-    });
-    setLoading(false);
+
+    // 1) Cambiar contraseña (requiere haber hecho exchangeCodeForSession antes)
+    const { error: updateError } = await supabase.auth.updateUser({ password });
+
     if (updateError) {
-      setError(updateError.message || 'No se pudo actualizar la contraseña.');
+      setLoading(false);
+      setError(updateError.message || "No se pudo actualizar la contraseña.");
       return;
     }
+
+    // 2) Si todo OK, cerrar sesión para evitar tokens viejos
+    await supabase.auth.signOut();
+
+    // 3) Avisar y redirigir limpio al login
+    setLoading(false);
     setMessage(
-      '¡Contraseña actualizada! Serás redirigido al inicio de sesión en un momento.'
+      "¡Contraseña actualizada! Serás redirigido al inicio de sesión en un momento."
     );
-    // Redirect to the login page after a short delay to allow the user to
-    // read the success message.  Adjust the timeout as desired.
     setTimeout(() => {
-      window.location.href = redirectTo;
+      window.location.href = redirectTo; // p.ej. '/login?reset=ok'
     }, 1500);
   };
 
@@ -107,11 +108,11 @@ export default function AuthReset() {
               disabled={loading}
               className={`w-full py-2 px-4 text-white font-semibold rounded-lg transition-colors ${
                 loading
-                  ? 'bg-green-700 opacity-70 cursor-not-allowed'
-                  : 'bg-green-700 hover:bg-green-800'
+                  ? "bg-green-700 opacity-70 cursor-not-allowed"
+                  : "bg-green-700 hover:bg-green-800"
               }`}
             >
-              {loading ? 'Guardando…' : 'Cambiar contraseña'}
+              {loading ? "Guardando…" : "Cambiar contraseña"}
             </button>
           </form>
         )}

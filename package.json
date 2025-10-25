@@ -33,6 +33,7 @@
   "homepage": "https://github.com/JoakoBallesteros/DonNildo#readme",
   "dependencies": {
     "@supabase/supabase-js": "^2.76.1",
+    "jose": "^6.1.0",
     "jspdf": "^3.0.3",
     "jspdf-autotable": "^5.0.2"
   }

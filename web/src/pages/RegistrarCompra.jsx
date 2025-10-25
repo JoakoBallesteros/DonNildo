@@ -1,5 +1,5 @@
 // src/pages/RegistrarCompra.jsx
-import { useEffect, useMemo, useRef, useState } from "react";
+import {  useMemo, useRef, useState } from "react";
 import { Plus, ChevronDown, Calendar } from "lucide-react";
 
 // Botones reutilizables

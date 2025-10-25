@@ -5,9 +5,11 @@ export const supa = createClient(
   import.meta.env.VITE_SUPABASE_ANON_KEY,
   {
     auth: {
-      persistSession: true,      // guarda sesión
-      autoRefreshToken: true,    // renueva access_token solo
+      persistSession: true,
+      autoRefreshToken: true,
       detectSessionInUrl: true,
     },
   }
 )
+
+export default supa

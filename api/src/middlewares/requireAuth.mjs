@@ -1,63 +1,56 @@
-import { supa } from '../lib/supabaseClient.mjs'
+import { jwtVerify, createRemoteJWKSet, decodeJwt, decodeProtectedHeader } from 'jose'
+import { webcrypto } from 'node:crypto'
+if (!globalThis.crypto) globalThis.crypto = webcrypto
 
-const ABSOLUTE_SESSION_DAYS = 7
+const base = (process.env.SUPABASE_URL || '').replace(/\/+$/, '')
+if (!base) throw new Error('[requireAuth] SUPABASE_URL no configurada')
+
+const jwksUrl = new URL(`${base}/auth/v1/.well-known/jwks.json`)
+const jwks = createRemoteJWKSet(jwksUrl)
+
+// clave para HS256
+const HS_SECRET = (process.env.SUPABASE_JWT_SECRET || '').trim()
+const HS_KEY = HS_SECRET ? new TextEncoder().encode(HS_SECRET) : null
 
 export async function requireAuth(req, res, next) {
   try {
     if (req.method === 'OPTIONS') return res.sendStatus(200)
 
-    const m = (req.headers.authorization || '').match(/^Bearer\s+(.+)$/i)
-    const token = m?.[1] || null
+    const auth = req.headers.authorization || ''
+    const token = auth.startsWith('Bearer ') ? auth.slice(7) : null
     if (!token) return res.status(401).json({ error: 'NO_TOKEN' })
 
-    // Validar token de Supabase
-    const { data, error } = await supa.auth.getUser(token)
-    if (error || !data?.user) {
-      console.error('getUser error:', error?.message || error, { path: req.path })
-      return res.status(401).json({ error: 'INVALID_TOKEN' })
-    }
+    // logs de diagnóstico (puedes quitar después)
+    const decoded = decodeJwt(token)
+    const header = decodeProtectedHeader(token)
+    console.log('[AUTH] alg:', header.alg, 'iss:', decoded.iss, 'sub:', decoded.sub)
+    console.log('[AUTH] jwks url:', jwksUrl.toString())
 
-    const u = data.user
-    req.user = {
-      idAuth: u.id,
-      email: (u.email || '').toLowerCase(),
-      metadata: u.user_metadata || {},
-      provider: 'supabase',
-    }
-    req.accessToken = token
-
-    // Obtener/crear inicio del ciclo de sesión (service_role → bypass RLS)
-    const { data: row, error: e1 } = await supa
-      .from('usuarios')
-      .select('session_started_at')
-      .eq('id_auth', u.id)
-      .single()
-
-    if (e1) {
-      console.error('session_started_at select error:', e1)
-      return res.status(500).json({ error: 'SESSION_CHECK_FAILED' })
-    }
-
-    if (!row?.session_started_at) {
-      const { error: e2 } = await supa
-        .from('usuarios')
-        .update({ session_started_at: new Date().toISOString() })
-        .eq('id_auth', u.id)
-      if (e2) {
-        console.error('session_started_at init error:', e2)
-        return res.status(500).json({ error: 'SESSION_INIT_FAILED' })
+    let payload
+    if (header.alg && header.alg.startsWith('HS')) {
+      // Supabase firmando con HS256 (JWT secret del proyecto)
+      if (!HS_KEY) {
+        console.error('[AUTH] Falta SUPABASE_JWT_SECRET para validar HS256')
+        return res.status(401).json({ error: 'INVALID_TOKEN' })
       }
+      payload = (await jwtVerify(token, HS_KEY, {
+        issuer: `${base}/auth/v1`,
+        algorithms: ['HS256'],
+        clockTolerance: 5 * 60,
+      })).payload
     } else {
-      const started = new Date(row.session_started_at).getTime()
-      const maxAgeMs = ABSOLUTE_SESSION_DAYS * 24 * 60 * 60 * 1000
-      if (Date.now() - started > maxAgeMs) {
-        return res.status(401).json({ error: 'SESSION_EXPIRED' })
-      }
+      // RS* (GoTrue con JWKS)
+      payload = (await jwtVerify(token, jwks, {
+        issuer: `${base}/auth/v1`,
+        clockTolerance: 5 * 60,
+      })).payload
     }
 
-    return next()
+    req.user = { id: payload.sub, claims: payload }
+    req.accessToken = token
+    next()
   } catch (e) {
-    console.error('requireAuth error:', e)
+    console.error('[AUTH] verify error:', e?.code || e?.name || e, e?.message)
     return res.status(401).json({ error: 'INVALID_TOKEN' })
   }
 }
