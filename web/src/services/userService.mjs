@@ -31,7 +31,10 @@ export async function listarUsuarios(query) {
     ? `${BASE}/v1/usuarios?search=${encodeURIComponent(query)}`
     : `${BASE}/v1/usuarios`;
   const { usuarios = [] } = await request(url);
-  return usuarios;
+  return usuarios.map(u => ({
+    ...u,
+    rol_nombre: u.roles?.nombre ?? "", // extrae nombre del rol
+  }));;
 }
 
 export async function getUsuario(id) {
