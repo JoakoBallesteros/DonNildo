@@ -1,9 +1,17 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from "@supabase/supabase-js";
+import dotenv from "dotenv";
+dotenv.config();
 
-const url = process.env.SUPABASE_URL
-const serviceRole = process.env.SUPABASE_SERVICE_ROLE
-if (!url || !serviceRole) throw new Error('[supaAdmin] faltan envs')
+const url = process.env.SUPABASE_URL;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE; // 👈 coincide con tu .env
 
-export const supaAdmin = createClient(url, serviceRole, {
-  auth: { persistSession: false, autoRefreshToken: false },
-})
+if (!url || !serviceRoleKey) {
+  throw new Error("[supaAdmin] Faltan SUPABASE_URL o SUPABASE_SERVICE_ROLE");
+}
+
+export const supaAdmin = createClient(url, serviceRoleKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+  },
+});
