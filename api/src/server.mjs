@@ -2,6 +2,8 @@ import express from 'express'
 import cors from 'cors'
 import morgan from 'morgan'
 import dotenv from 'dotenv'
+
+dotenv.config()
 import { pool } from './db.mjs'
 import { requireAuth } from './middlewares/requireAuth.mjs'
 // import { allowRoles } from './middlewares/allowRoles.mjs' // ← ya no se usa si migrás a RLS
@@ -12,7 +14,6 @@ import { supaAsUser } from './lib/supabaseUserClient.mjs'
 import { webcrypto } from 'node:crypto'
 if (!globalThis.crypto) globalThis.crypto = webcrypto
 
-dotenv.config()
 
 const app = express()
 app.use(cors({ origin: process.env.CORS_ORIGIN || '*', credentials: true }))
