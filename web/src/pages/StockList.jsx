@@ -1,5 +1,4 @@
 // src/pages/StockList.jsx
-// src/pages/StockList.jsx
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Download } from "lucide-react";
@@ -12,7 +11,7 @@ import Modified from "../components/modals/Modified";
 import Modal from "../components/modals/Modals";
 import ProductFormTabs from "../components/forms/ProductFormTabs";
 
-// ===== MOCK (ejemplos de Material y Caja)
+// ===== MOCK (ejemplos de Material y Caja) — agregué `notas`
 const STOCK = [
   {
     id: "mat-001",
@@ -22,6 +21,7 @@ const STOCK = [
     disponible: 200,
     ultimoMov: "2025-10-08",
     precio: 7000,
+    notas: "Cartón reciclado. Mantener seco.",
   },
   {
     id: "caj-001",
@@ -33,6 +33,7 @@ const STOCK = [
     ultimoMov: "2025-10-05",
     precio: 1200,
     medidas: { l: 40, a: 30, h: 20 },
+    notas: "Caja estándar de envíos. No apilar más de 10.",
   },
 ];
 
@@ -41,7 +42,7 @@ export default function StockList() {
 
   const [items, setItems] = useState(STOCK);
 
-  // === Filtros (mismo patrón que Ventas)
+  // === Filtros
   const [filtroTipo, setFiltroTipo] = useState("Todo"); // pills
   const [filtros, setFiltros] = useState({
     buscar: "",
@@ -61,6 +62,10 @@ export default function StockList() {
 
   // === Modal crear nuevo producto (reutiliza ProductFormTabs)
   const [isNewOpen, setNewOpen] = useState(false);
+
+  // === Modal detalle (notas, etc.)
+  const [isDetailOpen, setDetailOpen] = useState(false);
+  const [detailRow, setDetailRow] = useState(null);
 
   // Mapeo de pills -> tipo
   const tipoMap = {
@@ -111,40 +116,45 @@ export default function StockList() {
 
   const handleFilterSelect = (tipo) => setFiltroTipo(tipo);
 
-  // Campos dinámicos del FilterBar según el pill activo
   const filterFields = [
-    { label: "Referencia / material", type: "text", placeholder: "Buscar…", name: "buscar" },
+    {
+      label: "Referencia / material",
+      type: "text",
+      placeholder: "Buscar…",
+      name: "buscar",
+    },
     ...(filtroTipo === "Cajas"
       ? [
+          { label: "Categoría", type: "select", name: "categoria" },
           {
-            label: "Categoría",
-            type: "select",
-            name: "categoria",
-            options: [
-              { value: "", label: "Todas" },
-              { value: "Chica", label: "Chica" },
-              { value: "Mediana", label: "Mediana" },
-              { value: "Grande", label: "Grande" },
-            ],
+            label: "Largo (cm)",
+            type: "number",
+            name: "medidaL",
+            placeholder: "Ej: 40",
           },
-          { label: "Largo (cm)", type: "number", name: "medidaL", placeholder: "Ej: 40" },
-          { label: "Ancho (cm)", type: "number", name: "medidaA", placeholder: "Ej: 30" },
-          { label: "Alto (cm)", type: "number", name: "medidaH", placeholder: "Ej: 20" },
+          {
+            label: "Ancho (cm)",
+            type: "number",
+            name: "medidaA",
+            placeholder: "Ej: 30",
+          },
+          {
+            label: "Alto (cm)",
+            type: "number",
+            name: "medidaH",
+            placeholder: "Ej: 20",
+          },
         ]
       : [
           {
             label: "Unidad",
             type: "select",
             name: "medida",
-            options: [
-              { value: "", label: "Todas" },
-              { value: "kg", label: "kg" },
-              { value: "u", label: "u" },
-            ],
+            inputClass: "lg:w-40",
           },
         ]),
-    { label: "Desde", type: "date", name: "desde" },
-    { label: "Hasta", type: "date", name: "hasta" },
+    { label: "Desde", type: "date", name: "desde", inputClass: "w-44" },
+    { label: "Hasta", type: "date", name: "hasta", inputClass: "w-44" },
   ];
 
   // === Filtrado (cliente)
@@ -164,10 +174,8 @@ export default function StockList() {
 
     // 3) filtros específicos
     if (filtroTipo === "Cajas") {
-      // Categoría (Chica/Mediana/Grande)
       if (filtros.categoria && r.categoria !== filtros.categoria) return false;
 
-      // Medidas exactas si se ingresan (match estricto)
       const L = Number(filtros.medidaL || 0);
       const A = Number(filtros.medidaA || 0);
       const H = Number(filtros.medidaH || 0);
@@ -180,7 +188,6 @@ export default function StockList() {
         if (H && mh !== H) return false;
       }
     } else {
-      // Materiales o Todo → filtro por unidad (kg/u)
       if (filtros.medida && filtros.medida !== r.unidad) return false;
     }
 
@@ -192,16 +199,28 @@ export default function StockList() {
     return true;
   });
 
-  // === Columnas (mismo look que Ventas)
   const columns = useMemo(
     () => [
-      { id: "tipo", header: "Tipo", accessor: "tipo" },
-      { id: "referencia", header: "Referencia", accessor: "referencia" },
+      // Texto simples
+      { id: "tipo", header: "Tipo", accessor: "tipo", sortable: true },
+      {
+        id: "referencia",
+        header: "Referencia",
+        accessor: "referencia",
+        sortable: true,
+      },
+
+      // Categoría solo aplica a Caja; para Material muestro —, igual lo hacemos ordenable por string
       {
         id: "categoria",
         header: "Categoría",
         accessor: (r) => (r.tipo === "Caja" ? r.categoria || "—" : "—"),
+        sortable: true,
+        sortAccessor: (r) =>
+          r.tipo === "Caja" ? (r.categoria || "").toLowerCase() : "", // string
       },
+
+      // Medida (string), si querés ordenarla también puedes marcar sortable: true
       {
         id: "medida",
         header: "Medida",
@@ -209,14 +228,31 @@ export default function StockList() {
           r.tipo === "Caja" && r.medidas
             ? `${r.medidas.l}x${r.medidas.a}x${r.medidas.h} cm`
             : "—",
+        // sortable: true, // opcional (ordena como string "40x30x20 cm")
       },
+
+      // Numérico
       {
         id: "disp",
         header: "Disponible (u/kg)",
         accessor: (r) => `${r.disponible} ${r.unidad}`,
         align: "right",
+        cellClass: "text-right whitespace-nowrap",
+        sortable: true,
+        sortAccessor: (r) => Number(r.disponible || 0), // número
       },
-      { id: "ult", header: "Últ. mov.", accessor: "ultimoMov" },
+
+      // Fecha
+      {
+        id: "ult",
+        header: "Últ. mov.",
+        accessor: "ultimoMov",
+        cellClass: "whitespace-nowrap",
+        sortable: true,
+        sortAccessor: (r) => r.ultimoMov, // si viene YYYY-MM-DD, el string ordena bien; si no, usa new Date(r.ultimoMov)
+      },
+
+      // Moneda/numérico
       {
         id: "precio",
         header: "Precio unitario",
@@ -227,11 +263,36 @@ export default function StockList() {
             maximumFractionDigits: 0,
           }) ?? "—",
         align: "right",
+        cellClass: "text-right whitespace-nowrap",
+        sortable: true,
+        sortAccessor: (r) => Number(r.precio || 0), // número
       },
+
+      // Botón de detalle (no ordenable)
+      {
+        id: "detalle",
+        header: "Detalle",
+        align: "center",
+        cellClass: "text-center",
+        render: (row) => (
+          <button
+            onClick={() => {
+              setDetailRow(row);
+              setDetailOpen(true);
+            }}
+            className="border border-[#154734] text-[#154734] px-3 py-1 text-xs rounded-md hover:bg-[#e8f4ef]"
+          >
+            DETALLE
+          </button>
+        ),
+      },
+
+      // Acciones (no ordenable)
       {
         id: "acciones",
         header: "Acciones",
         align: "center",
+        cellClass: "text-center",
         render: (row) => (
           <button
             onClick={() => {
@@ -255,8 +316,36 @@ export default function StockList() {
 
   // === Guardar cambios desde el modal Modified
   const handleSaveEdited = (payload) => {
-    const updated = payload?.rows?.[0];
+    let updated = payload?.rows?.[0];
     if (!updated || !editRow) return;
+
+    // Normalizaciones:
+    // - Si es caja y llegaron l/a/h sueltos, formo `medidas`
+    if (editRow.tipo === "Caja") {
+      const l = Number(updated.l ?? editRow.medidas?.l ?? 0);
+      const a = Number(updated.a ?? editRow.medidas?.a ?? 0);
+      const h = Number(updated.h ?? editRow.medidas?.h ?? 0);
+      updated = {
+        ...updated,
+        medidas: { l, a, h },
+      };
+      delete updated.l;
+      delete updated.a;
+      delete updated.h;
+
+      // unidad en caja siempre 'u'
+      updated.unidad = "u";
+    } else {
+      // Material → unidad puede venir del select ('kg' | 'u')
+      if (updated.unidad !== "kg" && updated.unidad !== "u") {
+        updated.unidad = editRow.unidad; // fallback
+      }
+    }
+
+    // Nunca permitimos cambiar ultimoMov desde UI (readOnly),
+    // pero si llegara, lo ignoramos
+    updated.ultimoMov = editRow.ultimoMov;
+
     setItems((prev) =>
       prev.map((r) => (r.id === editRow.id ? { ...r, ...updated } : r))
     );
@@ -265,18 +354,21 @@ export default function StockList() {
   // === Helper: mapear valores del formulario a una fila de tabla
   const mapFormToRow = (v) => {
     if (v.tipo === "Caja") {
-      const medida = `${v.medidas.l}x${v.medidas.a}x${v.medidas.h} cm`;
       return {
         id: crypto.randomUUID?.() || String(Date.now()),
         tipo: "Caja",
         referencia: v.referencia,
         categoria: v.categoria,
-        medidas: v.medidas,
+        medidas: {
+          l: Number(v.medidas.l || 0),
+          a: Number(v.medidas.a || 0),
+          h: Number(v.medidas.h || 0),
+        },
         unidad: "u",
-        disponible: 0,
+        disponible: Number(v.cantidad || 0),
         ultimoMov: new Date().toISOString().slice(0, 10),
-        precio: v.precio,
-        medida, // si en algún lado querés string
+        precio: Number(v.precio || 0),
+        notas: v.notas || "",
       };
     } else {
       return {
@@ -285,12 +377,69 @@ export default function StockList() {
         referencia: v.referencia,
         categoria: "—",
         unidad: v.unidad, // "kg" | "u"
-        disponible: v.cantidad || 0,
+        disponible: Number(v.cantidad || 0),
         ultimoMov: new Date().toISOString().slice(0, 10),
-        precio: v.precio,
+        precio: Number(v.precio || 0),
+        notas: v.notas || "",
       };
     }
   };
+
+  // === Columnas dinámicas para el modal de edición
+  const editColumns = useMemo(() => {
+    if (!editRow) return [];
+
+    // Base
+    const cols = [
+      { key: "referencia", label: "Referencia", readOnly: true },
+      { key: "tipo", label: "Tipo", readOnly: true },
+      {
+        key: "disponible",
+        label: "Disponible",
+        type: "number",
+        align: "text-center",
+      },
+      {
+        key: "precio",
+        label: "Precio unitario",
+        type: "number",
+        align: "text-center",
+      },
+      {
+        key: "ultimoMov",
+        label: "Últ. mov.",
+        readOnly: true,
+        align: "text-center",
+      },
+    ];
+
+    if (editRow.tipo === "Caja") {
+      // Mostrar medidas y fijar unidad
+      cols.splice(
+        2,
+        0,
+        { key: "categoria", label: "Categoría" },
+        { key: "l", label: "Largo (cm)", type: "number", align: "text-center" },
+        { key: "a", label: "Ancho (cm)", type: "number", align: "text-center" },
+        { key: "h", label: "Alto (cm)", type: "number", align: "text-center" }
+      );
+      cols.splice(5, 0, { key: "unidad", label: "Unidad", readOnly: true });
+    } else {
+      // Material → unidad editable con pick 'kg'/'u'
+      cols.splice(2, 0, {
+        key: "unidad",
+        label: "Unidad",
+        type: "select",
+        options: [
+          { value: "kg", label: "kg" },
+          { value: "u", label: "u" },
+        ],
+        align: "text-center",
+      });
+    }
+
+    return cols;
+  }, [editRow]);
 
   return (
     <PageContainer
@@ -314,7 +463,7 @@ export default function StockList() {
         </div>
       }
     >
-      {/* === Pills y filtros (mismo comp. que Ventas) */}
+      {/* === Pills y filtros */}
       <FilterBar
         filters={["Todo", "Cajas", "Materiales"]}
         fields={filterFields}
@@ -326,19 +475,18 @@ export default function StockList() {
       />
 
       {/* === Tabla */}
-      <div className="mt-6">
-        <DataTable
-          columns={columns}
-          data={dataFiltrada}
-          zebra={false}
-          stickyHeader={false}
-          tableClass="w-full text-sm text-left border-collapse"
-          theadClass="bg-[#e8f4ef] text-[#154734]"
-          rowClass="hover:bg-[#f6faf7] border-t border-[#edf2ef]"
-          headerClass="px-4 py-3 font-semibold"
-          cellClass="px-4 py-4"
-        />
-      </div>
+      <DataTable
+        columns={columns}
+        data={dataFiltrada}
+        zebra={false}
+        stickyHeader={false}
+        tableClass="w-full text-sm border-collapse mt-6"
+        theadClass="bg-[#e8f4ef] text-[#154734]"
+        rowClass="hover:bg-[#f6faf7] border-t border-[#edf2ef]"
+        headerClass="px-4 py-3 font-semibold"
+        cellClass="px-4 py-4"
+        enableSort
+      />
 
       {/* === Export */}
       <div className="mt-6 flex justify-end">
@@ -351,7 +499,7 @@ export default function StockList() {
         </button>
       </div>
 
-      {/* === Modal CREAR nuevo producto (reutiliza ProductFormTabs) */}
+      {/* === Modal CREAR nuevo producto */}
       <Modal
         isOpen={isNewOpen}
         title="Registrar nuevo producto"
@@ -361,7 +509,7 @@ export default function StockList() {
         <ProductFormTabs
           mode="create"
           initialValues={{
-            tipo: "Caja", // abre en Caja por defecto (podés cambiarlo)
+            tipo: "Caja",
             referencia: "",
             categoria: "",
             medidas: { l: "", a: "", h: "" },
@@ -370,7 +518,7 @@ export default function StockList() {
             precio: "",
             notas: "",
           }}
-          labels={{ caja: "Caja", material: "Producto" }} // podés dejar "Material" si preferís
+          labels={{ caja: "Caja", material: "Producto" }}
           onCancel={() => setNewOpen(false)}
           onSubmit={(values) => {
             const nuevaFila = mapFormToRow(values);
@@ -380,25 +528,98 @@ export default function StockList() {
         />
       </Modal>
 
-      {/* === Modal EDITAR con Modified (una sola fila empaquetada en "rows") */}
+      {/* === Modal EDITAR */}
       {editRow && (
         <Modified
           isOpen={isEditOpen}
           onClose={() => setEditOpen(false)}
           title={`Modificar stock de ${editRow.referencia}`}
-          data={{ rows: [editRow] }}
+          data={{
+            rows: [
+              {
+                ...editRow,
+                // precarga medidas l/a/h en inputs planos si es Caja
+                ...(editRow.tipo === "Caja"
+                  ? {
+                      l: editRow.medidas?.l ?? "",
+                      a: editRow.medidas?.a ?? "",
+                      h: editRow.medidas?.h ?? "",
+                    }
+                  : {}),
+              },
+            ],
+          }}
           itemsKey="rows"
-          columns={[
-            { key: "referencia", label: "Referencia", readOnly: true },
-            { key: "tipo", label: "Tipo", readOnly: true },
-            { key: "categoria", label: "Categoría" }, // visible sólo si es Caja
-            { key: "disponible", label: "Disponible", type: "number", align: "text-center" },
-            { key: "unidad", label: "Unidad", align: "text-center" },
-            { key: "precio", label: "Precio unitario", type: "number", align: "text-center" },
-            { key: "ultimoMov", label: "Últ. mov.", align: "text-center" },
-          ]}
+          columns={editColumns}
           onSave={handleSaveEdited}
         />
+      )}
+
+      {/* === Modal DETALLE (muestra notas) */}
+      {detailRow && (
+        <Modal
+          isOpen={isDetailOpen}
+          onClose={() => setDetailOpen(false)}
+          title={`Detalle de ${detailRow.referencia}`}
+          size="max-w-lg"
+        >
+          <div className="space-y-3 text-sm">
+            <div className="grid grid-cols-3 gap-2">
+              <span className="font-semibold text-[#154734]">Tipo:</span>
+              <span className="col-span-2">{detailRow.tipo}</span>
+
+              <span className="font-semibold text-[#154734]">Categoría:</span>
+              <span className="col-span-2">
+                {detailRow.tipo === "Caja" ? detailRow.categoria || "—" : "—"}
+              </span>
+
+              <span className="font-semibold text-[#154734]">Medidas:</span>
+              <span className="col-span-2">
+                {detailRow.tipo === "Caja" && detailRow.medidas
+                  ? `${detailRow.medidas.l}x${detailRow.medidas.a}x${detailRow.medidas.h} cm`
+                  : "—"}
+              </span>
+
+              <span className="font-semibold text-[#154734]">Unidad:</span>
+              <span className="col-span-2">{detailRow.unidad}</span>
+
+              <span className="font-semibold text-[#154734]">Disponible:</span>
+              <span className="col-span-2">
+                {detailRow.disponible} {detailRow.unidad}
+              </span>
+
+              <span className="font-semibold text-[#154734]">Últ. mov.:</span>
+              <span className="col-span-2">{detailRow.ultimoMov}</span>
+
+              <span className="font-semibold text-[#154734]">
+                Precio unit.:
+              </span>
+              <span className="col-span-2">
+                {detailRow.precio?.toLocaleString("es-AR", {
+                  style: "currency",
+                  currency: "ARS",
+                  maximumFractionDigits: 0,
+                }) ?? "—"}
+              </span>
+            </div>
+
+            <div>
+              <div className="font-semibold text-[#154734] mb-1">Notas</div>
+              <div className="rounded-md border border-[#e2e8e4] bg-[#f8fbf9] p-3 whitespace-pre-wrap">
+                {detailRow.notas?.trim() || "—"}
+              </div>
+            </div>
+
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={() => setDetailOpen(false)}
+                className="rounded-md border border-[#154734] text-[#154734] px-4 py-2 hover:bg-[#e8f4ef]"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </Modal>
       )}
     </PageContainer>
   );
