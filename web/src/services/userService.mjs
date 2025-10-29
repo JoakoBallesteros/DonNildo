@@ -56,7 +56,33 @@ export async function actualizarUsuario(id, payload) {
 }
 
 export async function eliminarUsuario(id) {
-  return request(`${BASE}/v1/usuarios/${id}`, { method: "DELETE" });
+  // Obtener sesión actual o refrescarla automáticamente
+  const { data, error } = await supa.auth.getSession();
+
+  if (error || !data?.session) {
+    throw new Error("Sesión expirada. Volvé a iniciar sesión.");
+  }
+
+  const token = data.session.access_token;
+
+  const resp = await fetch(`${BASE}/v1/usuarios/${id}`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!resp.ok) {
+    const data = await resp.json().catch(() => ({}));
+    const msg =
+      typeof data.error === "object"
+        ? data.error.message || JSON.stringify(data.error)
+        : data.error || `Error ${resp.status}`;
+    throw new Error(msg);
+  }
+
+  return resp.json().catch(() => ({ success: true }));
 }
 
 // ===== Roles =====

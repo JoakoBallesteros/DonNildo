@@ -1,190 +1,307 @@
-import React, { useState } from "react";
-import { Download } from "lucide-react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
+import { Plus, Filter, Download } from "lucide-react";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
+
 import PageContainer from "../components/pages/PageContainer";
 import FilterBar from "../components/forms/FilterBars";
 import DataTable from "../components/tables/DataTable";
 import DetailModal from "../components/modals/Details";
 import Modified from "../components/modals/Modified";
 import { useNavigate } from "react-router-dom";
-
-// 🔹 Datos simulados coherentes con RegistrarVentas
-const DATA = [
-  {
-    numero: 101,
-    tipo: "Caja",
-    fecha: "2025-10-10",
-    total: 15000,
-    observaciones: "—",
-    productos: [
-      {
-        tipo: "Caja",
-        producto: "Caja de cartón",
-        cantidad: 10,
-        medida: "u",
-        precio: 1500,
-        subtotal: 15000,
-      },
-    ],
-  },
-  {
-    numero: 102,
-    tipo: "Producto",
-    fecha: "2025-10-11",
-    total: 12000,
-    observaciones: "—",
-    productos: [
-      {
-        tipo: "Producto",
-        producto: "Papel Kraft",
-        cantidad: 20,
-        medida: "kg",
-        precio: 600,
-        subtotal: 12000,
-      },
-    ],
-  },
-  {
-    numero: 103,
-    tipo: "Mixta",
-    fecha: "2025-10-12",
-    total: 18000,
-    observaciones: "Venta combinada",
-    productos: [
-      {
-        tipo: "Caja",
-        producto: "Combinado EcoPack",
-        cantidad: 5,
-        medida: "u",
-        precio: 2000,
-        subtotal: 10000,
-      },
-      {
-        tipo: "Producto",
-        producto: "Papel Kraft",
-        cantidad: 10,
-        medida: "kg",
-        precio: 800,
-        subtotal: 8000,
-      },
-    ],
-  },
-];
+import { supa } from "../lib/supabaseClient";
 
 export default function Ventas() {
-  const [ventas, setVentas] = useState(DATA);
-  const [selectedVenta, setSelectedVenta] = useState(null);
-  const [isDetailOpen, setDetailOpen] = useState(false);
-  const [isEditOpen, setEditOpen] = useState(false);
   const navigate = useNavigate();
+
+  const [ventas, setVentas] = useState([]);
+  const [idEstadoAnulado, setIdEstadoAnulado] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
 
   const [filtroTipo, setFiltroTipo] = useState("Todo");
   const [filtros, setFiltros] = useState({ buscar: "", desde: "", hasta: "" });
   const [resetSignal, setResetSignal] = useState(0);
 
-  // 🔹 Aplicar filtros
+  const handleFilterSelect = (tipo) => setFiltroTipo(tipo);
   const aplicarFiltros = ({ buscar, desde, hasta, tipo }) => {
     setFiltros({ buscar, desde, hasta });
     if (tipo) setFiltroTipo(tipo);
   };
-
   const reiniciarFiltros = () => {
     setFiltros({ buscar: "", desde: "", hasta: "" });
     setFiltroTipo("Todo");
-    setResetSignal((prev) => prev + 1);
+    setResetSignal((n) => n + 1);
   };
 
-  const handleFilterSelect = (tipo) => setFiltroTipo(tipo);
+  // =========================
+  // CARGA DE DATOS
+  // =========================
+  const loadVentas = useCallback(async () => {
+      try {
+        setLoading(true);
+        setErr("");
 
-  const tipoMap = {
-    Todo: null,
-    Productos: "Producto",
-    Cajas: "Caja",
-    Mixtas: "Mixta",
-  };
+        console.log("Cargando ventas...");
 
-  // 🔹 Filtrado de ventas
-  const ventasFiltradas = ventas.filter((v) => {
-    const tipoSeleccionado = tipoMap[filtroTipo];
-    if (tipoSeleccionado && v.tipo.toLowerCase() !== tipoSeleccionado.toLowerCase())
-      return false;
+        const { data: ventasData, error: e1 } = await supa
+          .from("venta")
+          .select("id_venta, fecha, total, observaciones, id_estado")
+          .order("id_venta", { ascending: true });
+        if (e1) throw e1;
 
-    if (filtros.buscar) {
-      const texto = filtros.buscar.toLowerCase();
-      const coincide =
-        v.numero.toString().includes(texto) ||
-        v.tipo.toLowerCase().includes(texto) ||
-        (v.observaciones || "").toLowerCase().includes(texto);
-      if (!coincide) return false;
-    }
+        if (!ventasData?.length) {
+          setVentas([]);
+          return;
+        }
 
-    const [y, m, d] = v.fecha.includes("-")
-      ? v.fecha.split("-")
-      : v.fecha.split("/").reverse();
-    const fechaVenta = new Date(`${y}-${m}-${d}`);
-    if (filtros.desde && fechaVenta < new Date(filtros.desde)) return false;
-    if (filtros.hasta && fechaVenta > new Date(filtros.hasta)) return false;
+        const ids = ventasData.map((v) => v.id_venta);
 
-    return true;
-  });
+        const { data: detalles, error: e2 } = await supa
+          .from("detalle_venta")
+          .select("id_detalle_venta, id_venta, id_producto, cantidad, precio_unitario, subtotal")
+          .in("id_venta", ids);
+        if (e2) throw e2;
 
-  // 🔹 Modales
+        const { data: productos, error: e3 } = await supa
+          .from("productos")
+          .select("id_producto, nombre, id_tipo_producto");
+        if (e3) throw e3;
+
+        console.log("ventas:", ventasData);
+        console.log("detalles:", detalles);
+        console.log("productos:", productos);
+
+        const prodMap = new Map(productos.map((p) => [p.id_producto, p]));
+        const byVenta = new Map();
+
+        for (const d of detalles) {
+          if (!byVenta.has(d.id_venta)) byVenta.set(d.id_venta, []);
+          const prod = prodMap.get(d.id_producto);
+          const tipo = prod?.id_tipo_producto === 1 ? "Caja" : "Producto";
+          byVenta.get(d.id_venta).push({
+            id_detalle_venta: d.id_detalle_venta,
+            id_producto: d.id_producto,
+            tipo,
+            producto: prod?.nombre || "—",
+            cantidad: Number(d.cantidad) || 0,
+            medida: tipo === "Caja" ? "u" : "kg",
+            precio: Number(d.precio_unitario) || 0,
+            subtotal: Number(d.subtotal) || 0,
+          });
+        }
+
+        const mapped = ventasData.map((v) => {
+          const items = byVenta.get(v.id_venta) || [];
+          const tipoVenta =
+            new Set(items.map((i) => i.tipo)).size === 1
+              ? items[0]?.tipo || "—"
+              : "Mixta";
+          const total =
+            v.total || items.reduce((sum, i) => sum + (Number(i.subtotal) || 0), 0);
+          return {
+            numero: v.id_venta,
+            fecha: v.fecha,
+            tipo: tipoVenta,
+            observaciones: v.observaciones || "—",
+            total,
+            productos: items,
+          };
+        });
+
+        console.log("ventas final:", mapped);
+        setVentas(mapped);
+      } catch (e) {
+        console.error("Error al cargar ventas:", e);
+        setErr(e.message);
+      } finally {
+        setLoading(false);
+      }
+    }, []);
+
+  useEffect(() => {
+    loadVentas();
+    const ch = supa
+      .channel("ventas-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "venta" }, () =>
+        loadVentas()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "detalle_venta" },
+        () => loadVentas()
+      )
+      .subscribe();
+
+    return () => supa.removeChannel(ch);
+  }, [loadVentas]);
+
+  // =========================
+  // MODALES
+  // =========================
+  const [selectedVenta, setSelectedVenta] = useState(null);
+  const [isDetailOpen, setDetailOpen] = useState(false);
+  const [isEditOpen, setEditOpen] = useState(false);
+
   const handleVerDetalle = (venta) => {
     setSelectedVenta(venta);
     setDetailOpen(true);
   };
 
-  const handleModificar = (venta) => {
-    setSelectedVenta(venta);
-    setEditOpen(true);
+  const handleModificar = async (venta) => {
+    try {
+      console.log("Buscando detalles de venta:", venta.numero);
+      const { data: detalles, error } = await supa
+        .from("detalle_venta")
+        .select("id_detalle_venta, id_producto, cantidad, precio_unitario, subtotal")
+        .eq("id_venta", Number(venta.numero));
+
+      if (error) throw error;
+
+      if (!detalles?.length) {
+        alert("No hay productos asociados a esta venta.");
+        return;
+      }
+
+      const ids = detalles.map((d) => d.id_producto);
+      const { data: productos, error: prodErr } = await supa
+        .from("productos")
+        .select("id_producto, nombre, id_tipo_producto")
+        .in("id_producto", ids);
+
+      if (prodErr) throw prodErr;
+
+      const prodMap = new Map(productos.map((p) => [p.id_producto, p]));
+
+      const items = detalles.map((d) => {
+        const p = prodMap.get(d.id_producto);
+        const tipo = p?.id_tipo_producto === 1 ? "Caja" : "Producto";
+        return {
+          id_detalle_venta: d.id_detalle_venta,   // ✅ necesario para update
+          id_producto: d.id_producto,
+          tipo,
+          producto: p?.nombre || "—",
+          cantidad: Number(d.cantidad) || 0,
+          precio: Number(d.precio_unitario) || 0,
+          medida: tipo === "Caja" ? "u" : "kg",
+          descuento: 0,
+          subtotal: Number(d.subtotal) || 0,
+        };
+      });
+
+      // ✅ incluye numero de venta
+      setSelectedVenta({ numero: venta.numero, productos: items });
+      setEditOpen(true);
+    } catch (e) {
+      console.error("Error al cargar detalle venta:", e);
+      alert("❌ No se pudo cargar los productos de la venta.");
+    }
+};
+
+  const handleGuardarCambios = async (updated) => {
+    try {
+      if (!updated) return setEditOpen(false);
+
+      const productosActualizados = updated.productos.map((p) => ({
+        ...p,
+        subtotal: Number((p.cantidad * p.precio).toFixed(2)),
+      }));
+      const totalNuevo = productosActualizados.reduce(
+        (acc, p) => acc + p.subtotal,
+        0
+      );
+
+      for (const p of productosActualizados) {
+        const { error } = await supa
+          .from("detalle_venta")
+          .update({
+            cantidad: p.cantidad,
+            precio_unitario: p.precio,
+            subtotal: p.subtotal,
+          })
+          .eq("id_detalle_venta", p.id_detalle_venta);
+        if (error) throw error;
+      }
+
+      const { error: ventaErr } = await supa
+        .from("venta")
+        .update({ total: totalNuevo })
+        .eq("id_venta", updated.numero);
+      if (ventaErr) throw ventaErr;
+
+      setEditOpen(false);
+      setSelectedVenta(null);
+      await loadVentas();
+      alert("✅ Venta actualizada correctamente.");
+    } catch (e) {
+      console.error("Error al guardar cambios:", e);
+      alert("❌ Error al guardar: " + e.message);
+    }
   };
 
-  const handleGuardarCambios = (updated) => {
-    setVentas((prev) => prev.map((v) => (v.numero === updated.numero ? updated : v)));
+  const handleAnular = async (id_venta) => {
+    if (!idEstadoAnulado) return alert("No se encontró el estado ANULADO");
+    if (!confirm(`¿Anular la venta N° ${id_venta}?`)) return;
+    try {
+      const { error } = await supa
+        .from("venta")
+        .update({ id_estado: idEstadoAnulado })
+        .eq("id_venta", id_venta);
+      if (error) throw error;
+      alert("Venta anulada correctamente.");
+    } catch (e) {
+      alert("Error al anular: " + e.message);
+    }
   };
 
-  const handleAnular = (numero) => {
-    setVentas((prev) => prev.filter((v) => v.numero !== numero));
-  };
-
-  // 🔹 Descarga PDF
   const handleDownloadPDF = (venta) => {
     const doc = new jsPDF();
     doc.setFontSize(16);
     doc.text(`Detalle de Venta N° ${venta.numero}`, 14, 20);
-
-    const tableColumn = [
-      "Tipo",
-      "Producto",
-      "Cantidad",
-      "Medida",
-      "Precio Unitario",
-      "Subtotal",
+    const head = [
+      ["Tipo", "Producto", "Cantidad", "Medida", "Precio Unitario", "Subtotal"],
     ];
-
-    const tableRows = (venta.productos || []).map((p) => [
+    const body = (venta.productos || []).map((p) => [
       p.tipo,
       p.producto,
-      p.cantidad,
+      String(p.cantidad),
       p.medida,
       `$${p.precio}`,
       `$${p.subtotal}`,
     ]);
-
-    doc.autoTable({
-      startY: 30,
-      head: [tableColumn],
-      body: tableRows,
-    });
-
+    doc.autoTable({ startY: 30, head, body });
     const finalY = doc.lastAutoTable.finalY + 10;
     doc.text(`Total: $${venta.total}`, 14, finalY);
-
     doc.save(`Venta_${venta.numero}.pdf`);
   };
 
-  // 🔹 Columnas
+  // =========================
+  // FILTROS
+  // =========================
+  const tipoMap = { Todo: null, Productos: "Producto", Cajas: "Caja", Mixtas: "Mixta" };
+  const ventasFiltradas = useMemo(() => {
+    const tsel = tipoMap[filtroTipo];
+    return ventas.filter((v) => {
+      if (tsel && v.tipo !== tsel) return false;
+      if (filtros.buscar) {
+        const txt = filtros.buscar.toLowerCase();
+        if (
+          !String(v.numero).includes(txt) &&
+          !v.tipo.toLowerCase().includes(txt) &&
+          !(v.observaciones || "").toLowerCase().includes(txt)
+        )
+          return false;
+      }
+      const fecha = new Date(v.fecha);
+      if (filtros.desde && fecha < new Date(filtros.desde)) return false;
+      if (filtros.hasta && fecha > new Date(filtros.hasta)) return false;
+      return true;
+    });
+  }, [ventas, filtroTipo, filtros]);
+
+  // =========================
+  // COLUMNAS
+  // =========================
   const columns = [
     { id: "numero", header: "N° Venta", accessor: "numero", align: "center" },
     { id: "tipo", header: "Tipo", accessor: "tipo", align: "center" },
@@ -192,7 +309,7 @@ export default function Ventas() {
     {
       id: "total",
       header: "Total ($)",
-      render: (row) => `$${row.total.toLocaleString("es-AR")}`,
+      render: (row) => `$${Number(row.total).toLocaleString("es-AR")}`,
       align: "center",
     },
     {
@@ -207,12 +324,6 @@ export default function Ventas() {
           Ver Detalle
         </button>
       ),
-    },
-    {
-      id: "observaciones",
-      header: "Observaciones",
-      accessor: "observaciones",
-      align: "center",
     },
     {
       id: "acciones",
@@ -236,7 +347,7 @@ export default function Ventas() {
           </div>
           <button
             onClick={() => handleDownloadPDF(row)}
-            className="p-1 border border-[#d8e4df] rounded-md hover:bg-[#f7faf9] flex items-center justify-center"
+            className="p-1 border border-[#d8e4df] rounded-md hover:bg-[#f7faf9]"
             title="Descargar comprobante"
           >
             <Download className="w-4 h-4 text-[#154734]" />
@@ -252,22 +363,22 @@ export default function Ventas() {
       actions={
         <button
           onClick={() => navigate("/ventas/nueva")}
-          className="bg-[#154734] text-white px-4 py-2 rounded-md hover:bg-[#103a2b] transition"
+          className="flex items-center gap-2 bg-[#154734] text-white px-4 py-2 rounded-md hover:bg-[#103a2b] transition"
         >
-          Añadir nueva venta
+          <Plus size={16} /> Añadir nueva venta
         </button>
       }
     >
-      {/* 🔹 Barra de filtros */}
+      {err && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-5">
+          {err}
+        </div>
+      )}
+
       <FilterBar
         filters={["Todo", "Productos", "Cajas", "Mixtas"]}
         fields={[
-          {
-            label: "Buscar",
-            type: "text",
-            placeholder: "N° venta, tipo u observación...",
-            name: "buscar",
-          },
+          { label: "Buscar", type: "text", placeholder: "N° venta, tipo u observación...", name: "buscar" },
           { label: "Desde", type: "date", name: "desde" },
           { label: "Hasta", type: "date", name: "hasta" },
         ]}
@@ -276,76 +387,72 @@ export default function Ventas() {
         onFilterSelect={handleFilterSelect}
         resetSignal={resetSignal}
         selectedFilter={filtroTipo}
+        applyButton={(props) => (
+          <button {...props} className="flex items-center gap-2 bg-[#154734] text-white px-4 py-2 rounded-md hover:bg-[#103a2b] transition">
+            <Filter size={16} /> Aplicar Filtros
+          </button>
+        )}
       />
 
-      {/* 🔹 Tabla */}
       <div className="mt-6">
-        <DataTable
-          columns={columns}
-          data={ventasFiltradas}
-          zebra={false}
-          stickyHeader={false}
-          tableClass="w-full text-sm text-center border-collapse"
-          theadClass="bg-[#e8f4ef] text-[#154734]"
-          rowClass="hover:bg-[#f6faf7] border-t border-[#edf2ef]"
-          headerClass="px-4 py-3 font-semibold text-center"
-          cellClass="px-4 py-4 text-center"
-        />
+        {loading ? (
+          <p className="text-sm text-slate-600">Cargando…</p>
+        ) : (
+          <DataTable
+            columns={columns}
+            data={ventasFiltradas}
+            zebra={false}
+            stickyHeader={false}
+            tableClass="w-full text-sm text-center border-collapse"
+            theadClass="bg-[#e8f4ef] text-[#154734]"
+            rowClass="hover:bg-[#f6faf7] border-t border-[#edf2ef]"
+            headerClass="px-4 py-3 font-semibold text-center"
+            cellClass="px-4 py-4 text-center"
+          />
+        )}
       </div>
 
-      {/* 🔹 Modal Detalle */}
-      <DetailModal
-        isOpen={isDetailOpen}
-        onClose={() => setDetailOpen(false)}
-        title="Detalle de Venta"
-        data={selectedVenta}
-        itemsKey="productos"
-        columns={[
-          { key: "tipo", label: "Tipo" },
-          { key: "producto", label: "Producto" },
-          { key: "cantidad", label: "Cantidad" },
-          { key: "medida", label: "Medida" },
-          { key: "precio", label: "Precio Unitario" },
-          { key: "subtotal", label: "Subtotal" },
-        ]}
-      />
-
-      {/* 🔹 Modal Modificar */}
-      {selectedVenta && (
+   <DetailModal
+      isOpen={isDetailOpen}
+      onClose={() => setDetailOpen(false)}
+      title="Detalle de Venta"
+      data={selectedVenta || {}}
+      itemsKey="productos"
+      columns={[
+        { key: "tipo", label: "Tipo" },
+        { key: "producto", label: "Producto" },
+        { key: "cantidad", label: "Cantidad" },
+        { key: "medida", label: "Medida" },
+        { key: "precio", label: "Precio Unitario" },
+        { key: "subtotal", label: "Subtotal" },
+      ]}
+      footerRight={
+        selectedVenta
+          ? `Total: $${Number(selectedVenta.total).toLocaleString("es-AR")}`
+          : ""
+      }
+    />
+    {selectedVenta && (
         <Modified
           isOpen={isEditOpen}
           onClose={() => setEditOpen(false)}
-          title={`Modificar productos de Venta N° ${selectedVenta.numero}`}
+           title={`Modificar productos de Venta ${selectedVenta?.numero || ""}`}
           data={selectedVenta}
           itemsKey="productos"
           columns={[
-            { key: "tipo", label: "Tipo" },
-            { key: "producto", label: "Producto" },
-            { key: "cantidad", label: "Cantidad", type: "number", align: "text-center" },
-            { key: "medida", label: "Medida", align: "text-center" },
-            { key: "precio", label: "Precio Unitario", type: "number", align: "text-center" },
-            { key: "subtotal", label: "Subtotal", readOnly: true, align: "text-center" },
+            { key: "tipo", label: "Tipo", readOnly: true },
+            { key: "producto", label: "Producto", readOnly: true },
+            { key: "cantidad", label: "Cantidad", type: "number" },
+            { key: "medida", label: "Medida", readOnly: true },
+            { key: "precio", label: "Precio Unitario", type: "number" },
+            { key: "subtotal", label: "Subtotal", readOnly: true },
           ]}
           computeTotal={(rows) =>
-            rows.reduce((sum, r) => sum + Number(r.subtotal || 0), 0)
-          }
-          extraFooter={
-            <div className="flex justify-between items-center">
-              <div>
-                <label className="text-sm font-semibold text-[#154734] mr-2">
-                  Fecha:
-                </label>
-                <input
-                  type="text"
-                  value={selectedVenta.fecha || ""}
-                  className="border border-slate-200 rounded-md px-3 py-1"
-                  readOnly
-                />
-              </div>
-              <p className="text-lg font-semibold text-[#154734]">
-                Total: ${selectedVenta.total?.toFixed(2) || "0.00"}
-              </p>
-            </div>
+            rows.reduce(
+              (sum, r) =>
+                rows.reduce((sum, r) => sum + r.cantidad * r.precio, 0),
+            0
+          )
           }
           onSave={handleGuardarCambios}
         />

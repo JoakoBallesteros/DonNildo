@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import PageContainer from "../components/pages/PageContainer";
 import FormBuilder from "../components/forms/FormBuilder";
 import DataTable from "../components/tables/DataTable";
-import Modified from "../components/modals/modified";
+import Modified from "../components/modals/Modified.jsx";
 import { supa } from "../lib/supabaseClient";
 
 export default function RegistrarVentas() {

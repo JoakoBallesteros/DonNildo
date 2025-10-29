@@ -44,6 +44,31 @@ export default function SegUsuarios() {
     );
   }, [items, q]);
 
+  // ✅ Handler para eliminar con manejo de errores
+  const handleEliminar = async (row) => {
+    if (!confirm(`¿Estás seguro de eliminar al usuario ${row.nombre}?`)) {
+      return;
+    }
+
+    try {
+      console.log("🗑️ Eliminando usuario:", row.id_usuario);
+      
+      await eliminarUsuario(row.id_usuario);
+      
+      console.log("✅ Usuario eliminado exitosamente");
+      
+      // Recargar desde el servidor para asegurar sincronización
+      await cargar();
+      
+    } catch (error) {
+      console.error("❌ Error al eliminar:", error);
+      setErr(`Error al eliminar usuario: ${error.message}`);
+      
+      // Opcional: mostrar alerta al usuario
+      alert(`No se pudo eliminar el usuario: ${error.message}`);
+    }
+  };
+
   const cols = useMemo(() => [
     { id: "dni", header: "DNI", accessor: "dni", width: 130, nowrap: true, sortable: true },
     { id: "nombre", header: "Nombre", accessor: "nombre", sortable: true },
@@ -62,29 +87,34 @@ export default function SegUsuarios() {
       id: "acc", header: "Acciones", width: 190, align: "center",
       render: (row)=>(
         <div className="flex justify-center gap-2">
-          <button className="px-2 py-1 text-xs rounded-md bg-[#154734] text-white" onClick={()=>{ setEdit(row); setOpen(true); }}>
+          <button 
+            className="px-2 py-1 text-xs rounded-md bg-[#154734] text-white hover:bg-[#1a5d42]" 
+            onClick={()=>{ setEdit(row); setOpen(true); }}
+          >
             Modificar
           </button>
-          <button className="px-2 py-1 text-xs rounded-md bg-[#a30000] text-white"
-                  onClick={async ()=>{
-                    if (!confirm("¿Eliminar usuario?")) return;
-                    await eliminarUsuario(row.id_usuario);
-                    setItems(prev => prev.filter(u => u.id_usuario !== row.id_usuario));
-                  }}>
+          <button 
+            className="px-2 py-1 text-xs rounded-md bg-[#a30000] text-white hover:bg-[#8a0000]"
+            onClick={() => handleEliminar(row)} // ✅ Usar el handler
+          >
             Eliminar
           </button>
         </div>
       )
     },
-  ], []);
+  ], [handleEliminar]); // ✅ Agregar dependencia
 
   const onNew = () => { setEdit(null); setOpen(true); };
 
   const onSave = async (u) => {
-    if (u.id_usuario) await actualizarUsuario(u.id_usuario, u);
-    else await crearUsuario(u);
-    setOpen(false);
-    await cargar();
+    try {
+      if (u.id_usuario) await actualizarUsuario(u.id_usuario, u);
+      else await crearUsuario(u);
+      setOpen(false);
+      await cargar();
+    } catch (error) {
+      setErr(`Error al guardar: ${error.message}`);
+    }
   };
 
   return (
@@ -101,13 +131,27 @@ export default function SegUsuarios() {
         </div>
       }
     >
-      {err && <p className="text-red-600 mb-3">{err}</p>}
+      {err && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-5">
+          {err}
+          <button 
+            onClick={() => setErr("")} 
+            className="float-right font-bold text-red-900"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       <div className="bg-white rounded-2xl border border-[#e3e9e5] p-5 md:p-6 mb-5">
         <div className="max-w-md">
           <label className="text-sm font-semibold text-[#154734] mb-1 block">Buscar</label>
-          <input value={q} onChange={(e)=>setQ(e.target.value)} placeholder="Nombre o email"
-                 className="w-full border border-[#d8e4df] rounded-md px-3 py-2" />
+          <input 
+            value={q} 
+            onChange={(e)=>setQ(e.target.value)} 
+            placeholder="Nombre o email"
+            className="w-full border border-[#d8e4df] rounded-md px-3 py-2" 
+          />
         </div>
       </div>
 

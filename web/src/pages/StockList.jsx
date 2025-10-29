@@ -6,7 +6,7 @@ import { Download } from "lucide-react";
 import PageContainer from "../components/pages/PageContainer";
 import FilterBar from "../components/forms/FilterBars";
 import DataTable from "../components/tables/DataTable";
-import Modified from "../components/modals/modified";
+import Modified from "../components/modals/Modified";
 
 // 💡 nuevos imports para crear desde modal
 import Modal from "../components/modals/Modals";

@@ -3,7 +3,6 @@ import { Router } from "express";
 import { requireAuth } from "../middlewares/requireAuth.mjs";
 import { supaAsUser } from "../lib/supabaseUserClient.mjs";
 import { supaAdmin } from "../lib/supaAdmin.mjs";
-import { allowRoles } from "../middlewares/allowRoles.mjs"; // si lo usás para verificar roles
 
 const router = Router();
 
@@ -118,28 +117,23 @@ router.put("/:id", requireAuth, async (req, res) => {
 });
 
 // ===============================
-// SOFT-DELETE
+// DELETE (solo ADMIN desde backend con Service Role)
 // ===============================
+// api/src/routes/usuarios.mjs
 router.delete("/:id", requireAuth, async (req, res) => {
   try {
-    const s = supaAsUser(req.accessToken);
+    const s = supaAsUser(req.accessToken); // ← token del usuario logueado
     const id = Number(req.params.id);
 
-    // Actualiza el estado a INACTIVO
-    const { data, error } = await s
-      .from("usuarios")
-      .update({ estado: "INACTIVO" })
-      .eq("id_usuario", id)
-      .select()
-      .single();
+    const { error } = await s.rpc("usuarios_delete", { p_id: id });
 
     if (error) {
-      console.error("[usuarios] delete error:", error);
-      const status = error?.status === 403 ? 403 : 400;
+      console.error("[usuarios] rpc delete error:", error);
+      const status = error?.code === "42501" ? 403 : 400; // FORBIDDEN
       return res.status(status).json({ error: { message: error.message } });
     }
 
-    res.json({ ok: true, data });
+    res.json({ ok: true });
   } catch (err) {
     console.error("[usuarios] unexpected delete error:", err);
     res.status(500).json({ error: { message: "INTERNAL" } });
