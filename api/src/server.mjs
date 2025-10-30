@@ -19,7 +19,20 @@ const app = express()
 app.use(cors({ origin: process.env.CORS_ORIGIN || '*', credentials: true }))
 app.use(express.json())
 app.use(morgan('dev'))
+const allowedOrigins = [
+  process.env.CORS_ORIGIN, 
+  "http://localhost:5173", 
+];
 
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error("CORS bloqueado por origen no permitido"));
+  },
+  credentials: true
+}));
 // Rutas
 app.use('/v1/auth', authRoutes)
 app.use('/v1/usuarios', usuariosRoutes)

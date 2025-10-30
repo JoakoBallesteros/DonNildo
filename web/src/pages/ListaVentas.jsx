@@ -232,7 +232,6 @@ export default function Ventas() {
       setEditOpen(false);
       setSelectedVenta(null);
       await loadVentas();
-      alert("✅ Venta actualizada correctamente.");
     } catch (e) {
       console.error("Error al guardar cambios:", e);
       alert("❌ Error al guardar: " + e.message);
