@@ -6,7 +6,8 @@ export default function DataTable({
   rowKey = (_, i) => i,
   onRowClick,
   emptyLabel = "No hay datos",
-  // clases
+
+  // clases por defecto
   tableClass = "w-full text-sm border-collapse table-fixed",
   theadClass = "bg-[#e8f4ef] text-[#154734]",
   tbodyClass = "",
@@ -16,16 +17,23 @@ export default function DataTable({
   zebra = false,
   stickyHeader = false,
 
-  // 🔥 NUEVO
+  // features
   enableSort = false,
   enableFilters = false,
+
+  // ✅ NUEVO: estilos para el wrapper (para controlar márgenes/gap)
+  wrapperClass = "",
 }) {
   const alignClass = (a) =>
     a === "right" ? "text-right" : a === "center" ? "text-center" : "text-left";
 
-  // 👇 NUEVO: justificación del wrapper del header para que sí se alinee
+  // para alinear el contenido del header
   const headerJustify = (a) =>
-    a === "right" ? "justify-end" : a === "center" ? "justify-center" : "justify-start";
+    a === "right"
+      ? "justify-end"
+      : a === "center"
+      ? "justify-center"
+      : "justify-start";
 
   // ---------- estado de sort ----------
   const [sort, setSort] = useState(null); // { id, dir: 'asc'|'desc' }
@@ -44,10 +52,11 @@ export default function DataTable({
   const setFilter = (colId, payload) =>
     setFilters((prev) => ({ ...prev, [colId]: payload }));
 
-  // ---------- render helpers ----------
+  // ---------- helpers UI ----------
   const sortIcon = (col) => {
     if (!enableSort || !col.sortable) return null;
-    if (!sort || sort.id !== col.id) return <span className="opacity-40">↕</span>;
+    if (!sort || sort.id !== col.id)
+      return <span className="opacity-40">↕</span>;
     return sort.dir === "asc" ? <span>▲</span> : <span>▼</span>;
   };
 
@@ -71,12 +80,19 @@ export default function DataTable({
           const raw = getVal();
           if (c.filter === "text") {
             const needle = String(f.value || "").toLowerCase();
-            return !needle || String(raw ?? "").toLowerCase().includes(needle);
+            return (
+              !needle ||
+              String(raw ?? "")
+                .toLowerCase()
+                .includes(needle)
+            );
           }
           if (c.filter === "number") {
             const n = Number(raw);
-            const min = f.min !== undefined && f.min !== "" ? Number(f.min) : null;
-            const max = f.max !== undefined && f.max !== "" ? Number(f.max) : null;
+            const min =
+              f.min !== undefined && f.min !== "" ? Number(f.min) : null;
+            const max =
+              f.max !== undefined && f.max !== "" ? Number(f.max) : null;
             if (min !== null && !(n >= min)) return false;
             if (max !== null && !(n <= max)) return false;
             return true;
@@ -107,7 +123,8 @@ export default function DataTable({
           let va = getVal(a);
           let vb = getVal(b);
 
-          const isDateStr = (x) => typeof x === "string" && /^\d{4}-\d{2}-\d{2}/.test(x);
+          const isDateStr = (x) =>
+            typeof x === "string" && /^\d{4}-\d{2}-\d{2}/.test(x);
           if (isDateStr(va)) va = new Date(va);
           if (isDateStr(vb)) vb = new Date(vb);
 
@@ -127,26 +144,46 @@ export default function DataTable({
     return out;
   }, [data, columns, enableFilters, filters, enableSort, sort]);
 
- return (
-    // 🔹 Contenedor con scroll vertical y header fijo
-    <div className="relative bg-white rounded-xl border border-[#e3e9e5] max-h-[320px] overflow-y-auto overflow-x-auto">
+  // ---------- render ----------
+  const stickyHeadRowClass = stickyHeader
+    ? "sticky top-0 bg-[#e8f4ef] z-20 shadow-sm"
+    : "";
+
+  return (
+    <div
+      className={[
+        "relative bg-white rounded-xl border border-[#e3e9e5]",
+        "max-h-[320px] overflow-y-auto overflow-x-auto",
+        wrapperClass, // ✅ permite quitar margenes/gaps desde afuera
+      ].join(" ")}
+    >
       <table className={tableClass}>
         <colgroup>
           {columns.map((col, i) => (
-            <col key={col.id ?? i} style={col.width ? { width: col.width } : {}} />
+            <col
+              key={col.id ?? i}
+              style={col.width ? { width: col.width } : {}}
+            />
           ))}
         </colgroup>
 
-        <thead className={theadClass}>
-          <tr className="sticky top-0 bg-[#e8f4ef] z-20 shadow-sm">
+        {/* ✅ thead con borde inferior para que no quede “ranura” */}
+        <thead className={[theadClass, "border-b border-[#edf2ef]"].join(" ")}>
+          <tr className={stickyHeadRowClass}>
             {columns.map((col, i) => (
               <th
                 key={col.id ?? i}
-                className={`${headerClass} ${alignClass(col.align)} ${col.headerClass || ""}`}
+                className={`${headerClass} ${alignClass(col.align)} ${
+                  col.headerClass || ""
+                }`}
                 onClick={() => toggleSort(col)}
                 title={enableSort && col.sortable ? "Ordenar" : undefined}
               >
-                <div className={`w-full flex items-center gap-2 ${headerJustify(col.align)}`}>
+                <div
+                  className={`w-full flex items-center gap-2 ${headerJustify(
+                    col.align
+                  )}`}
+                >
                   <span>{col.header}</span>
                   {sortIcon(col)}
                 </div>
@@ -155,10 +192,14 @@ export default function DataTable({
           </tr>
 
           {enableFilters && (
-            <tr className="sticky top-[42px] bg-white z-10">
+            <tr
+              className={stickyHeader ? "sticky top-[42px] bg-white z-10" : ""}
+            >
               {columns.map((col, i) => {
                 if (!col.filter) {
-                  return <th key={`f-${col.id ?? i}`} className={`${headerClass}`} />;
+                  return (
+                    <th key={`f-${col.id ?? i}`} className={`${headerClass}`} />
+                  );
                 }
                 if (col.filter === "text") {
                   return (
@@ -168,7 +209,9 @@ export default function DataTable({
                         className="w-full border border-[#dfe8e4] rounded-md px-2 py-1 text-sm"
                         placeholder="Buscar…"
                         value={filters[col.id]?.value ?? ""}
-                        onChange={(e) => setFilter(col.id, { value: e.target.value })}
+                        onChange={(e) =>
+                          setFilter(col.id, { value: e.target.value })
+                        }
                         onClick={(e) => e.stopPropagation()}
                       />
                     </th>
@@ -184,7 +227,10 @@ export default function DataTable({
                           placeholder="Min"
                           value={filters[col.id]?.min ?? ""}
                           onChange={(e) =>
-                            setFilter(col.id, { ...(filters[col.id] || {}), min: e.target.value })
+                            setFilter(col.id, {
+                              ...(filters[col.id] || {}),
+                              min: e.target.value,
+                            })
                           }
                           onClick={(e) => e.stopPropagation()}
                         />
@@ -194,7 +240,10 @@ export default function DataTable({
                           placeholder="Max"
                           value={filters[col.id]?.max ?? ""}
                           onChange={(e) =>
-                            setFilter(col.id, { ...(filters[col.id] || {}), max: e.target.value })
+                            setFilter(col.id, {
+                              ...(filters[col.id] || {}),
+                              max: e.target.value,
+                            })
                           }
                           onClick={(e) => e.stopPropagation()}
                         />
@@ -211,7 +260,10 @@ export default function DataTable({
                           className="w-1/2 border border-[#dfe8e4] rounded-md px-2 py-1 text-sm"
                           value={filters[col.id]?.min ?? ""}
                           onChange={(e) =>
-                            setFilter(col.id, { ...(filters[col.id] || {}), min: e.target.value })
+                            setFilter(col.id, {
+                              ...(filters[col.id] || {}),
+                              min: e.target.value,
+                            })
                           }
                           onClick={(e) => e.stopPropagation()}
                         />
@@ -220,7 +272,10 @@ export default function DataTable({
                           className="w-1/2 border border-[#dfe8e4] rounded-md px-2 py-1 text-sm"
                           value={filters[col.id]?.max ?? ""}
                           onChange={(e) =>
-                            setFilter(col.id, { ...(filters[col.id] || {}), max: e.target.value })
+                            setFilter(col.id, {
+                              ...(filters[col.id] || {}),
+                              max: e.target.value,
+                            })
                           }
                           onClick={(e) => e.stopPropagation()}
                         />
@@ -228,7 +283,9 @@ export default function DataTable({
                     </th>
                   );
                 }
-                return <th key={`f-${col.id ?? i}`} className={`${headerClass}`} />;
+                return (
+                  <th key={`f-${col.id ?? i}`} className={`${headerClass}`} />
+                );
               })}
             </tr>
           )}
@@ -249,9 +306,10 @@ export default function DataTable({
               <tr
                 key={rowKey(row, ri)}
                 onClick={onRowClick ? () => onRowClick(row, ri) : undefined}
-                className={`${rowClass} ${
-                  zebra && ri % 2 ? "bg-[#fafdfb]" : ""
-                } border-t border-[#edf2ef]`}
+                className={[
+                  rowClass,
+                  zebra && ri % 2 ? "bg-[#fafdfb]" : "",
+                ].join(" ")}
               >
                 {columns.map((col, ci) => {
                   const content = col.render
@@ -265,11 +323,14 @@ export default function DataTable({
                   return (
                     <td
                       key={ci}
-                      className={`${cellClass} ${alignClass(col.align)} ${col.cellClass || ""} ${
-                        col.nowrap ? "whitespace-nowrap" : ""
-                      }`}
+                      className={[
+                        cellClass,
+                        alignClass(col.align),
+                        col.cellClass || "",
+                        col.nowrap ? "whitespace-nowrap" : "",
+                      ].join(" ")}
                     >
-                         {content}
+                      {content}
                     </td>
                   );
                 })}

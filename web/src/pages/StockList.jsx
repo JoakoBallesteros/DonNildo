@@ -480,14 +480,17 @@ export default function StockList() {
         data={dataFiltrada}
         zebra={false}
         stickyHeader={false}
-        tableClass="w-full text-sm border-collapse mt-6"
+        // ✅ el espacio superior va acá, no en la <table>
+        wrapperClass="mt-6 !mb-0"
+        // ❌ quitar mt-6 de la <table>
+        tableClass="w-full table-fixed text-sm border-collapse"
         theadClass="bg-[#e8f4ef] text-[#154734]"
-        rowClass="hover:bg-[#f6faf7] border-t border-[#edf2ef]"
+        // ✅ bordes solo desde rowClass
+        rowClass="hover:bg-[#f6faf7] border-t border-[#edf2ef] first:border-t-0"
         headerClass="px-4 py-3 font-semibold"
         cellClass="px-4 py-4"
         enableSort
       />
-
       {/* === Export */}
       <div className="mt-6 flex justify-end">
         <button
