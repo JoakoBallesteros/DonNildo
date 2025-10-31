@@ -35,7 +35,7 @@ export default function LoginForm() {
       if (userError) throw userError;
 
       // Ahora puedes buscar su rol
-      const { data: rolData, error } = await supa
+      const { data: rolData } = await supa
         .from("usuarios")
         .select("id_rol, roles(nombre)")
         .eq("id_auth", user.id)

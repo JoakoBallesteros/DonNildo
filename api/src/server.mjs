@@ -12,6 +12,8 @@ import usuariosRoutes from './routes/usuarios.mjs'
 import rolesRoutes from './routes/roles.mjs'
 import { supaAsUser } from './lib/supabaseUserClient.mjs'
 import { webcrypto } from 'node:crypto'
+import adminUsers from "./routes/adminUsers.mjs";
+import accountRouter from "./routes/account.mjs";
 if (!globalThis.crypto) globalThis.crypto = webcrypto
 
 
@@ -37,6 +39,10 @@ app.use(cors({
 app.use('/v1/auth', authRoutes)
 app.use('/v1/usuarios', usuariosRoutes)
 app.use('/v1/roles', rolesRoutes)
+app.use("/v1/admin/users", adminUsers);
+app.use("/v1/account", accountRouter);
+
+
 
 console.log('MODE: supabase-only')
 console.log(

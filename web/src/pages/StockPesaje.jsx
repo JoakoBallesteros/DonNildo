@@ -3,7 +3,7 @@ import React, { useMemo, useState } from "react";
 import { Plus, Trash2, Pencil } from "lucide-react";
 import PageContainer from "../components/pages/PageContainer";
 import DataTable from "../components/tables/DataTable";
-import Modified from "../components/modals/modified";
+import Modified from "../components/modals/Modified";
 import PrintButton from "../components/buttons/PrintButton";
 
 // Mock materiales

@@ -5,27 +5,6 @@ import { requireAuth } from '../middlewares/requireAuth.mjs'
 
 const router = Router()
 
-// --- LOGIN (podés mantener tu proxy actual o moverlo al front) ---
-router.post('/login', async (req, res) => {
-  // Si querés seguir proxyando login en backend, tu código actual con supa.auth.signInWithPassword está OK.
-  // Alternativa recomendada: hacer login en el FRONT con supabase-js y que la API reciba solo el Bearer.
-  /* ... tu código actual ... */
-})
-
-router.get('/whoami', requireAuth, (req, res) => {
-  res.json({ ok: true, user: req.user })
-})
-
-// --- LOGOUT (el front hace supabase.auth.signOut(); acá solo confirmás) ---
-router.post('/logout', requireAuth, (_req, res) => {
-  return res.json({ ok: true })
-})
-
-// --- ME (ya usa el requireAuth nuevo) ---
-router.get('/me', requireAuth, (req, res) => {
-  return res.json({ user: req.user })
-})
-
 // --- RESET PASSWORD (sin cambios) ---
 router.post('/password/reset', async (req, res) => {
   /* ... tu código actual ... */
