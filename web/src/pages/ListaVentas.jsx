@@ -2,20 +2,18 @@ import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { Plus, Filter, Download } from "lucide-react";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
-
 import PageContainer from "../components/pages/PageContainer";
 import FilterBar from "../components/forms/FilterBars";
 import DataTable from "../components/tables/DataTable";
 import DetailModal from "../components/modals/Details";
 import Modified from "../components/modals/Modified";
 import { useNavigate } from "react-router-dom";
-import { supa } from "../lib/supabaseClient";
+import { apiFetch } from "../lib/apiClient";
 
 export default function Ventas() {
   const navigate = useNavigate();
 
   const [ventas, setVentas] = useState([]);
-  const [idEstadoAnulado, setIdEstadoAnulado] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
@@ -23,11 +21,16 @@ export default function Ventas() {
   const [filtros, setFiltros] = useState({ buscar: "", desde: "", hasta: "" });
   const [resetSignal, setResetSignal] = useState(0);
 
+  // =========================
+  // FILTROS
+  // =========================
   const handleFilterSelect = (tipo) => setFiltroTipo(tipo);
+
   const aplicarFiltros = ({ buscar, desde, hasta, tipo }) => {
     setFiltros({ buscar, desde, hasta });
     if (tipo) setFiltroTipo(tipo);
   };
+
   const reiniciarFiltros = () => {
     setFiltros({ buscar: "", desde: "", hasta: "" });
     setFiltroTipo("Todo");
@@ -35,105 +38,24 @@ export default function Ventas() {
   };
 
   // =========================
-  // CARGA DE DATOS
+  // CARGA DE DATOS DESDE BACKEND
   // =========================
-  const loadVentas = useCallback(async () => {
-      try {
-        setLoading(true);
-        setErr("");
-
-        console.log("Cargando ventas...");
-
-        const { data: ventasData, error: e1 } = await supa
-          .from("venta")
-          .select("id_venta, fecha, total, observaciones, id_estado")
-          .order("id_venta", { ascending: true });
-        if (e1) throw e1;
-
-        if (!ventasData?.length) {
-          setVentas([]);
-          return;
-        }
-
-        const ids = ventasData.map((v) => v.id_venta);
-
-        const { data: detalles, error: e2 } = await supa
-          .from("detalle_venta")
-          .select("id_detalle_venta, id_venta, id_producto, cantidad, precio_unitario, subtotal")
-          .in("id_venta", ids);
-        if (e2) throw e2;
-
-        const { data: productos, error: e3 } = await supa
-          .from("productos")
-          .select("id_producto, nombre, id_tipo_producto");
-        if (e3) throw e3;
-
-        console.log("ventas:", ventasData);
-        console.log("detalles:", detalles);
-        console.log("productos:", productos);
-
-        const prodMap = new Map(productos.map((p) => [p.id_producto, p]));
-        const byVenta = new Map();
-
-        for (const d of detalles) {
-          if (!byVenta.has(d.id_venta)) byVenta.set(d.id_venta, []);
-          const prod = prodMap.get(d.id_producto);
-          const tipo = prod?.id_tipo_producto === 1 ? "Caja" : "Producto";
-          byVenta.get(d.id_venta).push({
-            id_detalle_venta: d.id_detalle_venta,
-            id_producto: d.id_producto,
-            tipo,
-            producto: prod?.nombre || "—",
-            cantidad: Number(d.cantidad) || 0,
-            medida: tipo === "Caja" ? "u" : "kg",
-            precio: Number(d.precio_unitario) || 0,
-            subtotal: Number(d.subtotal) || 0,
-          });
-        }
-
-        const mapped = ventasData.map((v) => {
-          const items = byVenta.get(v.id_venta) || [];
-          const tipoVenta =
-            new Set(items.map((i) => i.tipo)).size === 1
-              ? items[0]?.tipo || "—"
-              : "Mixta";
-          const total =
-            v.total || items.reduce((sum, i) => sum + (Number(i.subtotal) || 0), 0);
-          return {
-            numero: v.id_venta,
-            fecha: v.fecha,
-            tipo: tipoVenta,
-            observaciones: v.observaciones || "—",
-            total,
-            productos: items,
-          };
-        });
-
-        console.log("ventas final:", mapped);
-        setVentas(mapped);
-      } catch (e) {
-        console.error("Error al cargar ventas:", e);
-        setErr(e.message);
-      } finally {
-        setLoading(false);
-      }
-    }, []);
+const loadVentas = useCallback(async () => {
+  try {
+    setLoading(true);
+    setErr("");
+    const data = await apiFetch("/api/ventas");
+    setVentas(data);
+  } catch (e) {
+    console.error("Error al cargar ventas:", e);
+    setErr(e.message);
+  } finally {
+    setLoading(false);
+  }
+}, []);
 
   useEffect(() => {
     loadVentas();
-    const ch = supa
-      .channel("ventas-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "venta" }, () =>
-        loadVentas()
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "detalle_venta" },
-        () => loadVentas()
-      )
-      .subscribe();
-
-    return () => supa.removeChannel(ch);
   }, [loadVentas]);
 
   // =========================
@@ -148,118 +70,62 @@ export default function Ventas() {
     setDetailOpen(true);
   };
 
-  const handleModificar = async (venta) => {
-    try {
-      console.log("Buscando detalles de venta:", venta.numero);
-      const { data: detalles, error } = await supa
-        .from("detalle_venta")
-        .select("id_detalle_venta, id_producto, cantidad, precio_unitario, subtotal")
-        .eq("id_venta", Number(venta.numero));
-
-      if (error) throw error;
-
-      if (!detalles?.length) {
-        alert("No hay productos asociados a esta venta.");
-        return;
-      }
-
-      const ids = detalles.map((d) => d.id_producto);
-      const { data: productos, error: prodErr } = await supa
-        .from("productos")
-        .select("id_producto, nombre, id_tipo_producto")
-        .in("id_producto", ids);
-
-      if (prodErr) throw prodErr;
-
-      const prodMap = new Map(productos.map((p) => [p.id_producto, p]));
-
-      const items = detalles.map((d) => {
-        const p = prodMap.get(d.id_producto);
-        const tipo = p?.id_tipo_producto === 1 ? "Caja" : "Producto";
-        return {
-          id_detalle_venta: d.id_detalle_venta,   // ✅ necesario para update
-          id_producto: d.id_producto,
-          tipo,
-          producto: p?.nombre || "—",
-          cantidad: Number(d.cantidad) || 0,
-          precio: Number(d.precio_unitario) || 0,
-          medida: tipo === "Caja" ? "u" : "kg",
-          descuento: 0,
-          subtotal: Number(d.subtotal) || 0,
-        };
-      });
-
-      // ✅ incluye numero de venta
-      setSelectedVenta({ numero: venta.numero, productos: items });
-      setEditOpen(true);
-    } catch (e) {
-      console.error("Error al cargar detalle venta:", e);
-      alert("❌ No se pudo cargar los productos de la venta.");
-    }
-};
+  const handleModificar = (venta) => {
+    setSelectedVenta(venta);
+    setEditOpen(true);
+  };
 
   const handleGuardarCambios = async (updated) => {
-    try {
-      if (!updated) return setEditOpen(false);
+  try {
+    if (!updated) return setEditOpen(false);
 
-      const productosActualizados = updated.productos.map((p) => ({
-        ...p,
-        subtotal: Number((p.cantidad * p.precio).toFixed(2)),
-      }));
-      const totalNuevo = productosActualizados.reduce(
-        (acc, p) => acc + p.subtotal,
-        0
-      );
+    const id_venta = updated.id_venta; // 👈 usamos el id real, no "numero"
+    const body = { id_venta, productos: updated.productos };
 
-      for (const p of productosActualizados) {
-        const { error } = await supa
-          .from("detalle_venta")
-          .update({
-            cantidad: p.cantidad,
-            precio_unitario: p.precio,
-            subtotal: p.subtotal,
-          })
-          .eq("id_detalle_venta", p.id_detalle_venta);
-        if (error) throw error;
-      }
+    console.log("🧾 Guardando venta:", body);
 
-      const { error: ventaErr } = await supa
-        .from("venta")
-        .update({ total: totalNuevo })
-        .eq("id_venta", updated.numero);
-      if (ventaErr) throw ventaErr;
+    const data = await apiFetch(`/api/ventas/${id_venta}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
 
-      setEditOpen(false);
-      setSelectedVenta(null);
-      await loadVentas();
-    } catch (e) {
-      console.error("Error al guardar cambios:", e);
-      alert("❌ Error al guardar: " + e.message);
-    }
-  };
+    alert("✅ Venta modificada correctamente.");
+    setEditOpen(false);
+    setSelectedVenta(null);
+    await loadVentas();
+  } catch (e) {
+    console.error("Error al guardar cambios:", e);
+    alert("❌ Error al guardar: " + e.message);
+  }
+};
 
-  const handleAnular = async (id_venta) => {
-    if (!idEstadoAnulado) return alert("No se encontró el estado ANULADO");
-    if (!confirm(`¿Anular la venta N° ${id_venta}?`)) return;
-    try {
-      const { error } = await supa
-        .from("venta")
-        .update({ id_estado: idEstadoAnulado })
-        .eq("id_venta", id_venta);
-      if (error) throw error;
-      alert("Venta anulada correctamente.");
-    } catch (e) {
-      alert("Error al anular: " + e.message);
-    }
-  };
+ const handleAnular = async (id_venta) => {
+  if (!confirm(`¿Anular la venta N° ${id_venta}?`)) return;
 
+  try {
+    await apiFetch(`/api/ventas/${id_venta}/anular`, { method: "PUT" });
+    alert("✅ Venta anulada correctamente.");
+    setVentas((prev) =>
+      prev.map((v) =>
+        v.id_venta === id_venta ? { ...v, estado: "ANULADO" } : v
+      )
+    );
+  } catch (e) {
+    console.error("Error al anular venta:", e);
+    alert("❌ Error al anular: " + e.message);
+  }
+};
+
+  // =========================
+  // DESCARGAR PDF
+  // =========================
   const handleDownloadPDF = (venta) => {
     const doc = new jsPDF();
     doc.setFontSize(16);
     doc.text(`Detalle de Venta N° ${venta.numero}`, 14, 20);
-    const head = [
-      ["Tipo", "Producto", "Cantidad", "Medida", "Precio Unitario", "Subtotal"],
-    ];
+
+    const head = [["Tipo", "Producto", "Cantidad", "Medida", "Precio Unitario", "Subtotal"]];
     const body = (venta.productos || []).map((p) => [
       p.tipo,
       p.producto,
@@ -268,6 +134,7 @@ export default function Ventas() {
       `$${p.precio}`,
       `$${p.subtotal}`,
     ]);
+
     doc.autoTable({ startY: 30, head, body });
     const finalY = doc.lastAutoTable.finalY + 10;
     doc.text(`Total: $${venta.total}`, 14, finalY);
@@ -275,7 +142,7 @@ export default function Ventas() {
   };
 
   // =========================
-  // FILTROS
+  // FILTROS DE VISUALIZACIÓN
   // =========================
   const tipoMap = { Todo: null, Productos: "Producto", Cajas: "Caja", Mixtas: "Mixta" };
   const ventasFiltradas = useMemo(() => {
@@ -285,7 +152,7 @@ export default function Ventas() {
       if (filtros.buscar) {
         const txt = filtros.buscar.toLowerCase();
         if (
-          !String(v.numero).includes(txt) &&
+          !String(v.id_venta).includes(txt) &&
           !v.tipo.toLowerCase().includes(txt) &&
           !(v.observaciones || "").toLowerCase().includes(txt)
         )
@@ -299,12 +166,25 @@ export default function Ventas() {
   }, [ventas, filtroTipo, filtros]);
 
   // =========================
-  // COLUMNAS
+  // COLUMNAS TABLA
   // =========================
   const columns = [
-    { id: "numero", header: "N° Venta", accessor: "numero", align: "center" },
+    { id: "numero", header: "N° Venta", accessor: "id_venta", align: "center" },
     { id: "tipo", header: "Tipo", accessor: "tipo", align: "center" },
-    { id: "fecha", header: "Fecha", accessor: "fecha", align: "center" },
+    {
+      id: "fecha",
+      header: "Fecha",
+      align: "center",
+      render: (row) => {
+        const fecha = new Date(row.fecha);
+        return fecha.toLocaleDateString("es-AR", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+         })
+        .replace(/\//g, "-"); // 👈 reemplaza / por -
+      },
+    },
     {
       id: "total",
       header: "Total ($)",
@@ -338,7 +218,7 @@ export default function Ventas() {
               MODIFICAR
             </button>
             <button
-              onClick={() => handleAnular(row.numero)}
+              onClick={() => handleAnular(row.id_venta)}
               className="bg-[#A30000] text-white px-5 py-1 text-xs rounded-md hover:bg-[#7A0000]"
             >
               ANULAR
@@ -356,6 +236,9 @@ export default function Ventas() {
     },
   ];
 
+  // =========================
+  // RENDER PRINCIPAL
+  // =========================
   return (
     <PageContainer
       title="Lista de Ventas"
@@ -411,31 +294,32 @@ export default function Ventas() {
         )}
       </div>
 
-   <DetailModal
-      isOpen={isDetailOpen}
-      onClose={() => setDetailOpen(false)}
-      title="Detalle de Venta"
-      data={selectedVenta || {}}
-      itemsKey="productos"
-      columns={[
-        { key: "tipo", label: "Tipo" },
-        { key: "producto", label: "Producto" },
-        { key: "cantidad", label: "Cantidad" },
-        { key: "medida", label: "Medida" },
-        { key: "precio", label: "Precio Unitario" },
-        { key: "subtotal", label: "Subtotal" },
-      ]}
-      footerRight={
-        selectedVenta
-          ? `Total: $${Number(selectedVenta.total).toLocaleString("es-AR")}`
-          : ""
-      }
-    />
-    {selectedVenta && (
+      <DetailModal
+        isOpen={isDetailOpen}
+        onClose={() => setDetailOpen(false)}
+        title="Detalle de Venta"
+        data={selectedVenta || {}}
+        itemsKey="productos"
+        columns={[
+          { key: "tipo", label: "Tipo" },
+          { key: "producto", label: "Producto" },
+          { key: "cantidad", label: "Cantidad" },
+          { key: "medida", label: "Medida" },
+          { key: "precio", label: "Precio Unitario" },
+          { key: "subtotal", label: "Subtotal" },
+        ]}
+        footerRight={
+          selectedVenta
+            ? `Total: $${Number(selectedVenta.total).toLocaleString("es-AR")}`
+            : ""
+        }
+      />
+
+      {selectedVenta && (
         <Modified
           isOpen={isEditOpen}
           onClose={() => setEditOpen(false)}
-           title={`Modificar productos de Venta ${selectedVenta?.numero || ""}`}
+          title={`Modificar productos de Venta ${selectedVenta?.numero || ""}`}
           data={selectedVenta}
           itemsKey="productos"
           columns={[
@@ -447,11 +331,7 @@ export default function Ventas() {
             { key: "subtotal", label: "Subtotal", readOnly: true },
           ]}
           computeTotal={(rows) =>
-            rows.reduce(
-              (sum, r) =>
-                rows.reduce((sum, r) => sum + r.cantidad * r.precio, 0),
-            0
-          )
+            rows.reduce((sum, r) => sum + r.cantidad * r.precio, 0)
           }
           onSave={handleGuardarCambios}
         />

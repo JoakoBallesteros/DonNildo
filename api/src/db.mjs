@@ -11,5 +11,9 @@ export const pool = new Pool(
   cs ? { connectionString: cs, ssl: { rejectUnauthorized: false } }
      : { host: process.env.PGHOST, port: Number(process.env.PGPORT || 5432),
          database: process.env.PGDATABASE, user: process.env.PGUSER,
-         password: process.env.PGPASSWORD, ssl: { rejectUnauthorized: false } }
+         password: process.env.PGPASSWORD, ssl: { rejectUnauthorized: false },
+         keepAlive: true, // 🔹 mantiene viva la conexión, sino se cierra y no deja hacer nada
+        idleTimeoutMillis: 30000, // 🔹 reinicia si está inactiva más de 30s
+         connectionTimeoutMillis: 10000,} // 🔹 timeout de conexión }
+         
 )
