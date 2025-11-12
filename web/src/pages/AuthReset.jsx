@@ -20,27 +20,35 @@ export default function AuthReset() {
   const redirectTo = "/login?reset=ok";
 
   useEffect(() => {
-    // Extract the code query parameter from the URL.  Supabase appends
-    // `?code=...` to the redirect URL in the password‑reset email.
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
-    if (!code) {
-      setError("El enlace de restablecimiento no es válido o está incompleto.");
-      setReady(true);
-      return;
-    }
-    // Exchange the code for a temporary session.  This call also creates
-    // an authenticated Supabase session in the client, which is required
-    // for `updateUser` to succeed.
-    supabase.auth.exchangeCodeForSession(code).then(({ error: exchError }) => {
-      if (exchError) {
-        setError(
-          exchError.message ||
-            "No pudimos validar el enlace. Es posible que haya expirado."
-        );
+
+    async function init() {
+      if (code) {
+        // 1) Canjear el code (one-time) por una sesión temporal
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (error) {
+          setError(error.message || "El enlace es inválido o ha expirado.");
+        } else {
+          // 2) Limpiar la URL para evitar reintentos al refrescar
+          window.history.replaceState({}, "", window.location.pathname);
+        }
+        setReady(true);
+        return;
       }
-      setReady(true);
-    });
+
+      // 3) Si no hay code (p.ej. tras un refresh), ver si ya tenemos sesión
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        // Sesión vigente: permitir que el usuario cambie la contraseña
+        setReady(true);
+      } else {
+        setError("El enlace de restablecimiento no es válido o ha expirado.");
+        setReady(true);
+      }
+    }
+
+    init();
   }, []);
 
   const handleSubmit = async (e) => {

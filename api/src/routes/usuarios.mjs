@@ -1,15 +1,27 @@
-// api/src/routes/usuarios.mjs
+// ==========================================
+// Rutas: /v1/usuarios
+// ==========================================
+// Maneja usuarios de aplicación (tabla 'usuarios').
+// Solo ADMIN puede crear, modificar o eliminar.
+// ==========================================
+
 import { Router } from "express";
 import { requireAuth } from "../middlewares/requireAuth.mjs";
+import { allowRoles } from "../middlewares/allowRoles.mjs"; // ✅ nuevo
 import { supaAsUser } from "../lib/supabaseUserClient.mjs";
 import { supaAdmin } from "../lib/supaAdmin.mjs";
 
 const router = Router();
 
+// Helpers
+const SITE_URL = process.env.SITE_URL || "http://localhost:5173";
+const RESET_PATH = "/auth/reset";
+const redirectTo = `${SITE_URL}${RESET_PATH}`;
+
 // ===============================
-// LISTAR
+// LISTAR (solo ADMIN)
 // ===============================
-router.get("/", requireAuth, async (req, res) => {
+router.get("/", requireAuth, allowRoles(["ADMIN"]), async (req, res) => {
   try {
     const s = supaAsUser(req.accessToken);
     const { data, error } = await s
@@ -19,70 +31,77 @@ router.get("/", requireAuth, async (req, res) => {
       )
       .order("id_usuario", { ascending: false });
 
-    if (error) {
-      console.error("[usuarios] select error:", error);
-      return res.status(400).json({ error: { message: error.message } });
-    }
+    if (error) throw error;
 
     res.set("Cache-Control", "no-store");
     res.json({ usuarios: data });
   } catch (e) {
-    console.error("[usuarios] unexpected:", e);
-    res.status(500).json({ error: { message: "INTERNAL" } });
+    console.error("[usuarios] list error:", e);
+    res.status(500).json({ error: { message: e.message } });
   }
 });
 
 // ===============================
-// OBTENER UNO
+// OBTENER UNO (ADMIN o el propio usuario)
 // ===============================
 router.get("/:id", requireAuth, async (req, res) => {
-  const s = supaAsUser(req.accessToken);
-  const id = Number(req.params.id);
+  try {
+    const s = supaAsUser(req.accessToken);
+    const id = Number(req.params.id);
 
-  const { data, error } = await s
-    .from("usuarios")
-    .select(
-      "id_usuario, dni, nombre, mail, estado, id_rol, id_auth, roles(id_rol, nombre)"
-    )
-    .eq("id_usuario", id)
-    .single();
+    // Verificamos si el usuario es admin o está pidiendo su propio perfil
+    const { data: me } = await s
+      .from("usuarios")
+      .select("id_usuario, roles(nombre)")
+      .eq("id_auth", req.user.id)
+      .single();
 
-  if (error) {
-    if (error.status === 406 || error.code === "PGRST116") {
-      return res.status(404).json({ error: { message: "No encontrado" } });
+    if (me.roles.nombre !== "ADMIN" && me.id_usuario !== id) {
+      return res.status(403).json({ error: "FORBIDDEN" });
     }
-    const status = error?.status === 403 ? 403 : 400;
-    return res.status(status).json({ error: { message: error.message } });
-  }
 
-  res.json(data);
+    const { data, error } = await s
+      .from("usuarios")
+      .select(
+        "id_usuario, dni, nombre, mail, estado, id_rol, id_auth, roles(id_rol, nombre)"
+      )
+      .eq("id_usuario", id)
+      .single();
+
+    if (error) throw error;
+    res.json(data);
+  } catch (e) {
+    console.error("[usuarios] get error:", e);
+    res.status(400).json({ error: { message: e.message } });
+  }
 });
 
 // ===============================
-// CREAR (ADMIN) - flujo completo
+// CREAR (solo ADMIN)
+// Envia invitación por correo para establecer contraseña
 // ===============================
-router.post("/", requireAuth, /* allowRoles(["ADMIN"]), */ async (req, res) => {
+router.post("/", requireAuth, allowRoles(["ADMIN"]), async (req, res) => {
   try {
     const s = supaAsUser(req.accessToken);
     const { dni, nombre, mail, id_rol, estado = "ACTIVO" } = req.body || {};
 
-    if (!nombre || !mail || !id_rol) {
+    if (!nombre || !mail || !id_rol)
       return res.status(400).json({ error: { message: "Faltan datos" } });
-    }
 
-    // 1️⃣ Crear el usuario en Supabase Auth
-    const { data: created, error: e1 } = await supaAdmin.auth.admin.createUser({
-      email: mail,
-      email_confirm: true, // marcar como verificado
-      password: Math.random().toString(36).slice(-10), // contraseña temporal aleatoria
-      user_metadata: { dni, nombre },
-    });
+    const email = String(mail).trim().toLowerCase();
+
+    // 1️⃣ Enviar invitación
+    const { data: invited, error: e1 } =
+      await supaAdmin.auth.admin.inviteUserByEmail(email, {
+        redirectTo,
+        data: { dni, nombre },
+      });
     if (e1) throw e1;
 
-    // 2️⃣ Insertar en tabla usuarios con id_auth del usuario recién creado
+    // 2️⃣ Insertar en tabla 'usuarios'
     const { data, error: e2 } = await s
       .from("usuarios")
-      .insert([{ dni, nombre, mail, id_rol, estado, id_auth: created.user.id }])
+      .insert([{ dni, nombre, mail: email, id_rol, estado, id_auth: invited.user.id }])
       .select()
       .single();
     if (e2) throw e2;
@@ -95,48 +114,51 @@ router.post("/", requireAuth, /* allowRoles(["ADMIN"]), */ async (req, res) => {
 });
 
 // ===============================
-// UPDATE
+// UPDATE (solo ADMIN)
 // ===============================
-router.put("/:id", requireAuth, async (req, res) => {
-  const s = supaAsUser(req.accessToken);
-  const id = Number(req.params.id);
-  const { dni, nombre, mail, id_rol, estado } = req.body || {};
+router.put("/:id", requireAuth, allowRoles(["ADMIN"]), async (req, res) => {
+  try {
+    const s = supaAsUser(req.accessToken);
+    const id = Number(req.params.id);
+    const { dni, nombre, mail, id_rol, estado } = req.body || {};
 
-  const { data, error } = await s
-    .from("usuarios")
-    .update({ dni, nombre, mail, id_rol, estado })
-    .eq("id_usuario", id)
-    .select()
-    .single();
+    const { data, error } = await s
+      .from("usuarios")
+      .update({
+        dni,
+        nombre,
+        mail: mail ? String(mail).trim().toLowerCase() : undefined,
+        id_rol,
+        estado,
+      })
+      .eq("id_usuario", id)
+      .select()
+      .single();
 
-  if (error) {
-    const status = error?.status === 403 ? 403 : 400;
-    return res.status(status).json({ error: { message: error.message } });
+    if (error) throw error;
+    res.json(data);
+  } catch (e) {
+    console.error("[usuarios] update error:", e);
+    res.status(400).json({ error: { message: e.message } });
   }
-  res.json(data);
 });
 
 // ===============================
-// DELETE (solo ADMIN desde backend con Service Role)
+// DELETE (solo ADMIN)
+// Usa RPC 'usuarios_delete' (borra fila y deshabilita usuario en Auth)
 // ===============================
-// api/src/routes/usuarios.mjs
-router.delete("/:id", requireAuth, async (req, res) => {
+router.delete("/:id", requireAuth, allowRoles(["ADMIN"]), async (req, res) => {
   try {
-    const s = supaAsUser(req.accessToken); // ← token del usuario logueado
+    const s = supaAsUser(req.accessToken);
     const id = Number(req.params.id);
 
     const { error } = await s.rpc("usuarios_delete", { p_id: id });
-
-    if (error) {
-      console.error("[usuarios] rpc delete error:", error);
-      const status = error?.code === "42501" ? 403 : 400; // FORBIDDEN
-      return res.status(status).json({ error: { message: error.message } });
-    }
+    if (error) throw error;
 
     res.json({ ok: true });
   } catch (err) {
-    console.error("[usuarios] unexpected delete error:", err);
-    res.status(500).json({ error: { message: "INTERNAL" } });
+    console.error("[usuarios] delete error:", err);
+    res.status(500).json({ error: { message: err.message } });
   }
 });
 

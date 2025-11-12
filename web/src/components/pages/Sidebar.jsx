@@ -1,31 +1,33 @@
 // src/components/Sidebar.jsx
 import { useState, useEffect } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import HamburgerButton from "../buttons/HamburgerButton.jsx";
+import AccountBadge from "../buttons/AccountBadge.jsx";
 
 const linkBase =
   "block w-full rounded-xl px-4 py-3 text-base font-semibold tracking-[0.2px] transition-colors";
 const active = "bg-emerald-700 text-white";
 const inactive = "text-emerald-900/85 hover:bg-emerald-100";
 
-const userRole = localStorage.getItem("dn_role"); // 'ADMIN' | 'OPERADOR'
-const ACCORDION = true; // modo acordeón: sólo una sección abierta
+// leemos el rol guardado por AccountBadge (o login)
+const getRole = () => localStorage.getItem("dn_role") || "";
+const ACCORDION = true;
 
-// helper de pertenencia de ruta
 const isSectionActive = (pathname, base) =>
   pathname === base || pathname.startsWith(base + "/");
 
 export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const [role, setRole] = useState(getRole());
 
-  // Estado inicial: cerrado, excepto la sección que coincide con la ruta actual
+  // acordeones
   const [ventasOpen, setVentasOpen] = useState(() => isSectionActive(pathname, "/ventas"));
   const [stockOpen, setStockOpen] = useState(() => isSectionActive(pathname, "/stock"));
   const [reportesOpen, setReportesOpen] = useState(() => isSectionActive(pathname, "/reportes"));
   const [securityOpen, setSecurityOpen] = useState(() => isSectionActive(pathname, "/seguridad"));
 
-  // Helpers acordeón
   const openOnly = (key) => {
     setVentasOpen(key === "ventas");
     setStockOpen(key === "stock");
@@ -47,20 +49,35 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
       reportes: reportesOpen,
       security: securityOpen,
     }[key];
-
-    if (isOpen) openOnly(null);   // si estaba abierta, cerramos todas
-    else openOnly(key);           // si estaba cerrada, abrimos sólo esa
+    if (isOpen) openOnly(null);
+    else openOnly(key);
   };
 
-  // Sincroniza con la ruta: al navegar, abre sólo la sección correspondiente
+  // sincroniza acordeón con la ruta
   useEffect(() => {
     if (!ACCORDION) return;
-    if (isSectionActive(pathname, "/ventas"))       openOnly("ventas");
-    else if (isSectionActive(pathname, "/stock"))   openOnly("stock");
-    else if (isSectionActive(pathname, "/reportes"))openOnly("reportes");
-    else if (isSectionActive(pathname, "/seguridad"))openOnly("security");
+    if (isSectionActive(pathname, "/ventas")) openOnly("ventas");
+    else if (isSectionActive(pathname, "/stock")) openOnly("stock");
+    else if (isSectionActive(pathname, "/reportes")) openOnly("reportes");
+    else if (isSectionActive(pathname, "/seguridad")) openOnly("security");
     else openOnly(null);
   }, [pathname]);
+
+  // si cambia el rol en localStorage (p. ej. al cargar AccountBadge), actualizamos
+  useEffect(() => {
+    const id = setInterval(() => {
+      const r = getRole();
+      if (r !== role) setRole(r);
+    }, 500);
+    return () => clearInterval(id);
+  }, [role]);
+
+    // helper: cierre del menú móvil cuando navegamos
+    // eslint-disable-next-line no-unused-vars
+    const handleNav = (to) => () => {
+      navigate(to);
+      if (onCloseMobile) onCloseMobile();
+    };
 
   return (
     <>
@@ -82,7 +99,7 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
       >
         {open && (
           <div className="w-72 h-full flex flex-col">
-            {/* Top row: marca + botón */}
+            {/* Header brand + toggle */}
             <div className="flex items-center justify-between px-4 pt-5 pb-4">
               <div className="text-3xl leading-7 font-extrabold text-emerald-900 select-none">
                 DON
@@ -92,11 +109,13 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
               <HamburgerButton onClick={onToggle} />
             </div>
 
-            {/* Nav */}
-            <nav className="flex-1 overflow-y-auto px-3 pb-6 space-y-1">
+            {/* NAV: columna + scroll + badge abajo */}
+            <nav className="flex-1 overflow-y-auto px-3 pb-3 flex flex-col space-y-1">
+              {/* Inicio */}
               <NavLink
                 to="/"
                 end
+                onClick={onCloseMobile}
                 className={({ isActive }) =>
                   `mx-1 ${linkBase} ${isActive ? active : inactive}`
                 }
@@ -104,8 +123,10 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
                 Inicio
               </NavLink>
 
+              {/* Compras */}
               <NavLink
                 to="/compras"
+                onClick={onCloseMobile}
                 className={({ isActive }) =>
                   `mx-1 ${linkBase} ${isActive ? active : inactive}`
                 }
@@ -118,6 +139,7 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
                 <NavLink
                   to="/ventas"
                   end
+                  onClick={onCloseMobile}
                   className={({ isActive }) =>
                     `pr-10 ${linkBase} ${isActive ? active : inactive}`
                   }
@@ -138,6 +160,7 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
                 <div className="pl-5 space-y-1">
                   <NavLink
                     to="/ventas/nueva"
+                    onClick={onCloseMobile}
                     className={({ isActive }) =>
                       `mx-1 ${linkBase} ${isActive ? active : inactive}`
                     }
@@ -152,6 +175,7 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
                 <NavLink
                   to="/stock"
                   end
+                  onClick={onCloseMobile}
                   className={({ isActive }) =>
                     `pr-10 ${linkBase} ${isActive ? active : inactive}`
                   }
@@ -172,6 +196,7 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
                 <div className="pl-5 space-y-1">
                   <NavLink
                     to="/stock/nuevo-producto"
+                    onClick={onCloseMobile}
                     className={({ isActive }) =>
                       `mx-1 ${linkBase} ${isActive ? active : inactive}`
                     }
@@ -180,6 +205,7 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
                   </NavLink>
                   <NavLink
                     to="/stock/pesaje"
+                    onClick={onCloseMobile}
                     className={({ isActive }) =>
                       `mx-1 ${linkBase} ${isActive ? active : inactive}`
                     }
@@ -194,6 +220,7 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
                 <NavLink
                   to="/reportes"
                   end
+                  onClick={onCloseMobile}
                   className={({ isActive }) =>
                     `pr-10 ${linkBase} ${isActive ? active : inactive}`
                   }
@@ -214,6 +241,7 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
                 <div className="pl-5 space-y-1">
                   <NavLink
                     to="/reportes/nuevo"
+                    onClick={onCloseMobile}
                     className={({ isActive }) =>
                       `mx-1 ${linkBase} ${isActive ? active : inactive}`
                     }
@@ -224,12 +252,13 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
               )}
 
               {/* Seguridad (solo ADMIN) */}
-              {userRole === "ADMIN" && (
+              {role === "ADMIN" && (
                 <>
                   <div className="relative mx-1">
                     <NavLink
                       to="/seguridad"
                       end
+                      onClick={onCloseMobile}
                       className={({ isActive }) =>
                         `pr-10 ${linkBase} ${isActive ? active : inactive}`
                       }
@@ -249,6 +278,7 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
                     <div className="pl-5 space-y-1">
                       <NavLink
                         to="/seguridad/auditoria"
+                        onClick={onCloseMobile}
                         className={({ isActive }) =>
                           `mx-1 ${linkBase} ${isActive ? active : inactive}`
                         }
@@ -257,6 +287,7 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
                       </NavLink>
                       <NavLink
                         to="/seguridad/roles"
+                        onClick={onCloseMobile}
                         className={({ isActive }) =>
                           `mx-1 ${linkBase} ${isActive ? active : inactive}`
                         }
@@ -271,20 +302,24 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
               {/* Salir */}
               <button
                 onClick={() => {
-                  // Limpiar auth (local y session)
                   localStorage.removeItem("dn_token");
                   localStorage.removeItem("dn_user");
                   localStorage.removeItem("dn_refresh");
-                  sessionStorage.removeItem("dn_token");
-                  sessionStorage.removeItem("dn_user");
-                  sessionStorage.removeItem("dn_refresh");
-                  // Redirigir
+                  // también limpiamos nombre/rol cacheados
+                  localStorage.removeItem("dn_user_name");
+                  localStorage.removeItem("dn_role");
+                  sessionStorage.clear();
                   window.location.replace("/login");
                 }}
                 className={`mx-1 w-full text-left ${linkBase} ${inactive}`}
               >
                 Salir
               </button>
+
+              {/* Badge pegado abajo */}
+              <div className="mt-auto px-1 pt-3">
+                <AccountBadge />
+              </div>
             </nav>
           </div>
         )}

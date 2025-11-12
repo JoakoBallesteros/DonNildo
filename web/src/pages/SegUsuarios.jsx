@@ -5,8 +5,11 @@ import Modal from "../components/modals/Modals";
 import UsuarioForm from "../components/forms/UsuarioForm.jsx";
 
 import {
-  listarUsuarios, listarRoles,
-  crearUsuario, actualizarUsuario, eliminarUsuario
+  listarUsuarios,
+  listarRoles,
+  crearUsuario,
+  actualizarUsuario,
+  eliminarUsuario,
 } from "../services/userService";
 
 export default function SegUsuarios() {
@@ -31,16 +34,19 @@ export default function SegUsuarios() {
       setLoading(false);
     }
   }
-  useEffect(() => { cargar(); }, []);
+  useEffect(() => {
+    cargar();
+  }, []);
 
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
     if (!t) return items;
-    return items.filter(u =>
-      (u.dni||"").toLowerCase().includes(t) ||
-      (u.nombre||"").toLowerCase().includes(t) ||
-      (u.mail||"").toLowerCase().includes(t) ||
-      (u.rol_nombre||"").toLowerCase().includes(t)
+    return items.filter(
+      (u) =>
+        (u.dni || "").toLowerCase().includes(t) ||
+        (u.nombre || "").toLowerCase().includes(t) ||
+        (u.mail || "").toLowerCase().includes(t) ||
+        (u.rol_nombre || "").toLowerCase().includes(t)
     );
   }, [items, q]);
 
@@ -52,59 +58,94 @@ export default function SegUsuarios() {
 
     try {
       console.log("🗑️ Eliminando usuario:", row.id_usuario);
-      
+
       await eliminarUsuario(row.id_usuario);
-      
+
       console.log("✅ Usuario eliminado exitosamente");
-      
+
       // Recargar desde el servidor para asegurar sincronización
       await cargar();
-      
     } catch (error) {
       console.error("❌ Error al eliminar:", error);
       setErr(`Error al eliminar usuario: ${error.message}`);
-      
+
       // Opcional: mostrar alerta al usuario
       alert(`No se pudo eliminar el usuario: ${error.message}`);
     }
   };
 
-  const cols = useMemo(() => [
-    { id: "dni", header: "DNI", accessor: "dni", width: 130, nowrap: true, sortable: true },
-    { id: "nombre", header: "Nombre", accessor: "nombre", sortable: true },
-    { id: "mail", header: "E-Mail", accessor: "mail", sortable: true },
-    { id: "rol", header: "Rol", accessor: "rol_nombre", width: 140, align: "center", sortable: true },
-    {
-      id: "estado", header: "Estado", width: 110, align: "center", sortable: true,
-      sortAccessor: (r)=> (r.estado === "ACTIVO" ? 1 : 0),
-      render: (r)=>(
-        <span className={`px-2 py-0.5 rounded text-xs ${r.estado==="ACTIVO"?"bg-emerald-100 text-emerald-900":"bg-slate-200 text-slate-700"}`}>
-          {r.estado==="ACTIVO" ? "Activo" : "Inactivo"}
-        </span>
-      )
-    },
-    {
-      id: "acc", header: "Acciones", width: 190, align: "center",
-      render: (row)=>(
-        <div className="flex justify-center gap-2">
-          <button 
-            className="px-2 py-1 text-xs rounded-md bg-[#154734] text-white hover:bg-[#1a5d42]" 
-            onClick={()=>{ setEdit(row); setOpen(true); }}
+  const cols = useMemo(
+    () => [
+      {
+        id: "dni",
+        header: "DNI",
+        accessor: "dni",
+        width: 130,
+        nowrap: true,
+        sortable: true,
+      },
+      { id: "nombre", header: "Nombre", accessor: "nombre", sortable: true },
+      { id: "mail", header: "E-Mail", accessor: "mail", sortable: true },
+      {
+        id: "rol",
+        header: "Rol",
+        accessor: "rol_nombre",
+        width: 140,
+        align: "center",
+        sortable: true,
+      },
+      {
+        id: "estado",
+        header: "Estado",
+        width: 110,
+        align: "center",
+        sortable: true,
+        sortAccessor: (r) => (r.estado === "ACTIVO" ? 1 : 0),
+        render: (r) => (
+          <span
+            className={`px-2 py-0.5 rounded text-xs ${
+              r.estado === "ACTIVO"
+                ? "bg-emerald-100 text-emerald-900"
+                : "bg-slate-200 text-slate-700"
+            }`}
           >
-            Modificar
-          </button>
-          <button 
-            className="px-2 py-1 text-xs rounded-md bg-[#a30000] text-white hover:bg-[#8a0000]"
-            onClick={() => handleEliminar(row)} // ✅ Usar el handler
-          >
-            Eliminar
-          </button>
-        </div>
-      )
-    },
-  ], [handleEliminar]); // ✅ Agregar dependencia
+            {r.estado === "ACTIVO" ? "Activo" : "Inactivo"}
+          </span>
+        ),
+      },
+      {
+        id: "acc",
+        header: "Acciones",
+        width: 190,
+        align: "center",
+        render: (row) => (
+          <div className="flex justify-center gap-2">
+            <button
+              className="px-2 py-1 text-xs rounded-md bg-[#154734] text-white hover:bg-[#1a5d42]"
+              onClick={() => {
+                setEdit(row);
+                setOpen(true);
+              }}
+            >
+              Modificar
+            </button>
+            <button
+              className="px-2 py-1 text-xs rounded-md bg-[#a30000] text-white hover:bg-[#8a0000]"
+              onClick={() => handleEliminar(row)} // ✅ Usar el handler
+            >
+              Eliminar
+            </button>
+          </div>
+        ),
+      },
+    ],
+    [handleEliminar]
+  ); // ✅ Agregar dependencia
 
-  const onNew = () => { setEdit(null); setOpen(true); };
+  const onNew = () => {
+    setEdit(null);
+    setOpen(true);
+  };
 
   const onSave = async (u) => {
     try {
@@ -122,10 +163,16 @@ export default function SegUsuarios() {
       title="Usuarios"
       actions={
         <div className="flex gap-3">
-          <button onClick={onNew} className="rounded-md border border-[#154734] text-[#154734] px-4 py-2 hover:bg-[#e8f4ef]">
+          <button
+            onClick={onNew}
+            className="rounded-md border border-[#154734] text-[#154734] px-4 py-2 hover:bg-[#e8f4ef]"
+          >
             Nuevo usuario
           </button>
-          <a href="/seguridad/roles" className="rounded-md border border-[#154734] text-[#154734] px-4 py-2 hover:bg-[#e8f4ef]">
+          <a
+            href="/seguridad/roles"
+            className="rounded-md border border-[#154734] text-[#154734] px-4 py-2 hover:bg-[#e8f4ef]"
+          >
             Gestionar Roles
           </a>
         </div>
@@ -134,8 +181,8 @@ export default function SegUsuarios() {
       {err && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-5">
           {err}
-          <button 
-            onClick={() => setErr("")} 
+          <button
+            onClick={() => setErr("")}
             className="float-right font-bold text-red-900"
           >
             ×
@@ -145,17 +192,21 @@ export default function SegUsuarios() {
 
       <div className="bg-white rounded-2xl border border-[#e3e9e5] p-5 md:p-6 mb-5">
         <div className="max-w-md">
-          <label className="text-sm font-semibold text-[#154734] mb-1 block">Buscar</label>
-          <input 
-            value={q} 
-            onChange={(e)=>setQ(e.target.value)} 
+          <label className="text-sm font-semibold text-[#154734] mb-1 block">
+            Buscar
+          </label>
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
             placeholder="Nombre o email"
-            className="w-full border border-[#d8e4df] rounded-md px-3 py-2" 
+            className="w-full border border-[#d8e4df] rounded-md px-3 py-2"
           />
         </div>
       </div>
 
-      {loading ? <p className="text-sm text-slate-600">Cargando…</p> : (
+      {loading ? (
+        <p className="text-sm text-slate-600">Cargando…</p>
+      ) : (
         <DataTable
           columns={cols}
           data={filtered}
@@ -169,8 +220,18 @@ export default function SegUsuarios() {
       )}
 
       {open && (
-        <Modal isOpen={open} onClose={()=>setOpen(false)} title={edit ? "Editar usuario" : "Nuevo usuario"} size="max-w-2xl">
-          <UsuarioForm initial={edit || {}} roles={roles} onSubmit={onSave} onCancel={()=>setOpen(false)} />
+        <Modal
+          isOpen={open}
+          onClose={() => setOpen(false)}
+          title={edit ? "Editar usuario" : "Nuevo usuario"}
+          size="max-w-2xl"
+        >
+          <UsuarioForm
+            initial={edit || {}}
+            roles={roles}
+            onSubmit={onSave}
+            onCancel={() => setOpen(false)}
+          />
         </Modal>
       )}
     </PageContainer>
