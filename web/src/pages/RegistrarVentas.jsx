@@ -4,6 +4,9 @@ import FormBuilder from "../components/forms/FormBuilder";
 import DataTable from "../components/tables/DataTable";
 import Modified from "../components/modals/Modified.jsx";
 import { supa } from "../lib/supabaseClient";
+import ProductFormTabs from "../components/forms/ProductFormTabs.jsx";
+import Modal from "../components/modals/Modals.jsx"; // o como se llame tu modal genérico
+
 
 export default function RegistrarVentas() {
   const [formData, setFormData] = useState({
@@ -19,6 +22,7 @@ export default function RegistrarVentas() {
   const [ventas, setVentas] = useState([]);
   const [selectedVenta, setSelectedVenta] = useState(null);
   const [isEditOpen, setEditOpen] = useState(false);
+  const [isNewProductOpen, setNewProductOpen] = useState(false);
 
   // =============== HELPERS ===============
   const calcSubtotal = (cantidad, precio, descuento) => {
@@ -333,7 +337,11 @@ export default function RegistrarVentas() {
                 + Añadir
               </button>
 
-              <button className="flex-wrap border border-[#154734] text-[#154734] px-4 py-2 rounded-md hover:bg-[#e8f4ef] transition w-full ml-55">
+              <button
+                type="button"
+                onClick={() => setNewProductOpen(true)}
+                className="flex-wrap border border-[#154734] text-[#154734] px-4 py-2 rounded-md hover:bg-[#e8f4ef] transition w-full ml-55"
+              >
                 + Nuevo producto
               </button>
             </div>
@@ -367,7 +375,10 @@ export default function RegistrarVentas() {
 
         {/* BOTONES FINALES */}
         <div className="flex flex-wrap justify-center gap-3 mt-4 pb-2">
-          <button className="border border-[#154734] text-[#154734] px-6 py-2 rounded-md hover:bg-[#f0f7f3] transition">
+          <button
+            onClick={() => window.history.back()}
+            className="border border-[#154734] text-[#154734] px-6 py-2 rounded-md hover:bg-[#f0f7f3] transition"
+          >
             CANCELAR
           </button>
 
@@ -450,6 +461,36 @@ export default function RegistrarVentas() {
           </button>
         </div>
 
+
+
+        <Modal
+          isOpen={isNewProductOpen}
+          title="Registrar nuevo producto"
+          onClose={() => setNewOpen(false)}
+          size="max-w-2xl"
+        >
+          <ProductFormTabs
+            mode="create"
+            initialValues={{
+              tipo: "Caja",
+              referencia: "",
+              categoria: "",
+              medidas: { l: "", a: "", h: "" },
+              unidad: "u",
+              cantidad: "",
+              precio: "",
+              notas: "",
+            }}
+            labels={{ caja: "Caja", material: "Producto" }}
+              onCancel={() => setNewProductOpen(false)} // ✅ esto cierra el modal
+            onSubmit={(values) => {
+              const nuevaFila = mapFormToRow(values);
+              setItems((prev) => [nuevaFila, ...prev]);
+              setNewOpen(false);
+            }}
+          />
+        </Modal>
+            
         {selectedVenta && (
           <Modified
             isOpen={isEditOpen}

@@ -10,9 +10,11 @@ import { requireAuth } from './middlewares/requireAuth.mjs'
 import authRoutes from './routes/auth.mjs'
 import usuariosRoutes from './routes/usuarios.mjs'
 import rolesRoutes from './routes/roles.mjs'
+import ventasRoutes from "./routes/ventas.mjs";
 import { supaAsUser } from './lib/supabaseUserClient.mjs'
 import { webcrypto } from 'node:crypto'
 if (!globalThis.crypto) globalThis.crypto = webcrypto
+
 
 
 const app = express()
@@ -37,6 +39,7 @@ app.use(cors({
 app.use('/v1/auth', authRoutes)
 app.use('/v1/usuarios', usuariosRoutes)
 app.use('/v1/roles', rolesRoutes)
+app.use("/api/ventas", ventasRoutes);
 
 console.log('MODE: supabase-only')
 console.log(
