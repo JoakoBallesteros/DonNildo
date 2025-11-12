@@ -13,6 +13,8 @@ import rolesRoutes from './routes/roles.mjs'
 import ventasRoutes from "./routes/ventas.mjs";
 import { supaAsUser } from './lib/supabaseUserClient.mjs'
 import { webcrypto } from 'node:crypto'
+import adminUsers from "./routes/adminUsers.mjs";
+import accountRouter from "./routes/account.mjs";
 if (!globalThis.crypto) globalThis.crypto = webcrypto
 
 
