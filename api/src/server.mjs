@@ -43,6 +43,10 @@ app.use('/v1/usuarios', usuariosRoutes)
 app.use('/v1/roles', rolesRoutes)
 app.use("/api/ventas", ventasRoutes);
 
+app.use("/v1/admin/users", adminUsers);
+app.use("/v1/account", accountRouter);
+
+
 console.log('MODE: supabase-only')
 console.log(
   'DB URL:',
