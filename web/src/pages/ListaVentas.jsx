@@ -20,7 +20,7 @@ export default function Ventas() {
   const [filtroTipo, setFiltroTipo] = useState("Todo");
   const [filtros, setFiltros] = useState({ buscar: "", desde: "", hasta: "" });
   const [resetSignal, setResetSignal] = useState(0);
-
+  const [mostrarAnuladas, setMostrarAnuladas] = useState(false);
   // =========================
   // FILTROS
   // =========================
@@ -40,11 +40,14 @@ export default function Ventas() {
   // =========================
   // CARGA DE DATOS DESDE BACKEND
   // =========================
+
 const loadVentas = useCallback(async () => {
   try {
     setLoading(true);
     setErr("");
-    const data = await apiFetch("/api/ventas");
+
+    const qs = mostrarAnuladas ? "?only=anuladas" : "?only=activas";
+    const data = await apiFetch(`/api/ventas${qs}`);
     setVentas(data);
   } catch (e) {
     console.error("Error al cargar ventas:", e);
@@ -52,11 +55,11 @@ const loadVentas = useCallback(async () => {
   } finally {
     setLoading(false);
   }
-}, []);
+}, [mostrarAnuladas]);
 
-  useEffect(() => {
-    loadVentas();
-  }, [loadVentas]);
+useEffect(() => {
+  loadVentas();
+}, [loadVentas]);
 
   // =========================
   // MODALES
@@ -111,6 +114,8 @@ const loadVentas = useCallback(async () => {
         v.id_venta === id_venta ? { ...v, estado: "ANULADO" } : v
       )
     );
+    // Recargamos las ventas para que la lista se actualice según los filtros actuales.
+    await loadVentas();
   } catch (e) {
     console.error("Error al anular venta:", e);
     alert("❌ Error al anular: " + e.message);
@@ -275,7 +280,14 @@ const loadVentas = useCallback(async () => {
           </button>
         )}
       />
-
+        <div className="flex justify-end mb-4">
+        <button
+          onClick={() => setMostrarAnuladas((prev) => !prev)}
+          className="border border-[#154734] text-[#154734] px-3 py-1 rounded-md hover:bg-[#e8f4ef] transition"
+        >
+          {mostrarAnuladas ? "Ocultar anuladas" : "Ver anuladas"}
+        </button>
+      </div>
       <div className="mt-6">
         {loading ? (
           <p className="text-sm text-slate-600">Cargando…</p>
@@ -284,12 +296,15 @@ const loadVentas = useCallback(async () => {
             columns={columns}
             data={ventasFiltradas}
             zebra={false}
-            stickyHeader={false}
-            tableClass="w-full text-sm text-center border-collapse"
-            theadClass="bg-[#e8f4ef] text-[#154734]"
-            rowClass="hover:bg-[#f6faf7] border-t border-[#edf2ef]"
-            headerClass="px-4 py-3 font-semibold text-center"
-            cellClass="px-4 py-4 text-center"
+            stickyHeader={true}
+            tableClass="w-full text-sm text-center"
+            theadClass="bg-[#e8f4ef] text-[#154734] sticky top-0"
+            rowClass={(row) =>
+              `border-t border-[#edf2ef] ${row.estado === "ANULADO" ? "bg-slate-100 text-slate-500 hover:bg-slate-200" : "hover:bg-[#f6faf7]"}`
+              `border-t border-[#edf2ef] ${row.estado === "ANULADO" ? "bg-gray-100 text-gray-500 hover:bg-gray-200" : "bg-white hover:bg-[#f6faf7]"}`
+            }
+            headerClass="px-4 py-3 font-semibold"
+            cellClass="px-4 py-4"
           />
         )}
       </div>

@@ -7,15 +7,34 @@ const router = Router();
 // ====================
 // 1️⃣ Obtener todas las ventas
 // ====================
+// ====================
+// 1️⃣ Obtener ventas (con filtro)
+// ====================
 router.get("/", async (req, res) => {
   try {
-    const query = `
+    const { only, estado } = req.query;
+
+    let ventasQuery = `
       SELECT v.id_venta, v.fecha, v.total, v.observaciones, e.nombre AS estado
       FROM venta v
       JOIN estado e ON v.id_estado = e.id_estado
-      ORDER BY v.id_venta ASC;
     `;
-    const { rows: ventas } = await pool.query(query);
+
+    const params = [];
+    if (only === "activas") {
+      ventasQuery += ` WHERE e.nombre <> 'ANULADO' `;
+    } else if (only === "anuladas") {
+      ventasQuery += ` WHERE e.nombre = 'ANULADO' `;
+    } else if (estado) {
+      ventasQuery += ` WHERE e.nombre = $1 `;
+      params.push(estado); // ej. 'ANULADO'
+    }
+
+    ventasQuery += ` ORDER BY v.id_venta ASC;`;
+
+    const { rows: ventas } = await pool.query(ventasQuery, params);
+
+    if (ventas.length === 0) return res.json([]);
 
     // obtener detalles de esas ventas
     const ids = ventas.map(v => v.id_venta);
@@ -31,8 +50,7 @@ router.get("/", async (req, res) => {
     const grouped = {};
     for (const d of detalles) {
       const tipo = d.id_tipo_producto === 1 ? "Caja" : "Producto";
-      if (!grouped[d.id_venta]) grouped[d.id_venta] = [];
-      grouped[d.id_venta].push({
+      (grouped[d.id_venta] ||= []).push({
         id_detalle_venta: d.id_detalle_venta,
         id_producto: d.id_producto,
         tipo,
@@ -47,8 +65,9 @@ router.get("/", async (req, res) => {
     // combinar datos
     const result = ventas.map(v => {
       const items = grouped[v.id_venta] || [];
-      const tipoVenta = new Set(items.map(i => i.tipo)).size === 1 ? items[0]?.tipo : "Mixta";
-      const total = v.total || items.reduce((acc, i) => acc + i.subtotal, 0);
+      const soloUnTipo = new Set(items.map(i => i.tipo)).size === 1;
+      const tipoVenta = soloUnTipo ? items[0]?.tipo ?? "Producto" : "Mixta";
+      const total = v.total ?? items.reduce((acc, i) => acc + i.subtotal, 0);
       return { ...v, tipo: tipoVenta, productos: items, total };
     });
 
@@ -58,7 +77,6 @@ router.get("/", async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
-
 // ====================
 // MODIFICAR UNA VENTA
 // ====================
