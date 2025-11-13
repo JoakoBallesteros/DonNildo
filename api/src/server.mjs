@@ -41,14 +41,11 @@ app.use(cors({
 app.use('/v1/auth', authRoutes)
 app.use('/v1/usuarios', usuariosRoutes)
 app.use('/v1/roles', rolesRoutes)
-<<<<<<< HEAD
 app.use("/api/ventas", ventasRoutes);
-=======
+
 app.use("/v1/admin/users", adminUsers);
 app.use("/v1/account", accountRouter);
 
-
->>>>>>> 81025899172fdc3af82b105c46b3e4ab5fcd568d
 
 console.log('MODE: supabase-only')
 console.log(
