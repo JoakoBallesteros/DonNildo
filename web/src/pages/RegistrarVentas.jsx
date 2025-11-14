@@ -7,6 +7,7 @@ import DataTable from "../components/tables/DataTable";
 import Modified from "../components/modals/Modified.jsx";
 import Modal from "../components/modals/Modals.jsx";
 import api from "../lib/api";
+import ProductFormTabs from "../components/forms/ProductFormTabs";
 
 // ======================================================================
 // HELPERS & PERSISTENCE KEY (Movidos fuera del componente)
@@ -52,7 +53,8 @@ export default function RegistrarVentas() {
   const [isEditOpen, setEditOpen] = useState(false);
   const [isNewProductOpen, setNewProductOpen] = useState(false); // Mantener para el botón
   const [isCancelConfirmOpen, setCancelConfirmOpen] = useState(false);
-
+  // === Modal crear nuevo producto (reutiliza ProductFormTabs)
+    const [isNewOpen, setNewOpen] = useState(false);
   // Estados para Eliminación de Ítem (Borrador)
   const [isItemDeleteConfirmOpen, setItemDeleteConfirmOpen] = useState(false);
   const [itemToDeleteIndex, setItemToDeleteIndex] = useState(null);
@@ -459,13 +461,13 @@ export default function RegistrarVentas() {
                 + Añadir
               </button>
 
-              <button
-                type="button"
-                onClick={() => navigate("/stock/nuevo-producto")}
-                className="flex-wrap border border-[#154734] text-[#154734] px-4 py-2 rounded-md hover:bg-[#e8f4ef] transition w-full ml-55"
-              >
-                + Nuevo producto
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setNewOpen(true)}
+                  className=" rounded-md border border-[#154734] text-[#154734] px-4 py-2 hover:bg-[#e8f4ef] transition w-full ml-56"
+                  >  
+                  + Nuevo producto
+                </button>
             </div>
           </div>
 
@@ -576,6 +578,36 @@ export default function RegistrarVentas() {
           </p>
         </Modal>
 
+        {/* === Modal CREAR nuevo producto */}
+      <Modal
+        isOpen={isNewOpen}
+        title="Registrar nuevo producto"
+        onClose={() => setNewOpen(false)}
+        size="max-w-2xl"
+      >
+        <ProductFormTabs
+          mode="create"
+          initialValues={{
+            tipo: "Caja",
+            referencia: "",
+            categoria: "",
+            medidas: { l: "", a: "", h: "" },
+            unidad: "u",
+            cantidad: "",
+            precio: "",
+            notas: "",
+          }}
+          labels={{ caja: "Caja", material: "Producto" }}
+          onCancel={() => setNewOpen(false)}
+          onSubmit={(values) => {
+            const nuevaFila = mapFormToRow(values);
+            setItems((prev) => [nuevaFila, ...prev]);
+            setNewOpen(false);
+          }}
+        />
+      </Modal>
+
+            
         {/* 3. MODAL DE MENSAJES (Éxito/Error/Aviso) */}
         <Modal
           isOpen={messageModal.isOpen}
