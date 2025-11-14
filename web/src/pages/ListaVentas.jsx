@@ -4,9 +4,10 @@ import jsPDF from "jspdf";
 import "jspdf-autotable";
 import PageContainer from "../components/pages/PageContainer";
 import FilterBar from "../components/forms/FilterBars";
-import DataTable from "../components/tables/DataTable";
+import DataTable from "../components/tables/DataTable.jsx";
 import DetailModal from "../components/modals/Details";
 import Modified from "../components/modals/Modified";
+import Modal from "../components/modals/Modals.jsx";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../lib/apiClient";
 
@@ -21,6 +22,17 @@ export default function Ventas() {
   const [filtros, setFiltros] = useState({ buscar: "", desde: "", hasta: "" });
   const [resetSignal, setResetSignal] = useState(0);
   const [mostrarAnuladas, setMostrarAnuladas] = useState(false);
+
+  const [isAnularConfirmOpen, setAnularConfirmOpen] = useState(false);
+  const [ventaIdToAnular, setVentaIdToAnular] = useState(null);
+
+  const [messageModal, setMessageModal] = useState({
+    isOpen: false,
+    title: "",
+    text: "",
+    type: "",
+  });
+
   // =========================
   // FILTROS
   // =========================
@@ -93,32 +105,52 @@ useEffect(() => {
       body: JSON.stringify(body),
     });
 
-    alert("✅ Venta modificada correctamente.");
+    setMessageModal({
+      isOpen: true,
+      title: "✅ Venta Modificada",
+      text: "La venta ha sido modificada correctamente.",
+      type: "success",
+    });
     setEditOpen(false);
     setSelectedVenta(null);
     await loadVentas();
   } catch (e) {
     console.error("Error al guardar cambios:", e);
-    alert("❌ Error al guardar: " + e.message);
+    setMessageModal({ isOpen: true, title: "❌ Error al Guardar", text: e.message, type: "error" });
   }
 };
 
- const handleAnular = async (id_venta) => {
-  if (!confirm(`¿Anular la venta N° ${id_venta}?`)) return;
+const handleOpenAnularConfirm = (id_venta) => {
+  setVentaIdToAnular(id_venta);
+  setAnularConfirmOpen(true);
+};
 
+const handleAnular = async () => {
   try {
-    await apiFetch(`/api/ventas/${id_venta}/anular`, { method: "PUT" });
-    alert("✅ Venta anulada correctamente.");
-    setVentas((prev) =>
-      prev.map((v) =>
-        v.id_venta === id_venta ? { ...v, estado: "ANULADO" } : v
-      )
-    );
-    // Recargamos las ventas para que la lista se actualice según los filtros actuales.
+    if (!ventaIdToAnular) return;
+
+    setAnularConfirmOpen(false);
+    await apiFetch(`/api/ventas/${ventaIdToAnular}/anular`, {
+      method: "PUT",
+    });
+
+    setMessageModal({
+      isOpen: true,
+      title: "✅ Venta Anulada",
+      text: `La venta N° ${ventaIdToAnular} ha sido anulada correctamente.`,
+      type: "success",
+    });
     await loadVentas();
   } catch (e) {
     console.error("Error al anular venta:", e);
-    alert("❌ Error al anular: " + e.message);
+    setMessageModal({
+      isOpen: true,
+      title: "❌ Error al Anular",
+      text: e.message,
+      type: "error",
+    });
+  } finally {
+    setVentaIdToAnular(null);
   }
 };
 
@@ -187,7 +219,7 @@ useEffect(() => {
           month: "2-digit",
           day: "2-digit",
          })
-        .replace(/\//g, "-"); // 👈 reemplaza / por -
+        .replace(/\//g, "-"); 
       },
     },
     {
@@ -210,34 +242,51 @@ useEffect(() => {
       ),
     },
     {
-      id: "acciones",
-      header: "Acciones",
-      align: "center",
-      render: (row) => (
-        <div className="flex justify-center items-center gap-2">
-          <div className="flex flex-col items-center gap-1">
+  id: "acciones",
+  header: "Acciones",
+  align: "center",
+  render: (row) => {
+    // 💡 Aquí comprobamos el estado de la venta
+    const isAnulada = row.estado === "ANULADO"; 
+    
+    // Si la venta está anulada, mostramos un mensaje y ocultamos todos los botones.
+    if (isAnulada) {
+      return (
+        <span className="text-sm italic text-red-700">
+          Anulada
+        </span>
+      );
+    }
+
+    // Si NO está anulada, mostramos los botones
+    return (
+          <div className="flex justify-center items-center gap-2">
+            <div className="flex flex-col items-center gap-1 ml-10">
+              <button
+                onClick={() => handleModificar(row)}
+                className="bg-[#154734] text-white px-3 py-1 text-xs rounded-md hover:bg-[#1E5A3E]"
+              >
+                MODIFICAR
+              </button>
+              <button
+                // Usamos el nuevo handler para abrir el modal de confirmación
+                onClick={() => handleOpenAnularConfirm(row.id_venta)} 
+                className="bg-[#A30000] text-white px-5 py-1 text-xs rounded-md hover:bg-[#7A0000]"
+              >
+                ANULAR
+              </button>
+            </div>
+            {/* Botón de Descarga: también se oculta si está anulada */}
             <button
-              onClick={() => handleModificar(row)}
-              className="bg-[#154734] text-white px-3 py-1 text-xs rounded-md hover:bg-[#1E5A3E]"
+              onClick={() => handleDownloadPDF(row)}
+              className="p-1 border border-[#d8e4df] rounded-md hover:bg-[#f7faf9]"
+              title="Descargar comprobante"
             >
-              MODIFICAR
-            </button>
-            <button
-              onClick={() => handleAnular(row.id_venta)}
-              className="bg-[#A30000] text-white px-5 py-1 text-xs rounded-md hover:bg-[#7A0000]"
-            >
-              ANULAR
+              <Download className="w-4 h-4 text-[#154734]" />
             </button>
           </div>
-          <button
-            onClick={() => handleDownloadPDF(row)}
-            className="p-1 border border-[#d8e4df] rounded-md hover:bg-[#f7faf9]"
-            title="Descargar comprobante"
-          >
-            <Download className="w-4 h-4 text-[#154734]" />
-          </button>
-        </div>
-      ),
+        );
+      },
     },
   ];
 
@@ -297,14 +346,11 @@ useEffect(() => {
             data={ventasFiltradas}
             zebra={false}
             stickyHeader={true}
-            tableClass="w-full text-sm text-center"
+            tableClass="w-full text-sm text-center border-collapse"
             theadClass="bg-[#e8f4ef] text-[#154734] sticky top-0"
-            rowClass={(row) =>
-              `border-t border-[#edf2ef] ${row.estado === "ANULADO" ? "bg-slate-100 text-slate-500 hover:bg-slate-200" : "hover:bg-[#f6faf7]"}`
-              `border-t border-[#edf2ef] ${row.estado === "ANULADO" ? "bg-gray-100 text-gray-500 hover:bg-gray-200" : "bg-white hover:bg-[#f6faf7]"}`
-            }
-            headerClass="px-4 py-3 font-semibold"
-            cellClass="px-4 py-4"
+            rowClass={(row) => `border-t border-[#edf2ef] ${row.estado === "ANULADO" ? "bg-gray-100 text-gray-500 hover:bg-gray-200" : "bg-white hover:bg-[#f6faf7]"}`}
+            headerClass="px-4 py-3 font-semibold text-center"
+            cellClass="px-4 py-2 text-center"
           />
         )}
       </div>
@@ -351,6 +397,59 @@ useEffect(() => {
           onSave={handleGuardarCambios}
         />
       )}
+
+      <Modal
+        isOpen={isAnularConfirmOpen}
+        onClose={() => setAnularConfirmOpen(false)}
+        title="Confirmar Anulación"
+        size="max-w-md"
+        footer={
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setAnularConfirmOpen(false)}
+              className="px-4 py-2 rounded-md font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
+            >
+              Volver
+            </button>
+            <button
+              onClick={handleAnular}
+              className="px-4 py-2 rounded-md font-semibold text-white bg-red-600 hover:bg-red-700 transition"
+            >
+              Sí, Anular
+            </button>
+          </div>
+        }
+      >
+        <p className="text-sm text-slate-700">
+          ¿Estás seguro de que quieres anular la venta{" "}
+          <strong className="text-slate-900">N° {ventaIdToAnular}</strong>? Esta
+          acción no se puede deshacer y el stock de los productos involucrados
+          será restaurado.
+        </p>
+      </Modal>
+
+      <Modal
+        isOpen={messageModal.isOpen}
+        onClose={() => setMessageModal({ isOpen: false, title: "", text: "", type: "" })}
+        title={messageModal.title}
+        size="max-w-md"
+        footer={
+          <div className="flex justify-end">
+            <button
+              onClick={() => setMessageModal({ isOpen: false, title: "", text: "", type: "" })}
+              className={`px-4 py-2 rounded-md font-semibold text-white transition ${
+                messageModal.type === "success"
+                  ? "bg-emerald-700 hover:bg-emerald-800"
+                  : "bg-red-700 hover:bg-red-800"
+              }`}
+            >
+              Aceptar
+            </button>
+          </div>
+        }
+      >
+        <p className="text-sm text-slate-700">{messageModal.text}</p>
+      </Modal>
     </PageContainer>
   );
 }
