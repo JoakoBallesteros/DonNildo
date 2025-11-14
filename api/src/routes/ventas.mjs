@@ -146,4 +146,43 @@ router.put("/:id/anular", async (req, res) => {
   }
 });
 
+// ====================
+// 4️⃣ Registrar una nueva venta (Transaccional - Llama a RPC)
+// ====================
+router.post("/", async (req, res) => {
+  // Esperamos un body como { ventas: [item1, item2, ...], id_cliente: 1, observaciones: "..." }
+  const { ventas: productos, id_cliente, observaciones } = req.body; 
+
+  if (!Array.isArray(productos) || productos.length === 0) {
+    return res.status(400).json({ error: "Faltan productos para registrar la venta" });
+  }
+
+  try {
+    // 1. Convertir el array de JS a un JSONB string
+    const productosJsonb = JSON.stringify(productos);
+    
+    // 2. Llamar a la función transaccional de PostgreSQL/Supabase
+    // NOTA: registrar_venta_transaccional debe estar creada en tu SQL Editor de Supabase
+    const query = `
+      SELECT id_venta_ret, total_ret, estado_ret
+      FROM registrar_venta_transaccional($1, $2, $3)
+    `;
+
+    // Pasamos el JSONB de productos, id_cliente (puede ser null), y observaciones (puede ser null)
+    const { rows } = await pool.query(query, [productosJsonb, id_cliente, observaciones]);
+
+    // 3. Devolver la venta creada
+    res.status(201).json({ 
+      id_venta: rows[0].id_venta_ret,
+      total: rows[0].total_ret,
+      estado: rows[0].estado_ret,
+      success: true
+    });
+  } catch (e) {
+    console.error("❌ Error al registrar venta transaccional:", e);
+    // 💡 Devolvemos el error de la DB (incluido el de stock insuficiente: "STOCK_INSUFICIENTE")
+    res.status(500).json({ error: e.message || "Error al procesar la venta." });
+  }
+});
+
 export default router;

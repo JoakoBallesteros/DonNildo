@@ -306,10 +306,14 @@ export default function DataTable({
               <tr
                 key={rowKey(row, ri)}
                 onClick={onRowClick ? () => onRowClick(row, ri) : undefined}
-                className={[
-                  rowClass,
-                  zebra && ri % 2 ? "bg-[#fafdfb]" : "",
-                ].join(" ")}
+                className={
+                  [
+                    typeof rowClass === "function" ? rowClass(row, ri) : rowClass,
+                    zebra && ri % 2 ? "bg-[#fafdfb]" : "",
+                  ]
+                  .filter(Boolean)
+                  .join(" ")
+                }
               >
                 {columns.map((col, ci) => {
                   const content = col.render

@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import PageContainer from "../components/pages/PageContainer";
 import FormBuilder from "../components/forms/FormBuilder";
 import DataTable from "../components/tables/DataTable";
 import Modified from "../components/modals/Modified.jsx";
 import { supa } from "../lib/supabaseClient";
 import ProductFormTabs from "../components/forms/ProductFormTabs.jsx";
-import Modal from "../components/modals/Modals.jsx"; // o como se llame tu modal genérico
-
+import Modal from "../components/modals/Modals.jsx";
+import api from "../lib/api";
+import { useNavigate } from "react-router-dom";
 
 export default function RegistrarVentas() {
   const [formData, setFormData] = useState({
@@ -17,12 +18,22 @@ export default function RegistrarVentas() {
     descuento: "",
     subtotal: "",
   });
+  const navigate = useNavigate(); // 💡 Para redireccionar
 
   const [errors, setErrors] = useState({});
   const [ventas, setVentas] = useState([]);
   const [selectedVenta, setSelectedVenta] = useState(null);
   const [isEditOpen, setEditOpen] = useState(false);
   const [isNewProductOpen, setNewProductOpen] = useState(false);
+  const [isCancelConfirmOpen, setCancelConfirmOpen] = useState(false); // 💡 Para modal de cancelar
+
+  // 💡 Para modales de éxito/error
+  const [messageModal, setMessageModal] = useState({
+    isOpen: false,
+    title: "",
+    text: "",
+    type: "",
+  });
 
   // =============== HELPERS ===============
   const calcSubtotal = (cantidad, precio, descuento) => {
@@ -50,29 +61,29 @@ export default function RegistrarVentas() {
   // =============== PRODUCTOS ===============
   const [productosDisponibles, setProductosDisponibles] = useState([]);
 
-  useEffect(() => {
-    const fetchProductos = async () => {
-      try {
-        const { data, error } = await supa
-          .from("productos")
-          .select("id_producto, nombre, precio_unitario, id_tipo_producto");
+ useEffect(() => {
+  const fetchProductos = async () => {
+    try {
+      // 💡 1. LLAMADA AL BACKEND: Usa tu helper 'api' que va a Express (vía proxy: /v1)
+      const data = await api("/v1/productos");
+      const rawProductos = data.productos || [];
 
-        if (error) throw error;
+      // 💡 2. Mapeo en el Frontend (mantenemos el mapeo simple aquí, ya que el back da los datos)
+      const items = rawProductos.map((p) => ({
+        id_producto: p.id_producto,
+        nombre: p.nombre,
+        precio: Number(p.precio_unitario) || 0,
+        // Asumiendo que el id_tipo_producto=1 es 'Caja' y el resto 'Producto'
+        tipoVenta: p.id_tipo_producto === 1 ? "Caja" : "Producto", 
+      }));
 
-        const items = data.map((p) => ({
-          id_producto: p.id_producto,
-          nombre: p.nombre,
-          precio: Number(p.precio_unitario) || 0,
-          tipoVenta: p.id_tipo_producto === 1 ? "Caja" : "Producto",
-        }));
-
-        setProductosDisponibles(items);
-      } catch (err) {
-        console.error("Error cargando productos:", err.message);
-      }
-    };
-    fetchProductos();
-  }, []);
+      setProductosDisponibles(items);
+    } catch (err) {
+      console.error("Error cargando productos desde la API:", err.message);
+    }
+  };
+  fetchProductos();
+}, []);
 
   // =============== FORM HANDLERS ===============
   const handleChange = (name, value) => {
@@ -107,8 +118,13 @@ export default function RegistrarVentas() {
 
   const handleAgregarProducto = () => {
     if (!formData.producto || !formData.cantidad) {
-      alert("Completá producto y cantidad");
-      return;
+      // 💡 REEMPLAZO 1: Usar modal en lugar de alert()
+      return setMessageModal({
+        isOpen: true,
+        title: "Aviso",
+        text: "Completá producto y cantidad antes de añadir.",
+        type: "error",
+      });
     }
 
     const item = {
@@ -183,6 +199,69 @@ export default function RegistrarVentas() {
   const cantidadProductos = ventas
     .filter((v) => v.tipo === "Producto")
     .reduce((a, v) => a + Number(v.cantidad), 0);
+  
+  // 💡 Lógica de Guardar Venta (POST)
+  // 💡 Lógica de Guardar Venta (POST)
+const handleGuardarVenta = async () => {
+    try {
+        if (ventas.length === 0) {
+            return setMessageModal({
+                isOpen: true,
+                title: "Aviso",
+                text: "No hay productos cargados en la venta.",
+                type: "error",
+            });
+        }
+
+        const response = await api("/api/ventas", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ventas }),
+        });
+
+        if (response.success) {
+            setMessageModal({
+                isOpen: true,
+                title: "✅ ¡Venta Registrada!",
+                text: `La Venta N° ${response.id_venta} ha sido registrada correctamente y el stock actualizado.`,
+                type: "success",
+            });
+            setVentas([]);
+        }
+    } catch (err) {
+        console.error("Error al guardar venta:", err.message);
+
+        let friendlyMsg = "Error al comunicarse con el servidor. Intente más tarde.";
+        let title = "❌ Error al Guardar";
+
+        // Lógica para extraer el mensaje de STOCK_INSUFICIENTE de la respuesta de Express 500
+        if (err.message.includes("STOCK_INSUFICIENTE")) {
+            // Utilizamos una expresión regular para buscar el texto después de 'STOCK_INSUFICIENTE:'
+            const match = err.message.match(/STOCK_INSUFICIENTE: (.*)/);
+            
+            if (match && match[1]) {
+                friendlyMsg = "No se puede completar la operación. " + match[1].trim().replace(/\.$/, '');
+            } else {
+                friendlyMsg = "Stock insuficiente para uno o más productos. Por favor, verifique el inventario.";
+            }
+            title = "⚠️ Stock Insuficiente";
+
+        } else if (err.message.includes("NETWORK_FAILURE") || err.message.includes("404")) {
+            friendlyMsg = "No se pudo conectar al sistema. Asegúrese de que el backend esté activo.";
+            title = "❌ Error de Conexión";
+            
+        } else if (err.message.includes("500")) {
+             friendlyMsg = "Ocurrió un error inesperado en el servidor. Revise el log de Express.";
+        }
+
+        setMessageModal({
+            isOpen: true,
+            title: title,
+            text: friendlyMsg,
+            type: "error",
+        });
+    }
+};
 
   const columns = [
     { id: "tipo", header: "Tipo", accessor: "tipo", align: "center" },
@@ -376,121 +455,97 @@ export default function RegistrarVentas() {
         {/* BOTONES FINALES */}
         <div className="flex flex-wrap justify-center gap-3 mt-4 pb-2">
           <button
-            onClick={() => window.history.back()}
+            onClick={() => { // 💡 Lógica de cancelación con confirmación
+              if (ventas.length > 0) {
+                setCancelConfirmOpen(true);
+              } else {
+                navigate("/ventas");
+              }
+            }}
             className="border border-[#154734] text-[#154734] px-6 py-2 rounded-md hover:bg-[#f0f7f3] transition"
           >
             CANCELAR
           </button>
 
           <button
-            onClick={async () => {
-              try {
-                if (ventas.length === 0) {
-                  alert("⚠️ No hay productos cargados en la venta.");
-                  return;
-                }
-
-                const tipoTx =
-                  ventas.some((v) => v.tipo === "Caja") &&
-                  ventas.some((v) => v.tipo === "Producto")
-                    ? "Mixta"
-                    : ventas.every((v) => v.tipo === "Caja")
-                    ? "Caja"
-                    : "Producto";
-
-                const [{ data: est }, { data: tx }] = await Promise.all([
-                  supa
-                    .from("estado")
-                    .select("id_estado")
-                    .eq("nombre", "COMPLETADO")
-                    .single(),
-                  supa
-                    .from("tipo_transaccion")
-                    .select("id_tipo_transaccion")
-                    .eq("nombre", tipoTx)
-                    .single(),
-                ]);
-
-                const fechaActual = new Date()
-                  .toISOString()
-                  .split("T")[0];
-                const total = ventas.reduce(
-                  (acc, v) => acc + Number(v.subtotal || 0),
-                  0
-                );
-
-                const { data: venta, error: ventaError } = await supa
-                  .from("venta")
-                  .insert([
-                    {
-                      fecha: fechaActual,
-                      id_estado: est?.id_estado || null,
-                      id_tipo_transaccion: tx?.id_tipo_transaccion || null,
-                      total,
-                    },
-                  ])
-                  .select()
-                  .single();
-
-                if (ventaError) throw ventaError;
-
-                const registros = ventas.map((v) => ({
-                  id_venta: venta.id_venta,
-                  id_producto: v.id_producto,
-                  cantidad: Number(v.cantidad),
-                  precio_unitario: Number(v.precio),
-                  subtotal: Number(v.subtotal),
-                }));
-
-                const { error: detError } = await supa
-                  .from("detalle_venta")
-                  .insert(registros);
-
-                if (detError) throw detError;
-
-                alert("✅ Venta registrada correctamente");
-                setVentas([]);
-              } catch (err) {
-                console.error("Error al guardar venta:", err.message);
-                alert("❌ Error al guardar la venta: " + err.message);
-              }
-            }}
+            onClick={handleGuardarVenta} // 💡 Usar la nueva función
             className="bg-[#154734] text-white px-6 py-2 rounded-lg hover:bg-[#103a2b] transition w-full sm:w-auto"
           >
             GUARDAR
           </button>
         </div>
 
-
-
+        {/* 💡 MODAL DE MENSAJES (Éxito/Error/Aviso) */}
         <Modal
-          isOpen={isNewProductOpen}
-          title="Registrar nuevo producto"
-          onClose={() => setNewOpen(false)}
-          size="max-w-2xl"
+          isOpen={messageModal.isOpen}
+          onClose={() => {
+            setMessageModal({ isOpen: false, title: "", text: "", type: "" });
+            // Si fue éxito, redirigimos al cerrar el modal de éxito
+            if (messageModal.type === "success") {
+              navigate("/ventas");
+            }
+          }}
+          title={messageModal.title}
+          size="max-w-md"
+          footer={
+            <div className="flex justify-end">
+              <button
+                onClick={() => {
+                  setMessageModal({
+                    isOpen: false,
+                    title: "",
+                    text: "",
+                    type: "",
+                  });
+                  if (messageModal.type === "success") navigate("/ventas");
+                }}
+                className={`px-4 py-2 rounded-md font-semibold text-white transition ${
+                  messageModal.type === "success"
+                    ? "bg-emerald-700 hover:bg-emerald-800"
+                    : "bg-red-700 hover:bg-red-800"
+                }`}
+              >
+                Aceptar
+              </button>
+            </div>
+          }
         >
-          <ProductFormTabs
-            mode="create"
-            initialValues={{
-              tipo: "Caja",
-              referencia: "",
-              categoria: "",
-              medidas: { l: "", a: "", h: "" },
-              unidad: "u",
-              cantidad: "",
-              precio: "",
-              notas: "",
-            }}
-            labels={{ caja: "Caja", material: "Producto" }}
-              onCancel={() => setNewProductOpen(false)} // ✅ esto cierra el modal
-            onSubmit={(values) => {
-              const nuevaFila = mapFormToRow(values);
-              setItems((prev) => [nuevaFila, ...prev]);
-              setNewOpen(false);
-            }}
-          />
+          <p className="text-sm text-slate-700">{messageModal.text}</p>
         </Modal>
-            
+
+        {/* 💡 MODAL DE CONFIRMACIÓN DE CANCELAR */}
+        <Modal
+          isOpen={isCancelConfirmOpen}
+          onClose={() => setCancelConfirmOpen(false)}
+          title="Confirmar Cancelación"
+          size="max-w-md"
+          footer={
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setCancelConfirmOpen(false)}
+                className="px-4 py-2 rounded-md font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
+              >
+                Volver
+              </button>
+              <button
+                onClick={() => {
+                  setVentas([]);
+                  setCancelConfirmOpen(false);
+                  navigate("/ventas");
+                }}
+                className="px-4 py-2 rounded-md font-semibold text-white bg-red-600 hover:bg-red-700 transition"
+              >
+                Sí, Cancelar
+              </button>
+            </div>
+          }
+        >
+          <p className="text-sm text-slate-700">
+            ¿Estás seguro de que quieres cancelar el registro de esta venta? Se
+            perderán todos los productos cargados.
+          </p>
+        </Modal>
+
         {selectedVenta && (
           <Modified
             isOpen={isEditOpen}

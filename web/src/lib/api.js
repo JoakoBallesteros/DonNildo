@@ -1,4 +1,3 @@
-// web/src/lib/api.js
 import supa from "./supabaseClient";
 
 const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:4000").replace(/\/$/, "");
@@ -24,7 +23,17 @@ export async function api(path, opts = {}) {
 
   // 3) Request
   const url = `${API_BASE}${path}`;
-  const resp = await fetch(url, { ...opts, method, headers });
+  let resp; // <- Aseguramos que resp está declarada antes del bloque try/catch
+
+  // 💡 FIX: Capturamos errores de red/conexión aquí
+  try {
+      resp = await fetch(url, { ...opts, method, headers });
+  } catch (e) {
+      console.error("❌ Error de Conexión de Red (fetch falló):", e);
+      // Lanzamos un error útil que el frontend puede mostrar
+      throw new Error("NETWORK_FAILURE: No se pudo establecer conexión con la API de Express en " + API_BASE);
+  }
+  // 💡 FIN FIX
 
   // 4) Leer como texto y luego intentar JSON
   let text = "";
@@ -39,12 +48,17 @@ export async function api(path, opts = {}) {
       data?.message ||
       text ||
       `HTTP ${resp.status}`;
+    
+    // Si el error es una falla de red que el catch no capturó
+    if (!resp.status) {
+        throw new Error("NETWORK_FAILURE: Falló la conexión con la API.");
+    }
+    
     throw new Error(`[${method}] ${url} → ${resp.status} ${msg}`);
   }
 
   // Si no hay body (204) devolvemos objeto vacío
   return data ?? {};
 }
-
 
 export default api;
