@@ -15,6 +15,7 @@ import { supaAsUser } from './lib/supabaseUserClient.mjs'
 import { webcrypto } from 'node:crypto'
 import adminUsers from "./routes/adminUsers.mjs";
 import accountRouter from "./routes/account.mjs";
+import auditoriaRoutes from "./routes/auditoria.mjs";
 if (!globalThis.crypto) globalThis.crypto = webcrypto
 
 
@@ -45,7 +46,7 @@ app.use("/api/ventas", ventasRoutes);
 
 app.use("/v1/admin/users", adminUsers);
 app.use("/v1/account", accountRouter);
-
+app.use("/api/auditoria", auditoriaRoutes);
 
 console.log('MODE: supabase-only')
 console.log(
