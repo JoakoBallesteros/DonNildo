@@ -1,15 +1,43 @@
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { Plus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import PageContainer from "../components/pages/PageContainer";
 import FormBuilder from "../components/forms/FormBuilder";
 import DataTable from "../components/tables/DataTable";
 import Modified from "../components/modals/Modified.jsx";
-import { supa } from "../lib/supabaseClient";
-import ProductFormTabs from "../components/forms/ProductFormTabs.jsx";
 import Modal from "../components/modals/Modals.jsx";
 import api from "../lib/api";
-import { useNavigate } from "react-router-dom";
+
+// ======================================================================
+// HELPERS & PERSISTENCE KEY (Movidos fuera del componente)
+// ======================================================================
+const SESSION_KEY = "dn_pending_sale_items";
+
+const calcSubtotal = (cantidad, precio, descuento) => {
+  if (!cantidad || !precio) return 0;
+  const c = Number(cantidad) || 0;
+  const p = Number(precio) || 0;
+  const d = Number(descuento) || 0;
+  return +(c * p * (1 - d / 100)).toFixed(2);
+};
+
+// ======================================================================
+// COMPONENTE PRINCIPAL
+// ======================================================================
 
 export default function RegistrarVentas() {
+  // 1. PERSISTENCIA: Inicializar leyendo desde Session Storage
+  const [ventas, setVentas] = useState(() => {
+    const saved = sessionStorage.getItem(SESSION_KEY);
+    try {
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     producto: "",
     tipo: "",
@@ -18,16 +46,18 @@ export default function RegistrarVentas() {
     descuento: "",
     subtotal: "",
   });
-  const navigate = useNavigate(); // 💡 Para redireccionar
 
   const [errors, setErrors] = useState({});
-  const [ventas, setVentas] = useState([]);
   const [selectedVenta, setSelectedVenta] = useState(null);
   const [isEditOpen, setEditOpen] = useState(false);
-  const [isNewProductOpen, setNewProductOpen] = useState(false);
-  const [isCancelConfirmOpen, setCancelConfirmOpen] = useState(false); // 💡 Para modal de cancelar
+  const [isNewProductOpen, setNewProductOpen] = useState(false); // Mantener para el botón
+  const [isCancelConfirmOpen, setCancelConfirmOpen] = useState(false);
 
-  // 💡 Para modales de éxito/error
+  // Estados para Eliminación de Ítem (Borrador)
+  const [isItemDeleteConfirmOpen, setItemDeleteConfirmOpen] = useState(false);
+  const [itemToDeleteIndex, setItemToDeleteIndex] = useState(null);
+
+  // Estados para Modal de Mensajes
   const [messageModal, setMessageModal] = useState({
     isOpen: false,
     title: "",
@@ -35,57 +65,40 @@ export default function RegistrarVentas() {
     type: "",
   });
 
-  // =============== HELPERS ===============
-  const calcSubtotal = (cantidad, precio, descuento) => {
-    if (!cantidad || !precio) return 0;
-    const c = Number(cantidad) || 0;
-    const p = Number(precio) || 0;
-    const d = Number(descuento) || 0;
-    return +(c * p * (1 - d / 100)).toFixed(2);
-  };
+  // =========================
+  // EFECTOS
+  // =========================
+  
+  // 2. Guardar 'ventas' cada vez que cambian (Efecto de escritura en Session Storage)
+  useEffect(() => {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(ventas));
+  }, [ventas]);
 
-  const validarFormulario = () => {
-    const nuevos = {};
-    if (!formData.producto) nuevos.producto = "Seleccioná un producto";
-    if (!formData.tipo) nuevos.tipo = "Falta tipo de venta";
-    if (!formData.cantidad || Number(formData.cantidad) <= 0)
-      nuevos.cantidad = "Ingresá una cantidad válida";
-    if (!formData.precio || Number(formData.precio) <= 0)
-      nuevos.precio = "Falta precio unitario";
-    if (Number(formData.descuento) < 0 || Number(formData.descuento) > 100)
-      nuevos.descuento = "0% a 100%";
-    setErrors(nuevos);
-    return Object.keys(nuevos).length === 0;
-  };
-
-  // =============== PRODUCTOS ===============
+  // Carga de productos disponibles (llama a la API de Express)
   const [productosDisponibles, setProductosDisponibles] = useState([]);
+  useEffect(() => {
+    const fetchProductos = async () => {
+      try {
+        const data = await api("/v1/productos");
+        const rawProductos = data.productos || [];
+        const items = rawProductos.map((p) => ({
+          id_producto: p.id_producto,
+          nombre: p.nombre,
+          precio: Number(p.precio_unitario) || 0,
+          tipoVenta: p.id_tipo_producto === 1 ? "Caja" : "Producto",
+        }));
+        setProductosDisponibles(items);
+      } catch (err) {
+        console.error("Error cargando productos desde la API:", err.message);
+      }
+    };
+    fetchProductos();
+  }, []);
 
- useEffect(() => {
-  const fetchProductos = async () => {
-    try {
-      // 💡 1. LLAMADA AL BACKEND: Usa tu helper 'api' que va a Express (vía proxy: /v1)
-      const data = await api("/v1/productos");
-      const rawProductos = data.productos || [];
+  // =========================
+  // HANDLERS DE FORMULARIO
+  // =========================
 
-      // 💡 2. Mapeo en el Frontend (mantenemos el mapeo simple aquí, ya que el back da los datos)
-      const items = rawProductos.map((p) => ({
-        id_producto: p.id_producto,
-        nombre: p.nombre,
-        precio: Number(p.precio_unitario) || 0,
-        // Asumiendo que el id_tipo_producto=1 es 'Caja' y el resto 'Producto'
-        tipoVenta: p.id_tipo_producto === 1 ? "Caja" : "Producto", 
-      }));
-
-      setProductosDisponibles(items);
-    } catch (err) {
-      console.error("Error cargando productos desde la API:", err.message);
-    }
-  };
-  fetchProductos();
-}, []);
-
-  // =============== FORM HANDLERS ===============
   const handleChange = (name, value) => {
     if (["cantidad", "precio", "descuento"].includes(name)) {
       const n = Number(value);
@@ -118,7 +131,6 @@ export default function RegistrarVentas() {
 
   const handleAgregarProducto = () => {
     if (!formData.producto || !formData.cantidad) {
-      // 💡 REEMPLAZO 1: Usar modal en lugar de alert()
       return setMessageModal({
         isOpen: true,
         title: "Aviso",
@@ -155,12 +167,28 @@ export default function RegistrarVentas() {
     setErrors({});
   };
 
-  // =============== EDITAR ITEM (MODAL) ===============
+  // =========================
+  // MODALES Y ACCIONES
+  // =========================
+  
+  // Handlers para ELIMINAR ITEM (Borrador)
+  const handleOpenItemDelete = (index) => {
+    setItemToDeleteIndex(index);
+    setItemDeleteConfirmOpen(true);
+  }
+
+  const handleConfirmItemDelete = () => {
+    setVentas((prev) => prev.filter((_, idx) => idx !== itemToDeleteIndex));
+    setItemDeleteConfirmOpen(false);
+    setItemToDeleteIndex(null);
+  }
+
+  // Modificar item (Revertido a la lógica original)
   const handleEditar = (venta, index) => {
     setSelectedVenta({ productos: [{ ...venta }], index });
     setEditOpen(true);
   };
-
+  
   const handleGuardarCambios = (updated) => {
     const edited = updated?.productos?.[0];
     if (!edited) {
@@ -182,7 +210,84 @@ export default function RegistrarVentas() {
     setSelectedVenta(null);
   };
 
-  // =============== TOTALES ===============
+  // Handlers para CANCELAR (Confirma pérdida de borrador)
+  const handleCancelClick = () => {
+    if (ventas.length > 0) {
+      setCancelConfirmOpen(true);
+    } else {
+      navigate("/ventas");
+    }
+  };
+  
+  const handleCancelConfirm = () => {
+    sessionStorage.removeItem(SESSION_KEY); // <-- Limpiar storage
+    setVentas([]);
+    setCancelConfirmOpen(false);
+    navigate("/ventas");
+  };
+
+  // Logica de GUARDAR VENTA (Transaccional)
+  const handleGuardarVenta = async () => {
+    try {
+      if (ventas.length === 0) {
+        return setMessageModal({
+          isOpen: true,
+          title: "Aviso",
+          text: "No hay productos cargados en la venta.",
+          type: "error",
+        });
+      }
+
+      const response = await api("/api/ventas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ventas }),
+      });
+
+      if (response.success) {
+        setMessageModal({
+          isOpen: true,
+          title: "✅ ¡Venta Registrada!",
+          text: `La Venta N° ${response.id_venta} ha sido registrada correctamente y el stock actualizado.`,
+          type: "success",
+        });
+        sessionStorage.removeItem(SESSION_KEY); // <-- Limpiar storage
+        setVentas([]);
+      }
+    } catch (err) {
+      console.error("Error al guardar venta:", err.message);
+
+      let friendlyMsg = "Error al comunicarse con el servidor. Intente más tarde.";
+      let title = "❌ Error al Guardar";
+
+      if (err.message.includes("STOCK_INSUFICIENTE")) {
+        const match = err.message.match(/STOCK_INSUFICIENTE: (.*)/);
+        if (match && match[1]) {
+          friendlyMsg = "No se puede completar la operación. " + match[1].trim().replace(/\.$/, '');
+        } else {
+          friendlyMsg = "Stock insuficiente para uno o más productos. Por favor, verifique el inventario.";
+        }
+        title = "⚠️ Stock Insuficiente";
+      } else if (err.message.includes("NETWORK_FAILURE") || err.message.includes("404")) {
+        friendlyMsg = "No se pudo conectar al sistema. Asegúrese de que el backend esté activo.";
+        title = "❌ Error de Conexión";
+      } else if (err.message.includes("500")) {
+        friendlyMsg = "Ocurrió un error inesperado en el servidor. Revise el log de Express.";
+      }
+
+      setMessageModal({
+        isOpen: true,
+        title: title,
+        text: friendlyMsg,
+        type: "error",
+      });
+    }
+  };
+
+
+  // =========================
+  // TOTALES Y COLUMNAS
+  // =========================
   const totalVenta = ventas.reduce(
     (acc, v) => acc + Number(v.subtotal || 0),
     0
@@ -199,69 +304,6 @@ export default function RegistrarVentas() {
   const cantidadProductos = ventas
     .filter((v) => v.tipo === "Producto")
     .reduce((a, v) => a + Number(v.cantidad), 0);
-  
-  // 💡 Lógica de Guardar Venta (POST)
-  // 💡 Lógica de Guardar Venta (POST)
-const handleGuardarVenta = async () => {
-    try {
-        if (ventas.length === 0) {
-            return setMessageModal({
-                isOpen: true,
-                title: "Aviso",
-                text: "No hay productos cargados en la venta.",
-                type: "error",
-            });
-        }
-
-        const response = await api("/api/ventas", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ventas }),
-        });
-
-        if (response.success) {
-            setMessageModal({
-                isOpen: true,
-                title: "✅ ¡Venta Registrada!",
-                text: `La Venta N° ${response.id_venta} ha sido registrada correctamente y el stock actualizado.`,
-                type: "success",
-            });
-            setVentas([]);
-        }
-    } catch (err) {
-        console.error("Error al guardar venta:", err.message);
-
-        let friendlyMsg = "Error al comunicarse con el servidor. Intente más tarde.";
-        let title = "❌ Error al Guardar";
-
-        // Lógica para extraer el mensaje de STOCK_INSUFICIENTE de la respuesta de Express 500
-        if (err.message.includes("STOCK_INSUFICIENTE")) {
-            // Utilizamos una expresión regular para buscar el texto después de 'STOCK_INSUFICIENTE:'
-            const match = err.message.match(/STOCK_INSUFICIENTE: (.*)/);
-            
-            if (match && match[1]) {
-                friendlyMsg = "No se puede completar la operación. " + match[1].trim().replace(/\.$/, '');
-            } else {
-                friendlyMsg = "Stock insuficiente para uno o más productos. Por favor, verifique el inventario.";
-            }
-            title = "⚠️ Stock Insuficiente";
-
-        } else if (err.message.includes("NETWORK_FAILURE") || err.message.includes("404")) {
-            friendlyMsg = "No se pudo conectar al sistema. Asegúrese de que el backend esté activo.";
-            title = "❌ Error de Conexión";
-            
-        } else if (err.message.includes("500")) {
-             friendlyMsg = "Ocurrió un error inesperado en el servidor. Revise el log de Express.";
-        }
-
-        setMessageModal({
-            isOpen: true,
-            title: title,
-            text: friendlyMsg,
-            type: "error",
-        });
-    }
-};
 
   const columns = [
     { id: "tipo", header: "Tipo", accessor: "tipo", align: "center" },
@@ -294,12 +336,10 @@ const handleGuardarVenta = async () => {
                 MODIFICAR
               </button>
               <button
-                onClick={() =>
-                  setVentas((prev) => prev.filter((_, idx) => idx !== i))
-                }
+                onClick={() => handleOpenItemDelete(i)} 
                 className="bg-[#A30000] text-white px-3 py-1 text-xs rounded-md hover:bg-[#7A0000]"
               >
-                ANULAR
+                ELIMINAR
               </button>
             </div>
           </div>
@@ -308,7 +348,9 @@ const handleGuardarVenta = async () => {
     },
   ];
 
-  // =============== RENDER ===============
+  // =========================
+  // RENDER PRINCIPAL
+  // =========================
   return (
     <PageContainer title="Registrar Venta">
       <div className="flex flex-col min-h-[calc(100dvh-230px)] max-h-[calc(100dvh-230px)] justify-between overflow-hidden">
@@ -361,6 +403,7 @@ const handleGuardarVenta = async () => {
               </div>
             </div>
 
+            {/* REVERTIDO: Bloque de botones con layout original */}
             <div className="grid grid-cols-6 gap-5 items-end">
               <FormBuilder
                 fields={[
@@ -418,7 +461,7 @@ const handleGuardarVenta = async () => {
 
               <button
                 type="button"
-                onClick={() => setNewProductOpen(true)}
+                onClick={() => navigate("/stock/nuevo-producto")}
                 className="flex-wrap border border-[#154734] text-[#154734] px-4 py-2 rounded-md hover:bg-[#e8f4ef] transition w-full ml-55"
               >
                 + Nuevo producto
@@ -431,7 +474,11 @@ const handleGuardarVenta = async () => {
           </h3>
 
           <div className="flex-1 min-h-[150px] rounded-t-xl border-t border-[#e3e9e5]">
-            <DataTable columns={columns} data={ventas} />
+            <DataTable 
+              columns={columns} 
+              data={ventas}
+              cellClass="px-4 py-2"
+            />
           </div>
 
           {ventas.length > 0 && (
@@ -455,32 +502,85 @@ const handleGuardarVenta = async () => {
         {/* BOTONES FINALES */}
         <div className="flex flex-wrap justify-center gap-3 mt-4 pb-2">
           <button
-            onClick={() => { // 💡 Lógica de cancelación con confirmación
-              if (ventas.length > 0) {
-                setCancelConfirmOpen(true);
-              } else {
-                navigate("/ventas");
-              }
-            }}
+            onClick={handleCancelClick}
             className="border border-[#154734] text-[#154734] px-6 py-2 rounded-md hover:bg-[#f0f7f3] transition"
           >
             CANCELAR
           </button>
 
           <button
-            onClick={handleGuardarVenta} // 💡 Usar la nueva función
+            onClick={handleGuardarVenta}
             className="bg-[#154734] text-white px-6 py-2 rounded-lg hover:bg-[#103a2b] transition w-full sm:w-auto"
           >
             GUARDAR
           </button>
         </div>
+        
+        {/* ======================= MODALES DE LA PÁGINA ======================= */}
 
-        {/* 💡 MODAL DE MENSAJES (Éxito/Error/Aviso) */}
+        {/* 1. MODAL DE ELIMINACIÓN DE ÍTEM (BORRADOR) */}
+        <Modal
+          isOpen={isItemDeleteConfirmOpen}
+          onClose={() => setItemDeleteConfirmOpen(false)}
+          title="Confirmar Eliminación"
+          size="max-w-xs"
+          footer={
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setItemDeleteConfirmOpen(false)}
+                className="rounded-md border border-[#154734] text-[#154734] px-4 py-2 hover:bg-[#e8f4ef]"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmItemDelete}
+                className="bg-[#A30000] text-white px-6 py-2 rounded-md hover:bg-[#7A0000]"
+              >
+                Eliminar
+              </button>
+            </div>
+          }
+        >
+          <p className="text-sm text-slate-700">
+            ¿Estás seguro de eliminar este producto del borrador de la venta?
+          </p>
+        </Modal>
+
+
+        {/* 2. MODAL DE CONFIRMACIÓN DE CANCELAR (Pérdida de datos) */}
+        <Modal
+          isOpen={isCancelConfirmOpen}
+          onClose={() => setCancelConfirmOpen(false)}
+          title="Confirmar Cancelación"
+          size="max-w-md"
+          footer={
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setCancelConfirmOpen(false)}
+                className="px-4 py-2 rounded-md font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
+              >
+                Volver
+              </button>
+              <button
+                onClick={handleCancelConfirm}
+                className="px-4 py-2 rounded-md font-semibold text-white bg-red-600 hover:bg-red-700 transition"
+              >
+                Sí, Cancelar
+              </button>
+            </div>
+          }
+        >
+          <p className="text-sm text-slate-700">
+            ¿Estás seguro de que quieres cancelar el registro de esta venta? Se
+            perderán todos los productos cargados.
+          </p>
+        </Modal>
+
+        {/* 3. MODAL DE MENSAJES (Éxito/Error/Aviso) */}
         <Modal
           isOpen={messageModal.isOpen}
           onClose={() => {
             setMessageModal({ isOpen: false, title: "", text: "", type: "" });
-            // Si fue éxito, redirigimos al cerrar el modal de éxito
             if (messageModal.type === "success") {
               navigate("/ventas");
             }
@@ -491,12 +591,7 @@ const handleGuardarVenta = async () => {
             <div className="flex justify-end">
               <button
                 onClick={() => {
-                  setMessageModal({
-                    isOpen: false,
-                    title: "",
-                    text: "",
-                    type: "",
-                  });
+                  setMessageModal({ isOpen: false, title: "", text: "", type: "" });
                   if (messageModal.type === "success") navigate("/ventas");
                 }}
                 className={`px-4 py-2 rounded-md font-semibold text-white transition ${
@@ -512,47 +607,13 @@ const handleGuardarVenta = async () => {
         >
           <p className="text-sm text-slate-700">{messageModal.text}</p>
         </Modal>
-
-        {/* 💡 MODAL DE CONFIRMACIÓN DE CANCELAR */}
-        <Modal
-          isOpen={isCancelConfirmOpen}
-          onClose={() => setCancelConfirmOpen(false)}
-          title="Confirmar Cancelación"
-          size="max-w-md"
-          footer={
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setCancelConfirmOpen(false)}
-                className="px-4 py-2 rounded-md font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
-              >
-                Volver
-              </button>
-              <button
-                onClick={() => {
-                  setVentas([]);
-                  setCancelConfirmOpen(false);
-                  navigate("/ventas");
-                }}
-                className="px-4 py-2 rounded-md font-semibold text-white bg-red-600 hover:bg-red-700 transition"
-              >
-                Sí, Cancelar
-              </button>
-            </div>
-          }
-        >
-          <p className="text-sm text-slate-700">
-            ¿Estás seguro de que quieres cancelar el registro de esta venta? Se
-            perderán todos los productos cargados.
-          </p>
-        </Modal>
-
+            
+        {/* 4. MODAL DE MODIFICACIÓN (REVERTIDO A LA LÓGICA ORIGINAL) */}
         {selectedVenta && (
           <Modified
             isOpen={isEditOpen}
             onClose={() => setEditOpen(false)}
-            title={`Modificando ${
-              selectedVenta.productos?.[0]?.producto || ""
-            }`}
+            title={`Modificando ${selectedVenta.productos?.[0]?.producto || ""}`}
             data={selectedVenta}
             itemsKey="productos"
             columns={[

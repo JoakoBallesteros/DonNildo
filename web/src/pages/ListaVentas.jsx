@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { Plus, Filter, Download } from "lucide-react";
 import jsPDF from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 import PageContainer from "../components/pages/PageContainer";
 import FilterBar from "../components/forms/FilterBars";
 import DataTable from "../components/tables/DataTable.jsx";
@@ -159,8 +159,16 @@ const handleAnular = async () => {
   // =========================
   const handleDownloadPDF = (venta) => {
     const doc = new jsPDF();
+
+    if (!venta || !venta.productos) {
+      console.error("Error PDF: Objeto de venta o detalles faltante.");
+      return;
+    }
+
+    const ventaId = venta.id_venta || 'N/A';
+
     doc.setFontSize(16);
-    doc.text(`Detalle de Venta N° ${venta.numero}`, 14, 20);
+    doc.text(`Detalle de Venta N° ${ventaId}`, 14, 20);
 
     const head = [["Tipo", "Producto", "Cantidad", "Medida", "Precio Unitario", "Subtotal"]];
     const body = (venta.productos || []).map((p) => [
@@ -168,16 +176,28 @@ const handleAnular = async () => {
       p.producto,
       String(p.cantidad),
       p.medida,
-      `$${p.precio}`,
-      `$${p.subtotal}`,
+      `$${Number(p.precio).toLocaleString("es-AR")}`,
+      `$${Number(p.subtotal).toLocaleString("es-AR")}`,
     ]);
 
-    doc.autoTable({ startY: 30, head, body });
-    const finalY = doc.lastAutoTable.finalY + 10;
-    doc.text(`Total: $${venta.total}`, 14, finalY);
-    doc.save(`Venta_${venta.numero}.pdf`);
-  };
+    autoTable(doc, {
+      startY: 30,
+      head: head,
+      body: body
+    });
 
+    const finalY = doc.lastAutoTable.finalY + 10;
+
+    doc.text(
+      `Total: $${Number(venta.total).toLocaleString("es-AR")}`,
+      14,
+      finalY
+    );
+
+    setTimeout(() => {
+      doc.save(`Venta_${ventaId}.pdf`);
+    }, 100);
+  };
   // =========================
   // FILTROS DE VISUALIZACIÓN
   // =========================
@@ -205,78 +225,81 @@ const handleAnular = async () => {
   // =========================
   // COLUMNAS TABLA
   // =========================
-  const columns = [
-    { id: "numero", header: "N° Venta", accessor: "id_venta", align: "center" },
-    { id: "tipo", header: "Tipo", accessor: "tipo", align: "center" },
-    {
-      id: "fecha",
-      header: "Fecha",
+ const columns = [
+    { id: "numero", header: "N° Venta", accessor: "id_venta", align: "center", sortable: true }, // ✅ Ordenable (Texto/Número)
+    { id: "tipo", header: "Tipo", accessor: "tipo", align: "center", sortable: true },           // ✅ Ordenable (Texto)
+    {
+      id: "fecha",
+      header: "Fecha",
+      align: "center",
+      sortable: true, 
+      sortAccessor: (row) => row.fecha, // 💡 Usar el campo ISO para ordenar correctamente por fecha (YYYY-MM-DD)
+      render: (row) => {
+        const fecha = new Date(row.fecha);
+        return fecha.toLocaleDateString("es-AR", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+         })
+        .replace(/\//g, "-"); 
+      },
+    },
+    {
+      id: "total",
+      header: "Total ($)",
+      sortable: true, 
+      sortAccessor: (row) => Number(row.total || 0), // 💡 Usar el valor numérico puro para ordenar
+      render: (row) => `$${Number(row.total).toLocaleString("es-AR")}`,
+      align: "center",
+    },
+    {
+      id: "detalle",
+      header: "Detalle",
+      align: "center",
+      sortable: false, 
+      render: (row) => (
+        <button
+          onClick={() => handleVerDetalle(row)}
+          className="border border-[#d8e4df] rounded-md px-4 py-1.5 text-[#154734] hover:bg-[#e8f4ef] transition"
+        >
+          Ver Detalle
+        </button>
+      ),
+    },
+    {
+      id: "acciones",
+      header: "Acciones",
       align: "center",
       render: (row) => {
-        const fecha = new Date(row.fecha);
-        return fecha.toLocaleDateString("es-AR", {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-         })
-        .replace(/\//g, "-"); 
-      },
-    },
-    {
-      id: "total",
-      header: "Total ($)",
-      render: (row) => `$${Number(row.total).toLocaleString("es-AR")}`,
-      align: "center",
-    },
-    {
-      id: "detalle",
-      header: "Detalle",
-      align: "center",
-      render: (row) => (
-        <button
-          onClick={() => handleVerDetalle(row)}
-          className="border border-[#d8e4df] rounded-md px-4 py-1.5 text-[#154734] hover:bg-[#e8f4ef] transition"
-        >
-          Ver Detalle
-        </button>
-      ),
-    },
-    {
-  id: "acciones",
-  header: "Acciones",
-  align: "center",
-  render: (row) => {
-    // 💡 Aquí comprobamos el estado de la venta
-    const isAnulada = row.estado === "ANULADO"; 
-    
-    // Si la venta está anulada, mostramos un mensaje y ocultamos todos los botones.
-    if (isAnulada) {
-      return (
-        <span className="text-sm italic text-red-700">
-          Anulada
-        </span>
-      );
-    }
+        const isAnulada = row.estado === "ANULADO"; 
+        
+        if (isAnulada) {
+          return (
+            <span className="text-sm italic text-red-700">
+              Anulada
+            </span>
+          );
+        }
 
-    // Si NO está anulada, mostramos los botones
-    return (
+        return (
           <div className="flex justify-center items-center gap-2">
-            <div className="flex flex-col items-center gap-1 ml-10">
+            <div className="flex flex-col items-center gap-1">
               <button
                 onClick={() => handleModificar(row)}
-                className="bg-[#154734] text-white px-3 py-1 text-xs rounded-md hover:bg-[#1E5A3E]"
+                // 💡 AJUSTE: py-1.5 (más alto) y px-4 (uniforme)
+                className="bg-[#154734] text-white px-4 py-1.5 text-xs rounded-md hover:bg-[#1E5A3E]"
               >
                 MODIFICAR
               </button>
               <button
-                // Usamos el nuevo handler para abrir el modal de confirmación
-                onClick={() => handleOpenAnularConfirm(row.id_venta)} 
-                className="bg-[#A30000] text-white px-5 py-1 text-xs rounded-md hover:bg-[#7A0000]"
+                onClick={() => handleOpenAnularConfirm(row.id_venta)}
+                // 💡 AJUSTE: py-1.5 (más alto) y px-4 (uniforme)
+                className="bg-[#A30000] text-white px-6 py-1.5 text-xs rounded-md hover:bg-[#7A0000]"
               >
                 ANULAR
               </button>
             </div>
-            {/* Botón de Descarga: también se oculta si está anulada */}
+            {/* Botón de Descarga (mantener su tamaño) */}
             <button
               onClick={() => handleDownloadPDF(row)}
               className="p-1 border border-[#d8e4df] rounded-md hover:bg-[#f7faf9]"
@@ -312,7 +335,7 @@ const handleAnular = async () => {
       )}
 
       <FilterBar
-        filters={["Todo", "Productos", "Cajas", "Mixtas"]}
+        filters={["Todo", "Materiales", "Cajas", "Mixtas"]}
         fields={[
           { label: "Buscar", type: "text", placeholder: "N° venta, tipo u observación...", name: "buscar" },
           { label: "Desde", type: "date", name: "desde" },
@@ -338,21 +361,25 @@ const handleAnular = async () => {
         </button>
       </div>
       <div className="mt-6">
-        {loading ? (
-          <p className="text-sm text-slate-600">Cargando…</p>
-        ) : (
-          <DataTable
-            columns={columns}
-            data={ventasFiltradas}
-            zebra={false}
-            stickyHeader={true}
-            tableClass="w-full text-sm text-center border-collapse"
-            theadClass="bg-[#e8f4ef] text-[#154734] sticky top-0"
-            rowClass={(row) => `border-t border-[#edf2ef] ${row.estado === "ANULADO" ? "bg-gray-100 text-gray-500 hover:bg-gray-200" : "bg-white hover:bg-[#f6faf7]"}`}
-            headerClass="px-4 py-3 font-semibold text-center"
-            cellClass="px-4 py-2 text-center"
-          />
-        )}
+          {loading ? (
+              <p className="text-sm text-slate-600">Cargando…</p>
+          ) : (
+              <DataTable
+                  columns={columns}
+                  data={ventasFiltradas}
+                  zebra={false}
+                  stickyHeader={true}
+                  tableClass="w-full text-sm text-center border-collapse"
+                  theadClass="bg-[#e8f4ef] text-[#154734] sticky top-0"
+                  rowClass={(row) => `border-t border-[#edf2ef] ${row.estado === "ANULADO" ? "bg-gray-100 text-gray-500 hover:bg-gray-200" : "bg-white hover:bg-[#f6faf7]"}`}
+                  headerClass="px-4 py-3 font-semibold text-center"
+                  cellClass="px-4 py-2 text-center"
+                  enableSort={true} 
+                  
+                  // 💡 AJUSTE: Aplicamos una altura base mínima para usar el espacio vacío.
+                  wrapperClass="min-h-[500px]" 
+              />
+          )}
       </div>
 
       <DetailModal
