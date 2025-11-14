@@ -12,6 +12,11 @@ router.post('/password/reset', async (req, res) => {
 
 // --- NUEVO: touch-session opcional (RLS, sin service_role) ---
 router.post('/touch-session', requireAuth, async (req, res) => {
+  // 💡 Auditoría de LOGIN/SESIÓN: Se asume que esta ruta se llama después del login exitoso
+  const userId = await getUserIdFromToken(req.accessToken);
+  
+  // Lanzamos la auditoría sin esperar la respuesta
+  registrarAuditoria(userId, 'Login/Session', 'Seguridad', `Inicio/Refresco de sesión OK para usuario ID ${userId}`);
   const s = supaAsUser(req.accessToken) // el token del usuario actual
   const { error } = await s
     .from('usuarios')

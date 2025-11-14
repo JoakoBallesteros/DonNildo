@@ -1,6 +1,7 @@
 // api/src/routes/ventas.mjs
 import { Router } from "express";
 import { pool } from "../db.mjs";
+import { registrarAuditoria, getUserIdFromToken } from "../utils/auditoriaService.mjs"; // 🔹 NUEVO
 
 const router = Router();
 
@@ -8,16 +9,16 @@ const router = Router();
 // 1️⃣ Obtener ventas (OPTIMIZADO con RPC)
 // ====================
 router.get("/", async (req, res) => {
-  try {
-    const { only, estado } = req.query; // only=activas, only=anuladas, estado=COMPLETADO
+  try {
+    const { only, estado } = req.query; // only=activas, only=anuladas, estado=COMPLETADO
     
     let estadoFiltro = null;
     if (only === "activas") {
-        estadoFiltro = 'COMPLETADO';
+      estadoFiltro = 'COMPLETADO';
     } else if (only === "anuladas") {
-        estadoFiltro = 'ANULADO';
+      estadoFiltro = 'ANULADO';
     } else if (estado) {
-        estadoFiltro = estado;
+      estadoFiltro = estado;
     }
     
     // 💡 Llama a la función optimizada de PostgreSQL con un solo parámetro
@@ -25,15 +26,16 @@ router.get("/", async (req, res) => {
     const { rows: ventas } = await pool.query(query, [estadoFiltro]);
 
     // Node.js solo devuelve el resultado directo de la base de datos (rendimiento máximo)
-    res.json(ventas);
+    res.json(ventas);
 
-  } catch (e) {
-    console.error("Error al obtener ventas (OPTIMIZADO):", e);
-    res.status(500).json({ error: e.message });
-  }
+  } catch (e) {
+    console.error("Error al obtener ventas (OPTIMIZADO):", e);
+    res.status(500).json({ error: e.message });
+  }
 });
+
 // ====================
-// MODIFICAR UNA VENTA (TRANSACCIONAL: Revierte stock, aplica nuevo stock)
+// 2️⃣ MODIFICAR UNA VENTA (TRANSACCIONAL: Revierte stock, aplica nuevo stock)
 // ====================
 router.put("/:id", async (req, res) => {
   // El ID de la venta viene de los parámetros de la URL
@@ -62,6 +64,19 @@ router.put("/:id", async (req, res) => {
     // Parámetros: [p_id_venta, p_observaciones, p_items_jsonb]
     const { rows } = await pool.query(query, [id, observaciones, itemsJsonb]);
 
+    // 🔹 AUDITORÍA: registrar modificación de venta (no afecta la respuesta)
+    try {
+      const idUsuario = await getUserIdFromToken(req.accessToken);
+      registrarAuditoria(
+        idUsuario,
+        "MODIFICAR_VENTA",
+        "VENTAS",
+        `Venta N°${rows[0].id_venta_ret} modificada. Nuevo total: ${rows[0].total_ret}`
+      );
+    } catch (errAud) {
+      console.error("⚠️ Error auditando modificación de venta:", errAud.message);
+    }
+
     // 3. Respuesta exitosa
     res.status(200).json({ 
       message: `Venta N°${rows[0].id_venta_ret} modificada con éxito.`,
@@ -85,15 +100,19 @@ router.put("/:id/anular", async (req, res) => {
 
   try {
     // 1. Obtener IDs de catálogo
-    const { rows: estRows } = await client.query(`SELECT id_estado FROM estado WHERE nombre = 'ANULADO' LIMIT 1`);
+    const { rows: estRows } = await client.query(
+      `SELECT id_estado FROM estado WHERE nombre = 'ANULADO' LIMIT 1`
+    );
     if (!estRows.length) {
-        return res.status(500).json({ error: "Falta configuración: No existe estado ANULADO en la BD." });
+      return res.status(500).json({ error: "Falta configuración: No existe estado ANULADO en la BD." });
     }
     const idEstadoAnulado = estRows[0].id_estado; // Será 3
 
-    const { rows: movRows } = await client.query(`SELECT id_tipo_movimiento FROM tipo_movimiento WHERE nombre = 'ENTRADA' LIMIT 1`);
+    const { rows: movRows } = await client.query(
+      `SELECT id_tipo_movimiento FROM tipo_movimiento WHERE nombre = 'ENTRADA' LIMIT 1`
+    );
     if (!movRows.length) {
-        return res.status(500).json({ error: "Falta configuración: No existe tipo_movimiento ENTRADA." });
+      return res.status(500).json({ error: "Falta configuración: No existe tipo_movimiento ENTRADA." });
     }
     const idTipoMovEntrada = movRows[0].id_tipo_movimiento; // Será 1
 
@@ -101,44 +120,58 @@ router.put("/:id/anular", async (req, res) => {
 
     // 3. Obtener detalles de la venta a anular
     const { rows: detalles } = await client.query(
-        `SELECT id_producto, cantidad 
-         FROM detalle_venta 
-         WHERE id_venta = $1`, 
-        [id]
+      `SELECT id_producto, cantidad 
+       FROM detalle_venta 
+       WHERE id_venta = $1`, 
+      [id]
     );
 
     // 4. Reponer stock y registrar movimientos (para CADA producto)
     for (const detalle of detalles) {
-        const { id_producto, cantidad } = detalle;
-        const cantNum = Number(cantidad);
+      const { id_producto, cantidad } = detalle;
+      const cantNum = Number(cantidad);
 
-        // a) Actualizar Stock (Sumar cantidad)
-        await client.query(
-            `UPDATE stock SET 
-                cantidad = cantidad + $1,
-                fecha_ultima_actualiza = NOW()
-             WHERE id_producto = $2`,
-            [cantNum, id_producto]
-        );
+      // a) Actualizar Stock (Sumar cantidad)
+      await client.query(
+        `UPDATE stock SET 
+            cantidad = cantidad + $1,
+            fecha_ultima_actualiza = NOW()
+         WHERE id_producto = $2`,
+        [cantNum, id_producto]
+      );
 
-        // b) Insertar Movimiento de Stock (ENTRADA por reversión)
-        await client.query(
-            `INSERT INTO movimientos_stock (id_producto, id_tipo_movimiento, cantidad, observaciones)
-             VALUES ($1, $2, $3, $4)`,
-            [id_producto, idTipoMovEntrada, cantNum, `Anulación Venta N°${id}`]
-        );
+      // b) Insertar Movimiento de Stock (ENTRADA por reversión)
+      await client.query(
+        `INSERT INTO movimientos_stock (id_producto, id_tipo_movimiento, cantidad, observaciones)
+         VALUES ($1, $2, $3, $4)`,
+        [id_producto, idTipoMovEntrada, cantNum, `Anulación Venta N°${id}`]
+      );
     }
 
     // 5. Cambiar estado de la venta
     await client.query(
-        `UPDATE venta 
-         SET id_estado = $1, 
-             observaciones = COALESCE(observaciones, '') || E'\n-- ANULADA: ' || NOW() 
-         WHERE id_venta = $2`, 
-        [idEstadoAnulado, id]
+      `UPDATE venta 
+       SET id_estado = $1, 
+           observaciones = COALESCE(observaciones, '') || E'\n-- ANULADA: ' || NOW() 
+       WHERE id_venta = $2`, 
+      [idEstadoAnulado, id]
     );
 
     await client.query('COMMIT'); // 6. FINALIZAR TRANSACCIÓN (todo OK)
+
+    // 🔹 AUDITORÍA: registrar anulación
+    try {
+      const idUsuario = await getUserIdFromToken(req.accessToken);
+      registrarAuditoria(
+        idUsuario,
+        "ANULAR_VENTA",
+        "VENTAS",
+        `Venta N°${id} anulada y stock repuesto.`
+      );
+    } catch (errAud) {
+      console.error("⚠️ Error auditando anulación de venta:", errAud.message);
+    }
+
     res.json({ success: true, message: `Venta ${id} anulada y stock repuesto.` });
 
   } catch (e) {
@@ -174,6 +207,19 @@ router.post("/", async (req, res) => {
 
     // Pasamos el JSONB de productos, id_cliente (puede ser null), y observaciones (puede ser null)
     const { rows } = await pool.query(query, [productosJsonb, id_cliente, observaciones]);
+
+    // 🔹 AUDITORÍA: registrar nueva venta
+    try {
+      const idUsuario = await getUserIdFromToken(req.accessToken);
+      registrarAuditoria(
+        idUsuario,
+        "CREAR_VENTA",
+        "VENTAS",
+        `Venta N°${rows[0].id_venta_ret} registrada. Total: ${rows[0].total_ret}`
+      );
+    } catch (errAud) {
+      console.error("⚠️ Error auditando creación de venta:", errAud.message);
+    }
 
     // 3. Devolver la venta creada
     res.status(201).json({ 
