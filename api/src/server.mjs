@@ -16,12 +16,8 @@ import { supaAsUser } from "./lib/supabaseUserClient.mjs";
 import { webcrypto } from "node:crypto";
 import adminUsers from "./routes/adminUsers.mjs";
 import accountRouter from "./routes/account.mjs";
-<<<<<<< Updated upstream
 import auditoriaRoutes from "./routes/auditoria.mjs";
 if (!globalThis.crypto) globalThis.crypto = webcrypto
-=======
-if (!globalThis.crypto) globalThis.crypto = webcrypto;
->>>>>>> Stashed changes
 
 const app = express();
 
@@ -58,14 +54,9 @@ app.use("/api/stock", stockRoutes);
 
 app.use("/v1/admin/users", adminUsers);
 app.use("/v1/account", accountRouter);
-<<<<<<< Updated upstream
 app.use("/api/auditoria", auditoriaRoutes);
 
 console.log('MODE: supabase-only')
-=======
-
-console.log("MODE: supabase-only");
->>>>>>> Stashed changes
 console.log(
   "DB URL:",
   (process.env.DATABASE_URL || "").replace(

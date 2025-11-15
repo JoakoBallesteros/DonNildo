@@ -17,7 +17,6 @@ import { apiFetch } from "../lib/apiClient";
 const MAX_EXPORT_ROWS = 500;
 
 // 🔎 Helper para mapear id_tipo_producto -> texto
-// ⚠️ Ajustá los IDs según tu tabla tipo_producto
 function mapTipoPorId(id_tipo_producto, fallback) {
   if (fallback) return fallback;
   switch (id_tipo_producto) {
@@ -30,7 +29,16 @@ function mapTipoPorId(id_tipo_producto, fallback) {
   }
 }
 
-// 🔢 Helper para formatear cantidad + unidad (entero para "u", decimales para "kg")
+// Calcula categoría de caja según la mayor dimensión
+function calcCategoriaCaja(l, a, h) {
+  const maxDim = Math.max(Number(l) || 0, Number(a) || 0, Number(h) || 0);
+  if (!maxDim) return "";
+  if (maxDim <= 30) return "Chica";
+  if (maxDim <= 60) return "Mediana";
+  return "Grande";
+}
+
+// 🔢 Formateo de cantidad + unidad
 function formatDisponible(r) {
   const n = Number(r.disponible ?? 0);
 
@@ -38,7 +46,6 @@ function formatDisponible(r) {
     return `0 ${r.unidad || ""}`;
   }
 
-  // 👉 Si es unidad (u) o no hay unidad, sin decimales
   if (!r.unidad || r.unidad === "u") {
     return `${n.toLocaleString("es-AR", {
       minimumFractionDigits: 0,
@@ -46,18 +53,17 @@ function formatDisponible(r) {
     })} ${r.unidad || ""}`;
   }
 
-  // 👉 Si es otra cosa (kg), permitimos decimales (hasta 3)
   return `${n.toLocaleString("es-AR", {
     minimumFractionDigits: 0,
     maximumFractionDigits: 3,
   })} ${r.unidad}`;
 }
 
-// Fecha corta dd-mm-aaaa para mostrar en UI
+// Fecha corta dd-mm-aaaa
 function formatFechaCorta(value) {
   if (!value) return "—";
   const d = new Date(value);
-  if (isNaN(d.getTime())) return value; // fallback si viene algo raro
+  if (isNaN(d.getTime())) return value;
 
   return d
     .toLocaleDateString("es-AR", {
@@ -65,12 +71,11 @@ function formatFechaCorta(value) {
       month: "2-digit",
       day: "2-digit",
     })
-    .replace(/\//g, "-"); // 14-11-2025
+    .replace(/\//g, "-");
 }
 
-// Mapea fila cruda de v_stock_list a la que usa la tabla de React
+// Mapea fila cruda de la view a UI
 function mapDbRowToUi(row) {
-  // armamos objeto medidas solo si vienen alto/ancho/profundidad
   let medidas = null;
   if (row.alto != null && row.ancho != null && row.profundidad != null) {
     medidas = {
@@ -89,7 +94,7 @@ function mapDbRowToUi(row) {
     disponible: row.disponible ?? 0,
     ultimoMov: row.ultimo_mov || row.ultimoMov || "",
     precio: row.precio ?? null,
-    medidas, // 👈 ahora viene de la view
+    medidas,
     notas: row.notas || "",
   };
 }
@@ -104,7 +109,7 @@ export default function StockList() {
   const [err, setErr] = useState("");
 
   // === Filtros
-  const [filtroTipo, setFiltroTipo] = useState("Todo"); // pills
+  const [filtroTipo, setFiltroTipo] = useState("Todo");
   const [filtros, setFiltros] = useState({
     buscar: "",
     categoria: "",
@@ -117,16 +122,27 @@ export default function StockList() {
   });
   const [resetSignal, setResetSignal] = useState(0);
 
-  // === Modal editar (una sola fila)
+  // === Modal editar
   const [isEditOpen, setEditOpen] = useState(false);
   const [editRow, setEditRow] = useState(null);
 
-  // === Modal crear nuevo producto (reutiliza ProductFormTabs)
+  // === Modal crear nuevo producto
   const [isNewOpen, setNewOpen] = useState(false);
 
-  // === Modal detalle (notas, etc.)
+  // === Modal detalle
   const [isDetailOpen, setDetailOpen] = useState(false);
   const [detailRow, setDetailRow] = useState(null);
+
+  // === Modales de mensajes y confirmaciones (igual estilo que Ventas)
+  const [messageModal, setMessageModal] = useState({
+    isOpen: false,
+    title: "",
+    text: "",
+    type: "",
+  });
+
+  const [isDeleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState(null);
 
   // =========================
   // CARGA DESDE BACKEND
@@ -279,11 +295,9 @@ export default function StockList() {
 
   // === Filtrado (cliente)
   const dataFiltrada = items.filter((r) => {
-    // 1) por pill (tipo)
     const tSel = tipoMap[filtroTipo];
     if (tSel && r.tipo.toLowerCase() !== tSel.toLowerCase()) return false;
 
-    // 2) búsqueda de texto
     if (filtros.buscar) {
       const t = filtros.buscar.toLowerCase();
       const hit =
@@ -292,7 +306,6 @@ export default function StockList() {
       if (!hit) return false;
     }
 
-    // 3) filtros específicos
     if (filtroTipo === "Cajas") {
       if (filtros.categoria && r.categoria !== filtros.categoria) return false;
 
@@ -311,7 +324,6 @@ export default function StockList() {
       if (filtros.medida && filtros.medida !== r.unidad) return false;
     }
 
-    // 4) fechas (ultimoMov: YYYY-MM-DD)
     if (r.ultimoMov) {
       const f = new Date(r.ultimoMov);
       if (filtros.desde && f < new Date(filtros.desde)) return false;
@@ -320,6 +332,45 @@ export default function StockList() {
 
     return true;
   });
+
+  // =========================
+  // ELIMINAR (con modal de confirmación + mensaje)
+  // =========================
+  const openDeleteConfirm = useCallback((row) => {
+    setProductToDelete(row);
+    setDeleteConfirmOpen(true);
+  }, []);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!productToDelete) return;
+
+    try {
+      setDeleteConfirmOpen(false);
+
+      await apiFetch(`/api/stock/productos/${productToDelete.id}`, {
+        method: "DELETE",
+      });
+
+      setItems((prev) => prev.filter((r) => r.id !== productToDelete.id));
+
+      setMessageModal({
+        isOpen: true,
+        title: "✅ Producto eliminado",
+        text: `El producto "${productToDelete.referencia}" fue eliminado correctamente.`,
+        type: "success",
+      });
+    } catch (e) {
+      console.error("Error al eliminar producto:", e);
+      setMessageModal({
+        isOpen: true,
+        title: "❌ Error al eliminar",
+        text: e.message || "Error al eliminar producto",
+        type: "error",
+      });
+    } finally {
+      setProductToDelete(null);
+    }
+  }, [productToDelete]);
 
   // =========================
   // COLUMNAS TABLA
@@ -352,11 +403,11 @@ export default function StockList() {
       {
         id: "disp",
         header: "Disponible (u/kg)",
-        accessor: (r) => formatDisponible(r), // 👈 usamos el helper
+        accessor: (r) => formatDisponible(r),
         align: "right",
         cellClass: "text-right whitespace-nowrap",
         sortable: true,
-        sortAccessor: (r) => Number(r.disponible || 0), // ordena por el número crudo
+        sortAccessor: (r) => Number(r.disponible || 0),
       },
       {
         id: "ult",
@@ -364,37 +415,39 @@ export default function StockList() {
         accessor: "ultimoMov",
         cellClass: "whitespace-nowrap",
         sortable: true,
-        // para ordenar bien por fecha
         sortAccessor: (r) => {
           if (!r.ultimoMov) return 0;
           const d = new Date(r.ultimoMov);
           return isNaN(d.getTime()) ? 0 : d.getTime();
         },
-        // para mostrarla cortita en la tabla
         render: (r) => {
           if (!r.ultimoMov) return "—";
-
           const d = new Date(r.ultimoMov);
-          if (isNaN(d.getTime())) return r.ultimoMov; // fallback
-
+          if (isNaN(d.getTime())) return r.ultimoMov;
           return d
             .toLocaleDateString("es-AR", {
               year: "numeric",
               month: "2-digit",
               day: "2-digit",
             })
-            .replace(/\//g, "-"); // 14-11-2025
+            .replace(/\//g, "-");
         },
       },
       {
         id: "precio",
         header: "Precio unitario",
-        accessor: (r) =>
-          r.precio?.toLocaleString("es-AR", {
+        accessor: (r) => {
+          if (r.precio == null) return "—";
+
+          const monto = Number(r.precio).toLocaleString("es-AR", {
             style: "currency",
             currency: "ARS",
             maximumFractionDigits: 0,
-          }) ?? "—",
+          });
+
+          const unidad = r.unidad || "u"; // u / kg
+          return `${monto} / ${unidad}`;
+        },
         align: "right",
         cellClass: "text-right whitespace-nowrap",
         sortable: true,
@@ -434,16 +487,35 @@ export default function StockList() {
           </button>
         ),
       },
+      {
+        id: "eliminar",
+        header: "Eliminar",
+        align: "center",
+        cellClass: "text-center",
+        render: (row) => (
+          <button
+            onClick={() => openDeleteConfirm(row)}
+            className="bg-red-700 text-white px-3 py-1 text-xs rounded-md hover:bg-red-800"
+          >
+            ELIMINAR
+          </button>
+        ),
+      },
     ],
-    []
+    [openDeleteConfirm]
   );
 
   // =========================
-  // EXPORTAR PDF (usa dataFiltrada)
+  // EXPORTAR PDF
   // =========================
   const onExport = () => {
     if (!dataFiltrada.length) {
-      alert("No hay datos de stock para exportar.");
+      setMessageModal({
+        isOpen: true,
+        title: "Información",
+        text: "No hay datos de stock para exportar.",
+        type: "error",
+      });
       return;
     }
 
@@ -484,12 +556,15 @@ export default function StockList() {
           : "—";
 
       const categoriaStr = r.tipo === "Caja" ? r.categoria || "—" : "—";
-
-      // 👉 usamos el mismo formateo que en la grilla
       const dispStr = formatDisponible(r);
-
       const precioStr =
-        r.precio != null ? `$${Number(r.precio).toLocaleString("es-AR")}` : "—";
+        r.precio != null
+          ? `${Number(r.precio).toLocaleString("es-AR", {
+              style: "currency",
+              currency: "ARS",
+              maximumFractionDigits: 0,
+            })} / ${r.unidad || "u"}`
+          : "—";
 
       return [
         r.tipo || "",
@@ -497,7 +572,7 @@ export default function StockList() {
         categoriaStr,
         medidaStr,
         dispStr,
-        formatFechaCorta(r.ultimoMov), // 👈 fecha corta también en el PDF
+        formatFechaCorta(r.ultimoMov),
         precioStr,
       ];
     });
@@ -513,9 +588,9 @@ export default function StockList() {
   };
 
   // =========================
-  // Guardar cambios desde el modal Modified (solo front por ahora)
+  // Guardar cambios desde el modal Modified
   // =========================
-  const handleSaveEdited = (payload) => {
+  const handleSaveEdited = async (payload) => {
     let updated = payload?.rows?.[0];
     if (!updated || !editRow) return;
 
@@ -523,25 +598,82 @@ export default function StockList() {
       const l = Number(updated.l ?? editRow.medidas?.l ?? 0);
       const a = Number(updated.a ?? editRow.medidas?.a ?? 0);
       const h = Number(updated.h ?? editRow.medidas?.h ?? 0);
+
+      const nuevaCategoria = calcCategoriaCaja(l, a, h);
+
+      const disponible =
+        parseInt(updated.disponible ?? editRow.disponible ?? 0, 10) || 0;
+      const precio = Number(updated.precio ?? editRow.precio ?? 0) || 0;
+
       updated = {
         ...updated,
+        tipo: "Caja",
+        categoria: nuevaCategoria,
         medidas: { l, a, h },
+        unidad: "u",
+        disponible,
+        precio,
       };
+
       delete updated.l;
       delete updated.a;
       delete updated.h;
-      updated.unidad = "u";
     } else {
-      if (updated.unidad !== "kg" && updated.unidad !== "u") {
-        updated.unidad = editRow.unidad;
-      }
+      const disponible =
+        Number(updated.disponible ?? editRow.disponible ?? 0) || 0;
+      const precio = Number(updated.precio ?? editRow.precio ?? 0) || 0;
+
+      updated = {
+        ...updated,
+        disponible,
+        precio,
+        unidad:
+          updated.unidad === "kg" || updated.unidad === "u"
+            ? updated.unidad
+            : editRow.unidad,
+      };
     }
 
     updated.ultimoMov = editRow.ultimoMov;
+    const notas = updated.notas ?? editRow.notas ?? "";
 
-    setItems((prev) =>
-      prev.map((r) => (r.id === editRow.id ? { ...r, ...updated } : r))
-    );
+    const body = {
+      referencia: updated.referencia,
+      tipo: editRow.tipo,
+      medidas: editRow.tipo === "Caja" ? updated.medidas : null,
+      unidad: updated.unidad,
+      disponible: updated.disponible,
+      precio: updated.precio,
+      notas,
+    };
+
+    try {
+      const row = await apiFetch(`/api/stock/productos/${editRow.id}`, {
+        method: "PUT",
+        body: JSON.stringify(body),
+      });
+
+      const uiRow = mapDbRowToUi(row);
+
+      setItems((prev) => prev.map((r) => (r.id === uiRow.id ? uiRow : r)));
+      setEditOpen(false);
+      setEditRow(null);
+
+      setMessageModal({
+        isOpen: true,
+        title: "✅ Producto actualizado",
+        text: "Los datos del producto se actualizaron correctamente.",
+        type: "success",
+      });
+    } catch (e) {
+      console.error("Error al actualizar producto:", e);
+      setMessageModal({
+        isOpen: true,
+        title: "❌ Error al actualizar",
+        text: e.message || "Error al actualizar producto",
+        type: "error",
+      });
+    }
   };
 
   const mapFormToRow = (v) => {
@@ -580,41 +712,44 @@ export default function StockList() {
   const editColumns = useMemo(() => {
     if (!editRow) return [];
 
-    const cols = [
-      { key: "referencia", label: "Referencia", readOnly: true },
-      { key: "tipo", label: "Tipo", readOnly: true },
-      {
-        key: "disponible",
-        label: "Disponible",
-        type: "number",
-        align: "text-center",
-      },
-      {
-        key: "precio",
-        label: "Precio unitario",
-        type: "number",
-        align: "text-center",
-      },
-      {
-        key: "ultimoMov",
-        label: "Últ. mov.",
-        readOnly: true,
-        align: "text-center",
-      },
-    ];
-
     if (editRow.tipo === "Caja") {
-      cols.splice(
-        2,
-        0,
-        { key: "categoria", label: "Categoría" },
+      return [
+        { key: "referencia", label: "Nombre / Modelo" },
         { key: "l", label: "Largo (cm)", type: "number", align: "text-center" },
         { key: "a", label: "Ancho (cm)", type: "number", align: "text-center" },
-        { key: "h", label: "Alto (cm)", type: "number", align: "text-center" }
-      );
-      cols.splice(5, 0, { key: "unidad", label: "Unidad", readOnly: true });
-    } else {
-      cols.splice(2, 0, {
+        { key: "h", label: "Alto (cm)", type: "number", align: "text-center" },
+        { key: "unidad", label: "Unidad", readOnly: true },
+        {
+          key: "disponible",
+          label: "Disponible",
+          type: "number",
+          step: 1,
+          align: "text-center",
+        },
+        {
+          key: "precio",
+          label: "Precio unitario",
+          type: "number",
+          step: "0.01",
+          align: "text-center",
+        },
+        {
+          key: "ultimoMov",
+          label: "Últ. mov.",
+          readOnly: true,
+          align: "text-center",
+        },
+        {
+          key: "notas",
+          label: "Notas / Descripción",
+          type: "textarea",
+        },
+      ];
+    }
+
+    return [
+      { key: "referencia", label: "Nombre" },
+      {
         key: "unidad",
         label: "Unidad",
         type: "select",
@@ -623,10 +758,33 @@ export default function StockList() {
           { value: "u", label: "u" },
         ],
         align: "text-center",
-      });
-    }
-
-    return cols;
+      },
+      {
+        key: "disponible",
+        label: "Disponible",
+        type: "number",
+        step: "0.001",
+        align: "text-center",
+      },
+      {
+        key: "precio",
+        label: "Precio unitario",
+        type: "number",
+        step: "0.01",
+        align: "text-center",
+      },
+      {
+        key: "ultimoMov",
+        label: "Últ. mov.",
+        readOnly: true,
+        align: "text-center",
+      },
+      {
+        key: "notas",
+        label: "Notas / Descripción",
+        type: "textarea",
+      },
+    ];
   }, [editRow]);
 
   // =========================
@@ -724,21 +882,29 @@ export default function StockList() {
           onCancel={() => setNewOpen(false)}
           onSubmit={async (values) => {
             try {
-              // POST al backend
               const row = await apiFetch("/api/stock/productos", {
                 method: "POST",
                 body: JSON.stringify(values),
               });
 
-              // la view devuelve una fila de v_stock_list → la mapeamos a UI
               const uiRow = mapDbRowToUi(row);
-
-              // metemos el nuevo producto arriba del listado
               setItems((prev) => [uiRow, ...prev]);
               setNewOpen(false);
+
+              setMessageModal({
+                isOpen: true,
+                title: "✅ Producto creado",
+                text: `El producto "${uiRow.referencia}" fue creado correctamente.`,
+                type: "success",
+              });
             } catch (e) {
               console.error("Error al crear producto:", e);
-              alert(e.message || "Error al crear producto");
+              setMessageModal({
+                isOpen: true,
+                title: "❌ Error al crear",
+                text: e.message || "Error al crear producto",
+                type: "error",
+              });
             }
           }}
         />
@@ -754,15 +920,18 @@ export default function StockList() {
             rows: [
               {
                 ...editRow,
-                // mostramos fecha formateada SOLO en el formulario
                 ultimoMov: formatFechaCorta(editRow.ultimoMov),
+                notas: editRow.notas ?? "",
                 ...(editRow.tipo === "Caja"
                   ? {
                       l: editRow.medidas?.l ?? "",
                       a: editRow.medidas?.a ?? "",
                       h: editRow.medidas?.h ?? "",
+                      disponible: Math.round(editRow.disponible ?? 0),
                     }
-                  : {}),
+                  : {
+                      disponible: editRow.disponible ?? 0,
+                    }),
               },
             ],
           }}
@@ -838,6 +1007,71 @@ export default function StockList() {
           </div>
         </Modal>
       )}
+
+      {/* Modal CONFIRMAR ELIMINACIÓN */}
+      <Modal
+        isOpen={isDeleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        title="Confirmar eliminación"
+        size="max-w-md"
+        footer={
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setDeleteConfirmOpen(false)}
+              className="px-4 py-2 rounded-md font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
+            >
+              Volver
+            </button>
+            <button
+              onClick={handleConfirmDelete}
+              className="px-4 py-2 rounded-md font-semibold text-white bg-red-600 hover:bg-red-700 transition"
+            >
+              Sí, eliminar
+            </button>
+          </div>
+        }
+      >
+        <p className="text-sm text-slate-700">
+          ¿Estás seguro de que quieres eliminar el producto{" "}
+          <strong className="text-slate-900">
+            {productToDelete?.referencia || ""}
+          </strong>
+          ? Esta acción no se puede deshacer.
+        </p>
+      </Modal>
+
+      {/* Modal MENSAJE (success / error) */}
+      <Modal
+        isOpen={messageModal.isOpen}
+        onClose={() =>
+          setMessageModal({ isOpen: false, title: "", text: "", type: "" })
+        }
+        title={messageModal.title}
+        size="max-w-md"
+        footer={
+          <div className="flex justify-end">
+            <button
+              onClick={() =>
+                setMessageModal({
+                  isOpen: false,
+                  title: "",
+                  text: "",
+                  type: "",
+                })
+              }
+              className={`px-4 py-2 rounded-md font-semibold text-white transition ${
+                messageModal.type === "success"
+                  ? "bg-emerald-700 hover:bg-emerald-800"
+                  : "bg-red-700 hover:bg-red-800"
+              }`}
+            >
+              Aceptar
+            </button>
+          </div>
+        }
+      >
+        <p className="text-sm text-slate-700">{messageModal.text}</p>
+      </Modal>
     </PageContainer>
   );
 }

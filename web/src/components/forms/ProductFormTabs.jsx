@@ -51,7 +51,6 @@ export default function ProductFormTabs({
     // Solo aplica a cajas
     if (form.tipo !== "Caja") return;
     const { l, a, h } = form.medidas || {};
-    // Solo calcular si hay valores en las tres dimensiones
     if (!l || !a || !h) return;
 
     const maxDim = Math.max(Number(l), Number(a), Number(h));
@@ -60,7 +59,6 @@ export default function ProductFormTabs({
     else if (maxDim <= 60) cat = "Mediana";
     else cat = "Grande";
 
-    // Actualiza la categoría si cambió
     setForm((prev) =>
       prev.categoria === cat ? prev : { ...prev, categoria: cat }
     );
@@ -73,7 +71,6 @@ export default function ProductFormTabs({
     if (form.tipo === "Caja") {
       const { l, a, h } = form.medidas || {};
       if (!l || !a || !h) return "Completá Largo, Ancho y Alto (cm)";
-      // No pedimos categoría manualmente porque se calcula sola
     }
     return null;
   };
@@ -151,7 +148,7 @@ export default function ProductFormTabs({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {/* Mostrar categoría como solo lectura */}
+        {/* Categoría solo lectura */}
         <div className="flex flex-col">
           <label className="text-sm font-semibold text-[#154734] mb-1">
             Categoría
@@ -185,6 +182,21 @@ export default function ProductFormTabs({
             />
           </div>
         ))}
+      </div>
+
+      {/* 👉 NUEVO: cantidad inicial para cajas */}
+      <div className="flex flex-col">
+        <label className="text-sm font-semibold text-[#154734] mb-1">
+          Cantidad inicial (u) — opcional
+        </label>
+        <input
+          type="number"
+          min={0}
+          value={form.cantidad ?? ""}
+          onChange={(e) => setField("cantidad", e.target.value)}
+          placeholder="Ej: 100"
+          className={inputCls}
+        />
       </div>
 
       <div className="flex flex-col">
