@@ -1,3 +1,4 @@
+//// ListaVentas.jsx
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { Plus, Filter, Download } from "lucide-react";
 import jsPDF from "jspdf";
@@ -389,7 +390,7 @@ export default function Ventas() {
           {mostrarAnuladas ? "Ocultar anuladas" : "Ver anuladas"}
         </button>
       </div>
-      <div className="mt-6">
+           <div className="mt-6">
         {loading ? (
           <p className="text-sm text-slate-600">Cargando…</p>
         ) : (
@@ -397,9 +398,10 @@ export default function Ventas() {
             columns={columns}
             data={ventasFiltradas}
             zebra={false}
+            /* header pegado arriba cuando scrolleás dentro de la card */
             stickyHeader={true}
             tableClass="w-full text-sm text-center border-collapse"
-            theadClass="bg-[#e8f4ef] text-[#154734] sticky top-0"
+            theadClass="bg-[#e8f4ef] text-[#154734]"
             rowClass={(row) =>
               `border-t border-[#edf2ef] ${
                 row.estado === "ANULADO"
@@ -410,11 +412,15 @@ export default function Ventas() {
             headerClass="px-4 py-3 font-semibold text-center"
             cellClass="px-4 py-2 text-center"
             enableSort={true}
-            // 💡 AJUSTE: Aplicamos una altura base mínima para usar el espacio vacío.
-            wrapperClass="min-h-[500px]"
+            /* ✅ paginado dentro de la card */
+            enablePagination={true}
+            pageSize={8}
+            /* ✅ card más alta, con scroll interno y sombra suave */
+            wrapperClass="max-h-[480px] overflow-y-auto shadow-sm"
           />
         )}
       </div>
+
 
       <DetailModal
         isOpen={isDetailOpen}

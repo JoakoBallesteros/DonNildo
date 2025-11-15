@@ -1,10 +1,5 @@
 // src/pages/StockPesaje.jsx
-import React, {
-  useMemo,
-  useState,
-  useEffect,
-  useCallback,
-} from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { Plus, Trash2, Pencil } from "lucide-react";
 import PageContainer from "../components/pages/PageContainer";
 import DataTable from "../components/tables/DataTable";
@@ -25,43 +20,25 @@ function IconButton({ children, className = "", ...rest }) {
 }
 
 export default function StockPesaje() {
-  // ==== Datos maestro ====
+  // === materiales desde backend
   const [materiales, setMateriales] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingMat, setLoadingMat] = useState(true);
   const [err, setErr] = useState("");
 
-  const loadMateriales = useCallback(async () => {
-    try {
-      setLoading(true);
-      setErr("");
-      const data = await apiFetch("/api/stock/materiales");
-      setMateriales(data || []);
-    } catch (e) {
-      console.error("Error cargando materiales para pesaje:", e);
-      setErr(e.message || "Error al cargar materiales");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadMateriales();
-  }, [loadMateriales]);
-
-  // ==== Form línea ====
+  // form alta
   const [matId, setMatId] = useState("");
   const [cantidad, setCantidad] = useState("");
   const [precioKg, setPrecioKg] = useState("");
   const [obsFila, setObsFila] = useState("");
 
-  // ==== Items del pesaje ====
+  // lista en pantalla
   const [items, setItems] = useState([]);
 
-  // ==== Modal editar fila ====
+  // modal editar fila
   const [editOpen, setEditOpen] = useState(false);
   const [editRow, setEditRow] = useState(null);
 
-  // ==== Modal mensajes ====
+  // modal mensajes (éxito / error)
   const [messageModal, setMessageModal] = useState({
     isOpen: false,
     title: "",
@@ -69,16 +46,41 @@ export default function StockPesaje() {
     type: "",
   });
 
-  const limpiarFormLinea = () => {
+  const limpiarForm = () => {
     setMatId("");
     setCantidad("");
     setPrecioKg("");
     setObsFila("");
   };
 
-  // ===== Añadir item =====
+  // =========================
+  // Cargar materiales desde API
+  // =========================
+  const loadMateriales = useCallback(async () => {
+    try {
+      setLoadingMat(true);
+      setErr("");
+      const data = await apiFetch("/api/stock/materiales");
+      setMateriales(data || []);
+    } catch (e) {
+      console.error("Error cargando materiales para pesaje:", e);
+      setErr(e.message || "Error al cargar materiales.");
+    } finally {
+      setLoadingMat(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadMateriales();
+  }, [loadMateriales]);
+
+  // =========================
+  // Alta de fila
+  // =========================
   const onAdd = () => {
-    const material = materiales.find((m) => String(m.id_producto) === matId);
+    const material = materiales.find(
+      (m) => String(m.id_producto) === String(matId)
+    );
     const cant = Number(cantidad);
     const precio = Number(precioKg || 0);
 
@@ -92,21 +94,22 @@ export default function StockPesaje() {
     setItems((prev) => [
       ...prev,
       {
-        id: crypto.randomUUID?.() || String(Date.now()), // id local para la tabla
-        id_producto: material.id_producto,              // 👈 id real para la API
+        id: crypto.randomUUID(),
+        id_producto: material.id_producto,
         tipo: material.nombre,
+        unidad: material.unidad_stock || "kg",
         cantidad: cant,
         precio,
         subtotal: cant * precio,
-        observaciones: obsFila || "—",
+        observaciones: obsFila && obsFila.trim() ? obsFila.trim() : "—",
       },
     ]);
-
-    limpiarFormLinea();
+    limpiarForm();
   };
 
-  const onDelete = (row) =>
+  const onDelete = (row) => {
     setItems((prev) => prev.filter((r) => r.id !== row.id));
+  };
 
   const onOpenEdit = (row) => {
     setEditRow(row);
@@ -116,7 +119,6 @@ export default function StockPesaje() {
   const onSaveEdited = (payload) => {
     const updated = payload?.rows?.[0];
     if (!updated || !editRow) return;
-
     const cant = Number(updated.cantidad || 0);
     const precio = Number(updated.precio || 0);
     const recalc = {
@@ -126,19 +128,71 @@ export default function StockPesaje() {
       precio,
       subtotal: cant * precio,
     };
-
     setItems((prev) => prev.map((r) => (r.id === editRow.id ? recalc : r)));
-    setEditOpen(false);
-    setEditRow(null);
   };
 
+  // =========================
+  // Confirmar pesaje -> API
+  // =========================
+  const onConfirm = async () => {
+    if (!items.length) {
+      setMessageModal({
+        isOpen: true,
+        title: "⚠️ Sin ítems",
+        text: "Debes cargar al menos un material antes de confirmar el pesaje.",
+        type: "error",
+      });
+      return;
+    }
+
+    try {
+      const payload = {
+        items: items.map((i) => ({
+          id_producto: i.id_producto,
+          cantidad: i.cantidad,
+          precio_kg: i.precio || 0,
+          observaciones:
+            i.observaciones && i.observaciones !== "—"
+              ? i.observaciones
+              : undefined,
+        })),
+      };
+
+      await apiFetch("/api/stock/pesaje", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+
+      setMessageModal({
+        isOpen: true,
+        title: "✅ Pesaje registrado",
+        text: "El stock de los materiales fue actualizado correctamente.",
+        type: "success",
+      });
+
+      setItems([]);
+      limpiarForm();
+    } catch (e) {
+      console.error("Error confirmando pesaje:", e);
+      setMessageModal({
+        isOpen: true,
+        title: "❌ Error al registrar pesaje",
+        text: e.message || "Ocurrió un error al registrar el pesaje.",
+        type: "error",
+      });
+    }
+  };
+
+  // =========================
+  // Columnas tabla
+  // =========================
   const columns = useMemo(
     () => [
       {
         id: "tipo",
         header: "Tipo",
         accessor: "tipo",
-        width: 200,
+        width: 220,
         align: "left",
       },
       {
@@ -210,66 +264,16 @@ export default function StockPesaje() {
     []
   );
 
-  const totalPesaje = items.reduce(
-    (acc, it) => acc + Number(it.cantidad || 0),
-    0
-  );
-
-  // ===== Confirmar pesaje (llama al backend) =====
-  const handleConfirmar = async () => {
-    if (!items.length) {
-      return setMessageModal({
-        isOpen: true,
-        title: "⚠️ Sin ítems",
-        text: "Agregá al menos un material antes de confirmar el pesaje.",
-        type: "error",
-      });
-    }
-
-    try {
-      await apiFetch("/api/stock/pesaje", {
-        method: "POST",
-        body: JSON.stringify({
-          items: items.map((it) => ({
-            id_producto: it.id_producto,
-            cantidad: it.cantidad,
-            precio: it.precio,
-            observaciones: it.observaciones,
-          })),
-        }),
-      });
-
-      setMessageModal({
-        isOpen: true,
-        title: "✅ Pesaje registrado",
-        text: `Se registró el pesaje correctamente. Total: ${totalPesaje} kg.`,
-        type: "success",
-      });
-
-      setItems([]);
-      limpiarFormLinea();
-    } catch (e) {
-      console.error("Error al confirmar pesaje:", e);
-      setMessageModal({
-        isOpen: true,
-        title: "❌ Error al registrar",
-        text: e.message || "No se pudo registrar el pesaje.",
-        type: "error",
-      });
-    }
-  };
-
   return (
     <PageContainer title="Registro de Pesaje">
-      {/* Errores de carga de materiales */}
-      {err && (
-        <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-          {err}
-        </div>
-      )}
-
-      {/* Form de alta compacto */}
+      {/* Form de alta */}
       <div className="bg-white rounded-2xl border border-[#e3e9e5] p-5 md:p-6 mb-5">
+        {err && (
+          <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded">
+            {err}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-[1.5fr_1fr_1fr_auto] gap-4 items-end">
           <div className="flex flex-col">
             <label className="text-sm font-semibold text-[#154734] mb-1">
@@ -279,10 +283,10 @@ export default function StockPesaje() {
               value={matId}
               onChange={(e) => setMatId(e.target.value)}
               className="border border-[#d8e4df] rounded-md px-3 py-2"
-              disabled={loading}
+              disabled={loadingMat}
             >
               <option value="">
-                {loading ? "Cargando materiales…" : "Seleccione…"}
+                {loadingMat ? "Cargando materiales..." : "Seleccione…"}
               </option>
               {materiales.map((m) => (
                 <option key={m.id_producto} value={m.id_producto}>
@@ -359,21 +363,21 @@ export default function StockPesaje() {
         />
       </div>
 
-      {/* Acciones: imprimir a la derecha */}
+      {/* Acciones: imprimir */}
       <div className="mt-5 flex items-center">
         <div className="ml-auto">
           <PrintButton targetId="pesaje-print" />
         </div>
       </div>
 
-      {/* Botones centrados */}
+      {/* Botones Confirmar / Cancelar */}
       <div className="mt-6 flex justify-center gap-3">
         <button
           type="button"
           className="rounded-md border border-[#154734] text-[#154734] px-8 py-2 hover:bg-[#e8f4ef]"
           onClick={() => {
             setItems([]);
-            limpiarFormLinea();
+            limpiarForm();
           }}
         >
           Cancelar
@@ -381,7 +385,7 @@ export default function StockPesaje() {
         <button
           type="button"
           className="bg-[#154734] text-white px-8 py-2 rounded-md hover:bg-[#103a2b]"
-          onClick={handleConfirmar}
+          onClick={onConfirm}
         >
           Confirmar
         </button>
@@ -419,9 +423,7 @@ export default function StockPesaje() {
           ]}
           computeTotal={(rows) =>
             rows.reduce(
-              (sum, r) =>
-                sum +
-                Number(r.cantidad || 0) * Number(r.precio || 0),
+              (sum, r) => sum + Number(r.cantidad || 0) * Number(r.precio || 0),
               0
             )
           }
@@ -464,3 +466,4 @@ export default function StockPesaje() {
     </PageContainer>
   );
 }
+

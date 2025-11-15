@@ -20,6 +20,7 @@ import AccountProfile from "./pages/AccountProfile.jsx";
 import StockList from "./pages/StockList.jsx";
 import StockNuevoProducto from "./pages/StockNuevoProducto.jsx";
 import StockPesaje from "./pages/StockPesaje.jsx";
+import StockPesajesLista from "./pages/StockPesajeLista.jsx";
 
 /* Ventas */
 import Ventas from "./pages/ListaVentas.jsx";
@@ -62,6 +63,7 @@ export default function App() {
               <Route index element={<StockList />} />
               <Route path="nuevo-producto" element={<StockNuevoProducto />} />
               <Route path="pesaje" element={<StockPesaje />} />
+              <Route path="pesajes" element={<StockPesajesLista />} />
             </Route>
 
             <Route path="reportes" element={<Reportes />} />

@@ -23,10 +23,18 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
   const [role, setRole] = useState(getRole());
 
   // acordeones
-  const [ventasOpen, setVentasOpen] = useState(() => isSectionActive(pathname, "/ventas"));
-  const [stockOpen, setStockOpen] = useState(() => isSectionActive(pathname, "/stock"));
-  const [reportesOpen, setReportesOpen] = useState(() => isSectionActive(pathname, "/reportes"));
-  const [securityOpen, setSecurityOpen] = useState(() => isSectionActive(pathname, "/seguridad"));
+  const [ventasOpen, setVentasOpen] = useState(() =>
+    isSectionActive(pathname, "/ventas")
+  );
+  const [stockOpen, setStockOpen] = useState(() =>
+    isSectionActive(pathname, "/stock")
+  );
+  const [reportesOpen, setReportesOpen] = useState(() =>
+    isSectionActive(pathname, "/reportes")
+  );
+  const [securityOpen, setSecurityOpen] = useState(() =>
+    isSectionActive(pathname, "/seguridad")
+  );
 
   const openOnly = (key) => {
     setVentasOpen(key === "ventas");
@@ -37,10 +45,10 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
 
   const toggleSection = (key) => {
     if (!ACCORDION) {
-      if (key === "ventas") setVentasOpen(v => !v);
-      if (key === "stock") setStockOpen(v => !v);
-      if (key === "reportes") setReportesOpen(v => !v);
-      if (key === "security") setSecurityOpen(v => !v);
+      if (key === "ventas") setVentasOpen((v) => !v);
+      if (key === "stock") setStockOpen((v) => !v);
+      if (key === "reportes") setReportesOpen((v) => !v);
+      if (key === "security") setSecurityOpen((v) => !v);
       return;
     }
     const isOpen = {
@@ -72,12 +80,12 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
     return () => clearInterval(id);
   }, [role]);
 
-    // helper: cierre del menú móvil cuando navegamos
-    // eslint-disable-next-line no-unused-vars
-    const handleNav = (to) => () => {
-      navigate(to);
-      if (onCloseMobile) onCloseMobile();
-    };
+  // helper: cierre del menú móvil cuando navegamos
+  // eslint-disable-next-line no-unused-vars
+  const handleNav = (to) => () => {
+    navigate(to);
+    if (onCloseMobile) onCloseMobile();
+  };
 
   return (
     <>
@@ -149,11 +157,19 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
                 <button
                   type="button"
                   aria-expanded={ventasOpen}
-                  aria-label={ventasOpen ? "Ocultar opciones de ventas" : "Mostrar opciones de ventas"}
+                  aria-label={
+                    ventasOpen
+                      ? "Ocultar opciones de ventas"
+                      : "Mostrar opciones de ventas"
+                  }
                   onClick={() => toggleSection("ventas")}
                   className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 grid place-items-center rounded-lg hover:bg-emerald-100"
                 >
-                  <ChevronRight className={`w-4 h-4 transition-transform ${ventasOpen ? "rotate-90" : ""}`} />
+                  <ChevronRight
+                    className={`w-4 h-4 transition-transform ${
+                      ventasOpen ? "rotate-90" : ""
+                    }`}
+                  />
                 </button>
               </div>
               {ventasOpen && (
@@ -185,11 +201,19 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
                 <button
                   type="button"
                   aria-expanded={stockOpen}
-                  aria-label={stockOpen ? "Ocultar opciones de stock" : "Mostrar opciones de stock"}
+                  aria-label={
+                    stockOpen
+                      ? "Ocultar opciones de stock"
+                      : "Mostrar opciones de stock"
+                  }
                   onClick={() => toggleSection("stock")}
                   className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 grid place-items-center rounded-lg hover:bg-emerald-100"
                 >
-                  <ChevronRight className={`w-4 h-4 transition-transform ${stockOpen ? "rotate-90" : ""}`} />
+                  <ChevronRight
+                    className={`w-4 h-4 transition-transform ${
+                      stockOpen ? "rotate-90" : ""
+                    }`}
+                  />
                 </button>
               </div>
               {stockOpen && (
@@ -212,6 +236,15 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
                   >
                     Registrar pesaje
                   </NavLink>
+                  <NavLink
+                    to="/stock/pesajes"
+                    onClick={onCloseMobile}
+                    className={({ isActive }) =>
+                      `mx-1 ${linkBase} ${isActive ? active : inactive}`
+                    }
+                  >
+                    Historial de pesajes
+                  </NavLink>
                 </div>
               )}
 
@@ -230,11 +263,19 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
                 <button
                   type="button"
                   aria-expanded={reportesOpen}
-                  aria-label={reportesOpen ? "Ocultar opciones de reportes" : "Mostrar opciones de reportes"}
+                  aria-label={
+                    reportesOpen
+                      ? "Ocultar opciones de reportes"
+                      : "Mostrar opciones de reportes"
+                  }
                   onClick={() => toggleSection("reportes")}
                   className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 grid place-items-center rounded-lg hover:bg-emerald-100"
                 >
-                  <ChevronRight className={`w-4 h-4 transition-transform ${reportesOpen ? "rotate-90" : ""}`} />
+                  <ChevronRight
+                    className={`w-4 h-4 transition-transform ${
+                      reportesOpen ? "rotate-90" : ""
+                    }`}
+                  />
                 </button>
               </div>
               {reportesOpen && (
@@ -271,7 +312,11 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
                       onClick={() => toggleSection("security")}
                       className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 grid place-items-center rounded-lg hover:bg-emerald-100"
                     >
-                      <ChevronRight className={`w-4 h-4 transition-transform ${securityOpen ? "rotate-90" : ""}`} />
+                      <ChevronRight
+                        className={`w-4 h-4 transition-transform ${
+                          securityOpen ? "rotate-90" : ""
+                        }`}
+                      />
                     </button>
                   </div>
                   {securityOpen && (
@@ -327,4 +372,3 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
     </>
   );
 }
-

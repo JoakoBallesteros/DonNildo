@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from "react";
+// src/components/tables/DataTable.jsx
+import React, { useMemo, useState, useEffect } from "react";
 
 export default function DataTable({
   columns = [],
@@ -21,13 +22,16 @@ export default function DataTable({
   enableSort = false,
   enableFilters = false,
 
-  // ✅ NUEVO: estilos para el wrapper (para controlar márgenes/gap)
+  // wrapper
   wrapperClass = "",
+
+  // ✅ NUEVO: paginación
+  enablePagination = false,
+  pageSize = 10,
 }) {
   const alignClass = (a) =>
     a === "right" ? "text-right" : a === "center" ? "text-center" : "text-left";
 
-  // para alinear el contenido del header
   const headerJustify = (a) =>
     a === "right"
       ? "justify-end"
@@ -43,7 +47,7 @@ export default function DataTable({
     setSort((prev) => {
       if (!prev || prev.id !== col.id) return { id: col.id, dir: "asc" };
       if (prev.dir === "asc") return { id: col.id, dir: "desc" };
-      return null; // tercera pulsación limpia
+      return null;
     });
   };
 
@@ -52,7 +56,14 @@ export default function DataTable({
   const setFilter = (colId, payload) =>
     setFilters((prev) => ({ ...prev, [colId]: payload }));
 
-  // ---------- helpers UI ----------
+  // ---------- estado de paginación ----------
+  const [page, setPage] = useState(1);
+
+  // si cambian datos/filtros/orden, volvemos a la página 1
+  useEffect(() => {
+    setPage(1);
+  }, [data, JSON.stringify(filters), sort]);
+
   const sortIcon = (col) => {
     if (!enableSort || !col.sortable) return null;
     if (!sort || sort.id !== col.id)
@@ -144,7 +155,26 @@ export default function DataTable({
     return out;
   }, [data, columns, enableFilters, filters, enableSort, sort]);
 
-  // ---------- render ----------
+  // ---------- aplicar paginación ----------
+  const totalRows = processed.length;
+  const safePageSize = pageSize > 0 ? pageSize : 10;
+  const totalPages = enablePagination
+    ? Math.max(1, Math.ceil(totalRows / safePageSize))
+    : 1;
+
+  const currentPage = enablePagination
+    ? Math.min(Math.max(page, 1), totalPages)
+    : 1;
+
+  const startIndex = enablePagination ? (currentPage - 1) * safePageSize : 0;
+  const endIndex = enablePagination
+    ? Math.min(startIndex + safePageSize, totalRows)
+    : totalRows;
+
+  const pageRows = enablePagination
+    ? processed.slice(startIndex, endIndex)
+    : processed;
+
   const stickyHeadRowClass = stickyHeader
     ? "sticky top-0 bg-[#e8f4ef] z-20 shadow-sm"
     : "";
@@ -154,7 +184,7 @@ export default function DataTable({
       className={[
         "relative bg-white rounded-xl border border-[#e3e9e5]",
         "max-h-[320px] overflow-y-auto overflow-x-auto",
-        wrapperClass, // ✅ permite quitar margenes/gaps desde afuera
+        wrapperClass,
       ].join(" ")}
     >
       <table className={tableClass}>
@@ -167,7 +197,6 @@ export default function DataTable({
           ))}
         </colgroup>
 
-        {/* ✅ thead con borde inferior para que no quede “ranura” */}
         <thead className={[theadClass, "border-b border-[#edf2ef]"].join(" ")}>
           <tr className={stickyHeadRowClass}>
             {columns.map((col, i) => (
@@ -198,12 +227,18 @@ export default function DataTable({
               {columns.map((col, i) => {
                 if (!col.filter) {
                   return (
-                    <th key={`f-${col.id ?? i}`} className={`${headerClass}`} />
+                    <th
+                      key={`f-${col.id ?? i}`}
+                      className={`${headerClass}`}
+                    />
                   );
                 }
                 if (col.filter === "text") {
                   return (
-                    <th key={`f-${col.id ?? i}`} className={`${headerClass}`}>
+                    <th
+                      key={`f-${col.id ?? i}`}
+                      className={`${headerClass}`}
+                    >
                       <input
                         type="text"
                         className="w-full border border-[#dfe8e4] rounded-md px-2 py-1 text-sm"
@@ -219,7 +254,10 @@ export default function DataTable({
                 }
                 if (col.filter === "number") {
                   return (
-                    <th key={`f-${col.id ?? i}`} className={`${headerClass}`}>
+                    <th
+                      key={`f-${col.id ?? i}`}
+                      className={`${headerClass}`}
+                    >
                       <div className="flex gap-2">
                         <input
                           type="number"
@@ -253,7 +291,10 @@ export default function DataTable({
                 }
                 if (col.filter === "date") {
                   return (
-                    <th key={`f-${col.id ?? i}`} className={`${headerClass}`}>
+                    <th
+                      key={`f-${col.id ?? i}`}
+                      className={`${headerClass}`}
+                    >
                       <div className="flex gap-2">
                         <input
                           type="date"
@@ -284,7 +325,10 @@ export default function DataTable({
                   );
                 }
                 return (
-                  <th key={`f-${col.id ?? i}`} className={`${headerClass}`} />
+                  <th
+                    key={`f-${col.id ?? i}`}
+                    className={`${headerClass}`}
+                  />
                 );
               })}
             </tr>
@@ -292,7 +336,7 @@ export default function DataTable({
         </thead>
 
         <tbody className={tbodyClass}>
-          {processed.length === 0 ? (
+          {pageRows.length === 0 ? (
             <tr>
               <td
                 className="px-4 py-6 text-slate-500 text-center border-t border-[#edf2ef]"
@@ -302,18 +346,16 @@ export default function DataTable({
               </td>
             </tr>
           ) : (
-            processed.map((row, ri) => (
+            pageRows.map((row, ri) => (
               <tr
                 key={rowKey(row, ri)}
                 onClick={onRowClick ? () => onRowClick(row, ri) : undefined}
-                className={
-                  [
-                    typeof rowClass === "function" ? rowClass(row, ri) : rowClass,
-                    zebra && ri % 2 ? "bg-[#fafdfb]" : "",
-                  ]
+                className={[
+                  typeof rowClass === "function" ? rowClass(row, ri) : rowClass,
+                  zebra && ri % 2 ? "bg-[#fafdfb]" : "",
+                ]
                   .filter(Boolean)
-                  .join(" ")
-                }
+                  .join(" ")}
               >
                 {columns.map((col, ci) => {
                   const content = col.render
@@ -343,6 +385,51 @@ export default function DataTable({
           )}
         </tbody>
       </table>
+
+      {/* ✅ Footer de paginación */}
+      {enablePagination && totalRows > 0 && (
+        <div className="flex items-center justify-between px-4 py-2 border-t border-[#e3e9e5] bg-[#f9fbfa] text-xs text-slate-600">
+          <span>
+            Mostrando{" "}
+            <strong>
+              {startIndex + 1}–{endIndex}
+            </strong>{" "}
+            de <strong>{totalRows}</strong>
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className={`px-2 py-1 rounded border text-xs ${
+                currentPage === 1
+                  ? "border-slate-200 text-slate-300 cursor-not-allowed"
+                  : "border-slate-300 hover:bg-slate-100"
+              }`}
+            >
+              Anterior
+            </button>
+            <span>
+              Página <strong>{currentPage}</strong> de{" "}
+              <strong>{totalPages}</strong>
+            </span>
+            <button
+              type="button"
+              onClick={() =>
+                setPage((p) => Math.min(totalPages, p + 1))
+              }
+              disabled={currentPage === totalPages}
+              className={`px-2 py-1 rounded border text-xs ${
+                currentPage === totalPages
+                  ? "border-slate-200 text-slate-300 cursor-not-allowed"
+                  : "border-slate-300 hover:bg-slate-100"
+              }`}
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

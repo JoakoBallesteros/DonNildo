@@ -57,20 +57,24 @@ router.get("/unidades", requireAuth, async (req, res, next) => {
   }
 });
 
-/* ============================================================
- * GET /api/stock/materiales
- *  -> Lista de productos tipo "Material" (id_tipo_producto = 2)
- *     para el combo de pesaje
- * ============================================================ */
+// ============================
+// GET /api/stock/materiales
+//  -> Para combo de pesaje (solo materiales activos)
+// ============================
 router.get("/materiales", requireAuth, async (req, res, next) => {
   try {
     const { rows } = await pool.query(
       `
-      SELECT id_producto, nombre
-      FROM productos
-      WHERE id_tipo_producto = 2
-        AND estado = TRUE
-      ORDER BY nombre
+      SELECT
+        p.id_producto,
+        p.nombre,
+        p.precio_unitario,
+        COALESCE(tp.unidad_stock, 'kg') AS unidad_stock
+      FROM productos p
+      JOIN tipo_producto tp ON tp.id_tipo_producto = p.id_tipo_producto
+      WHERE p.id_tipo_producto = 2           -- 2 = Material
+        AND p.estado = TRUE
+      ORDER BY p.nombre
       `
     );
     res.json(rows);
@@ -257,8 +261,8 @@ router.post("/productos", requireAuth, async (req, res) => {
     const cantNum = Number(cantidad || 0) || 0;
     await client.query(
       `
-      INSERT INTO stock (id_producto, cantidad)
-      VALUES ($1, $2)
+      INSERT INTO stock (id_producto, cantidad, fecha_ultima_actualiza)
+      VALUES ($1, $2, now())
       `,
       [idProducto, cantNum]
     );
@@ -281,10 +285,7 @@ router.post("/productos", requireAuth, async (req, res) => {
         `Producto ID ${idProducto} creado: "${referencia}" con stock inicial ${cantNum}.`
       );
     } catch (errAud) {
-      console.error(
-        "⚠️ Error auditando creación de producto:",
-        errAud.message
-      );
+      console.error("⚠️ Error auditando creación de producto:", errAud.message);
     }
 
     return res.status(201).json(rows[0]);
@@ -442,8 +443,9 @@ router.put("/productos/:id", requireAuth, async (req, res) => {
     // ===== Actualizamos stock =====
     await client.query(
       `UPDATE stock
-       SET cantidad = $1
-       WHERE id_producto = $2`,
+   SET cantidad = $1,
+       fecha_ultima_actualiza = now()
+   WHERE id_producto = $2`,
       [cantidad, id]
     );
 
@@ -529,28 +531,26 @@ router.delete("/productos/:id", requireAuth, async (req, res) => {
   }
 });
 
-/* ============================================================
- * POST /api/stock/pesaje
- *
- * Registra un pesaje de materiales:
- * Body:
- * {
- *   items: [
- *     { id_producto, cantidad, precio, observaciones }
- *   ]
- * }
- *
- * - Suma la cantidad a stock.cantidad
- * - Actualiza fecha_ultima_actualiza
- * - Deja registro en Auditoría
- * ============================================================ */
+// ============================
+// POST /api/stock/pesaje
+//  -> Registra un pesaje masivo:
+//     * Actualiza stock.cantidad
+//     * Inserta en movimientos_stock (tipo ENTRADA = 1)
+//     * Registra auditoría PESAJE_STOCK
+//
+// Body esperado:
+// {
+//   items: [
+//     { id_producto, cantidad, precio_kg?, observaciones? },
+//     ...
+//   ]
+// }
+// ============================
 router.post("/pesaje", requireAuth, async (req, res) => {
   const { items } = req.body || {};
 
   if (!Array.isArray(items) || items.length === 0) {
-    return res.status(400).json({
-      error: "No se recibieron ítems de pesaje.",
-    });
+    return res.status(400).json({ error: "No hay ítems de pesaje." });
   }
 
   const client = await pool.connect();
@@ -558,43 +558,126 @@ router.post("/pesaje", requireAuth, async (req, res) => {
   try {
     await client.query("BEGIN");
 
-    let totalKg = 0;
+    const detalles = [];
 
-    for (const item of items) {
-      const idProducto = Number(item.id_producto || 0);
-      const cant = Number(item.cantidad || 0);
+    for (const raw of items) {
+      const idProducto = Number(raw.id_producto || raw.idProducto);
+      const cantidad = Number(raw.cantidad);
 
-      if (!idProducto || !cant || cant <= 0) {
+      // Tomamos el precio x kg opcional que viene del front
+      const precioKgRaw =
+        raw.precio_kg ?? raw.precioKg ?? raw.precio ?? null;
+
+      const precioKg =
+        precioKgRaw !== null &&
+        precioKgRaw !== undefined &&
+        precioKgRaw !== ""
+          ? Number(precioKgRaw)
+          : null;
+
+      const subtotal = precioKg !== null ? cantidad * precioKg : null;
+
+      if (!idProducto || !cantidad || cantidad <= 0) {
         await client.query("ROLLBACK");
         return res.status(400).json({
-          error: "Hay ítems de pesaje con producto o cantidad inválidos.",
+          error: "Datos de producto/cantidad inválidos en el pesaje.",
         });
       }
 
-      totalKg += cant;
+      // Traemos unidad y nombre del producto
+      const prodRes = await client.query(
+        `
+        SELECT p.nombre, tp.unidad_stock
+        FROM productos p
+        JOIN tipo_producto tp ON tp.id_tipo_producto = p.id_tipo_producto
+        WHERE p.id_producto = $1
+          AND p.estado = TRUE
+          AND p.id_tipo_producto = 2 
+        `,
+        [idProducto]
+      );
 
-      // Sumamos al stock actual
+      if (!prodRes.rows.length) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({
+          error: `Producto ID ${idProducto} no encontrado, inactivo o no es un material válido para pesaje.`,
+        });
+      }
+
+      const { nombre, unidad_stock } = prodRes.rows[0];
+      const unidad = unidad_stock || "kg";
+
+      // BLOQUEAMOS el stock de ese producto
+      const stockRes = await client.query(
+        `SELECT id_stock, cantidad
+         FROM stock
+         WHERE id_producto = $1
+         FOR UPDATE`,
+        [idProducto]
+      );
+
+      if (stockRes.rows.length) {
+        const actual = Number(stockRes.rows[0].cantidad || 0);
+        const nuevaCantidad = actual + cantidad;
+
+        await client.query(
+          `UPDATE stock
+           SET cantidad = $1,
+               fecha_ultima_actualiza = now()
+           WHERE id_producto = $2`,
+          [nuevaCantidad, idProducto]
+        );
+      } else {
+        await client.query(
+          `INSERT INTO stock (id_producto, cantidad, fecha_ultima_actualiza)
+           VALUES ($1, $2, now())`,
+          [idProducto, cantidad]
+        );
+      }
+
+      const obs =
+        raw.observaciones && raw.observaciones.trim()
+          ? raw.observaciones.trim()
+          : null;
+
+      // Insertamos movimiento ENTRADA (id_tipo_movimiento = 1)
       await client.query(
         `
-        UPDATE stock
-        SET cantidad = cantidad + $1,
-            fecha_ultima_actualiza = now()
-        WHERE id_producto = $2
+        INSERT INTO movimientos_stock
+          (id_producto, id_tipo_movimiento, cantidad, unidad, precio_kg, subtotal, observaciones)
+        VALUES
+          ($1, 1, $2, $3, $4, $5, $6)
         `,
-        [cant, idProducto]
+        [idProducto, cantidad, unidad, precioKg, subtotal, obs]
       );
+
+      detalles.push({ idProducto, nombre, cantidad, unidad, precioKg, subtotal });
     }
 
     await client.query("COMMIT");
 
-    // 🔹 AUDITORÍA: REGISTRO_PESAJE
+    // AUDITORÍA PESAJE_STOCK
     try {
       const idUsuario = await getUserIdFromToken(req.accessToken);
+      const resumen = detalles
+        .map((d) => {
+          const base = `${d.nombre} (${d.cantidad.toLocaleString(
+            "es-AR"
+          )} ${d.unidad})`;
+          if (d.precioKg != null) {
+            return `${base} a $${d.precioKg}/kg (subt: $${d.subtotal?.toLocaleString(
+              "es-AR"
+            )})`;
+          }
+          return base;
+        })
+        .join("; ");
+
       registrarAuditoria(
         idUsuario,
-        "REGISTRO_PESAJE",
+        "PESAJE_STOCK",
         "STOCK",
-        `Pesaje registrado con ${items.length} ítems, total ${totalKg} kg.`
+        `Pesaje registrado: ${resumen}.`
       );
     } catch (errAud) {
       console.error("⚠️ Error auditando pesaje:", errAud.message);
@@ -604,13 +687,41 @@ router.post("/pesaje", requireAuth, async (req, res) => {
   } catch (err) {
     await client.query("ROLLBACK");
     console.error("Error registrando pesaje:", err);
-    return res
-      .status(500)
-      .json({ error: "Error al registrar el pesaje en el servidor." });
+    return res.status(500).json({ error: "Error al registrar el pesaje." });
   } finally {
     client.release();
   }
 });
 
-export default router;
 
+// ============================
+// GET /api/stock/pesajes
+//  -> Historial de pesajes (vista v_pesajes)
+// ============================
+router.get("/pesajes", requireAuth, async (req, res, next) => {
+  try {
+    const { rows } = await pool.query(
+      `
+      SELECT
+        id_movimiento,
+        fecha,
+        id_producto,
+        producto,
+        cantidad,
+        unidad,
+        precio_kg,
+        subtotal,
+        observaciones
+      FROM v_pesajes
+      ORDER BY fecha DESC, id_movimiento DESC
+      LIMIT 500
+      `
+    );
+
+    res.json(rows);
+  } catch (err) {
+    next(err);
+  }
+});
+
+export default router;
