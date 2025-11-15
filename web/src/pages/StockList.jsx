@@ -1,46 +1,107 @@
 // src/pages/StockList.jsx
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Download } from "lucide-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+
 import PageContainer from "../components/pages/PageContainer";
 import FilterBar from "../components/forms/FilterBars";
 import DataTable from "../components/tables/DataTable";
 import Modified from "../components/modals/Modified";
-
-// 💡 nuevos imports para crear desde modal
 import Modal from "../components/modals/Modals";
 import ProductFormTabs from "../components/forms/ProductFormTabs";
 
-// ===== MOCK (ejemplos de Material y Caja) — agregué `notas`
-const STOCK = [
-  {
-    id: "mat-001",
-    tipo: "Material",
-    referencia: "Cartón",
-    unidad: "kg",
-    disponible: 200,
-    ultimoMov: "2025-10-08",
-    precio: 7000,
-    notas: "Cartón reciclado. Mantener seco.",
-  },
-  {
-    id: "caj-001",
-    tipo: "Caja",
-    referencia: "Caja corrugada",
-    categoria: "Mediana",
-    unidad: "u",
-    disponible: 50,
-    ultimoMov: "2025-10-05",
-    precio: 1200,
-    medidas: { l: 40, a: 30, h: 20 },
-    notas: "Caja estándar de envíos. No apilar más de 10.",
-  },
-];
+import { apiFetch } from "../lib/apiClient";
+
+const MAX_EXPORT_ROWS = 500;
+
+// 🔎 Helper para mapear id_tipo_producto -> texto
+// ⚠️ Ajustá los IDs según tu tabla tipo_producto
+function mapTipoPorId(id_tipo_producto, fallback) {
+  if (fallback) return fallback;
+  switch (id_tipo_producto) {
+    case 1:
+      return "Caja";
+    case 2:
+      return "Material";
+    default:
+      return "Material";
+  }
+}
+
+// 🔢 Helper para formatear cantidad + unidad (entero para "u", decimales para "kg")
+function formatDisponible(r) {
+  const n = Number(r.disponible ?? 0);
+
+  if (!Number.isFinite(n)) {
+    return `0 ${r.unidad || ""}`;
+  }
+
+  // 👉 Si es unidad (u) o no hay unidad, sin decimales
+  if (!r.unidad || r.unidad === "u") {
+    return `${n.toLocaleString("es-AR", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    })} ${r.unidad || ""}`;
+  }
+
+  // 👉 Si es otra cosa (kg), permitimos decimales (hasta 3)
+  return `${n.toLocaleString("es-AR", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 3,
+  })} ${r.unidad}`;
+}
+
+// Fecha corta dd-mm-aaaa para mostrar en UI
+function formatFechaCorta(value) {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return value; // fallback si viene algo raro
+
+  return d
+    .toLocaleDateString("es-AR", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    })
+    .replace(/\//g, "-"); // 14-11-2025
+}
+
+// Mapea fila cruda de v_stock_list a la que usa la tabla de React
+function mapDbRowToUi(row) {
+  // armamos objeto medidas solo si vienen alto/ancho/profundidad
+  let medidas = null;
+  if (row.alto != null && row.ancho != null && row.profundidad != null) {
+    medidas = {
+      l: Number(row.alto),
+      a: Number(row.ancho),
+      h: Number(row.profundidad),
+    };
+  }
+
+  return {
+    id: row.id_producto,
+    tipo: row.tipo || mapTipoPorId(row.id_tipo_producto),
+    referencia: row.referencia,
+    categoria: row.categoria || "—",
+    unidad: row.unidad_stock || row.unidad || "",
+    disponible: row.disponible ?? 0,
+    ultimoMov: row.ultimo_mov || row.ultimoMov || "",
+    precio: row.precio ?? null,
+    medidas, // 👈 ahora viene de la view
+    notas: row.notas || "",
+  };
+}
 
 export default function StockList() {
   const nav = useNavigate();
 
-  const [items, setItems] = useState(STOCK);
+  const [items, setItems] = useState([]);
+  const [categorias, setCategorias] = useState([]);
+  const [unidades, setUnidades] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
 
   // === Filtros
   const [filtroTipo, setFiltroTipo] = useState("Todo"); // pills
@@ -67,14 +128,67 @@ export default function StockList() {
   const [isDetailOpen, setDetailOpen] = useState(false);
   const [detailRow, setDetailRow] = useState(null);
 
-  // Mapeo de pills -> tipo
+  // =========================
+  // CARGA DESDE BACKEND
+  // =========================
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setErr("");
+
+      const [stockRows, cats, units] = await Promise.all([
+        apiFetch("/api/stock"),
+        apiFetch("/api/stock/categorias"),
+        apiFetch("/api/stock/unidades"),
+      ]);
+
+      setItems((stockRows || []).map(mapDbRowToUi));
+      setCategorias(cats || []);
+      setUnidades(units || []);
+    } catch (e) {
+      console.error("Error al cargar stock:", e);
+      setErr(e.message || "Error al cargar stock");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // =========================
+  // FILTROS
+  // =========================
+
   const tipoMap = {
     Todo: null,
     Cajas: "Caja",
     Materiales: "Material",
   };
 
-  // Handler del FilterBar
+  const categoriaOptions = useMemo(
+    () => [
+      { value: "", label: "Todas" },
+      ...(categorias || []).map((c) => ({
+        value: c.nombre,
+        label: c.nombre,
+      })),
+    ],
+    [categorias]
+  );
+
+  const unidadOptions = useMemo(
+    () => [
+      { value: "", label: "Todas" },
+      ...(unidades || []).map((u) => ({
+        value: u.unidad,
+        label: u.unidad,
+      })),
+    ],
+    [unidades]
+  );
+
   const aplicarFiltros = ({
     buscar,
     categoria,
@@ -125,7 +239,12 @@ export default function StockList() {
     },
     ...(filtroTipo === "Cajas"
       ? [
-          { label: "Categoría", type: "select", name: "categoria" },
+          {
+            label: "Categoría",
+            type: "select",
+            name: "categoria",
+            options: categoriaOptions,
+          },
           {
             label: "Largo (cm)",
             type: "number",
@@ -151,6 +270,7 @@ export default function StockList() {
             type: "select",
             name: "medida",
             inputClass: "lg:w-40",
+            options: unidadOptions,
           },
         ]),
     { label: "Desde", type: "date", name: "desde", inputClass: "w-44" },
@@ -167,8 +287,8 @@ export default function StockList() {
     if (filtros.buscar) {
       const t = filtros.buscar.toLowerCase();
       const hit =
-        r.referencia.toLowerCase().includes(t) ||
-        r.tipo.toLowerCase().includes(t);
+        r.referencia?.toLowerCase().includes(t) ||
+        r.tipo?.toLowerCase().includes(t);
       if (!hit) return false;
     }
 
@@ -192,16 +312,20 @@ export default function StockList() {
     }
 
     // 4) fechas (ultimoMov: YYYY-MM-DD)
-    const f = new Date(r.ultimoMov);
-    if (filtros.desde && f < new Date(filtros.desde)) return false;
-    if (filtros.hasta && f > new Date(filtros.hasta)) return false;
+    if (r.ultimoMov) {
+      const f = new Date(r.ultimoMov);
+      if (filtros.desde && f < new Date(filtros.desde)) return false;
+      if (filtros.hasta && f > new Date(filtros.hasta)) return false;
+    }
 
     return true;
   });
 
+  // =========================
+  // COLUMNAS TABLA
+  // =========================
   const columns = useMemo(
     () => [
-      // Texto simples
       { id: "tipo", header: "Tipo", accessor: "tipo", sortable: true },
       {
         id: "referencia",
@@ -209,18 +333,14 @@ export default function StockList() {
         accessor: "referencia",
         sortable: true,
       },
-
-      // Categoría solo aplica a Caja; para Material muestro —, igual lo hacemos ordenable por string
       {
         id: "categoria",
         header: "Categoría",
         accessor: (r) => (r.tipo === "Caja" ? r.categoria || "—" : "—"),
         sortable: true,
         sortAccessor: (r) =>
-          r.tipo === "Caja" ? (r.categoria || "").toLowerCase() : "", // string
+          r.tipo === "Caja" ? (r.categoria || "").toLowerCase() : "",
       },
-
-      // Medida (string), si querés ordenarla también puedes marcar sortable: true
       {
         id: "medida",
         header: "Medida",
@@ -228,31 +348,44 @@ export default function StockList() {
           r.tipo === "Caja" && r.medidas
             ? `${r.medidas.l}x${r.medidas.a}x${r.medidas.h} cm`
             : "—",
-        // sortable: true, // opcional (ordena como string "40x30x20 cm")
       },
-
-      // Numérico
       {
         id: "disp",
         header: "Disponible (u/kg)",
-        accessor: (r) => `${r.disponible} ${r.unidad}`,
+        accessor: (r) => formatDisponible(r), // 👈 usamos el helper
         align: "right",
         cellClass: "text-right whitespace-nowrap",
         sortable: true,
-        sortAccessor: (r) => Number(r.disponible || 0), // número
+        sortAccessor: (r) => Number(r.disponible || 0), // ordena por el número crudo
       },
-
-      // Fecha
       {
         id: "ult",
         header: "Últ. mov.",
         accessor: "ultimoMov",
         cellClass: "whitespace-nowrap",
         sortable: true,
-        sortAccessor: (r) => r.ultimoMov, // si viene YYYY-MM-DD, el string ordena bien; si no, usa new Date(r.ultimoMov)
-      },
+        // para ordenar bien por fecha
+        sortAccessor: (r) => {
+          if (!r.ultimoMov) return 0;
+          const d = new Date(r.ultimoMov);
+          return isNaN(d.getTime()) ? 0 : d.getTime();
+        },
+        // para mostrarla cortita en la tabla
+        render: (r) => {
+          if (!r.ultimoMov) return "—";
 
-      // Moneda/numérico
+          const d = new Date(r.ultimoMov);
+          if (isNaN(d.getTime())) return r.ultimoMov; // fallback
+
+          return d
+            .toLocaleDateString("es-AR", {
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+            })
+            .replace(/\//g, "-"); // 14-11-2025
+        },
+      },
       {
         id: "precio",
         header: "Precio unitario",
@@ -265,10 +398,8 @@ export default function StockList() {
         align: "right",
         cellClass: "text-right whitespace-nowrap",
         sortable: true,
-        sortAccessor: (r) => Number(r.precio || 0), // número
+        sortAccessor: (r) => Number(r.precio || 0),
       },
-
-      // Botón de detalle (no ordenable)
       {
         id: "detalle",
         header: "Detalle",
@@ -286,8 +417,6 @@ export default function StockList() {
           </button>
         ),
       },
-
-      // Acciones (no ordenable)
       {
         id: "acciones",
         header: "Acciones",
@@ -309,18 +438,87 @@ export default function StockList() {
     []
   );
 
-  // === Export (mock)
+  // =========================
+  // EXPORTAR PDF (usa dataFiltrada)
+  // =========================
   const onExport = () => {
-    console.log("Exportar stock…", { filtroTipo, filtros });
+    if (!dataFiltrada.length) {
+      alert("No hay datos de stock para exportar.");
+      return;
+    }
+
+    const doc = new jsPDF({ orientation: "landscape" });
+    doc.setFontSize(14);
+    doc.text("Listado de stock", 14, 18);
+
+    let filas = dataFiltrada;
+    let startY = 22;
+
+    if (dataFiltrada.length > MAX_EXPORT_ROWS) {
+      filas = dataFiltrada.slice(0, MAX_EXPORT_ROWS);
+      doc.setFontSize(9);
+      doc.text(
+        `* Exportadas solo las primeras ${MAX_EXPORT_ROWS} filas (de ${dataFiltrada.length}).`,
+        14,
+        24
+      );
+      startY = 30;
+    }
+
+    const head = [
+      [
+        "Tipo",
+        "Referencia",
+        "Categoría",
+        "Medida",
+        "Disponible",
+        "Últ. mov.",
+        "Precio unit.",
+      ],
+    ];
+
+    const body = filas.map((r) => {
+      const medidaStr =
+        r.tipo === "Caja" && r.medidas
+          ? `${r.medidas.l}x${r.medidas.a}x${r.medidas.h} cm`
+          : "—";
+
+      const categoriaStr = r.tipo === "Caja" ? r.categoria || "—" : "—";
+
+      // 👉 usamos el mismo formateo que en la grilla
+      const dispStr = formatDisponible(r);
+
+      const precioStr =
+        r.precio != null ? `$${Number(r.precio).toLocaleString("es-AR")}` : "—";
+
+      return [
+        r.tipo || "",
+        r.referencia || "",
+        categoriaStr,
+        medidaStr,
+        dispStr,
+        formatFechaCorta(r.ultimoMov), // 👈 fecha corta también en el PDF
+        precioStr,
+      ];
+    });
+
+    autoTable(doc, {
+      startY,
+      head,
+      body,
+    });
+
+    const today = new Date().toISOString().slice(0, 10);
+    doc.save(`Stock_${today}.pdf`);
   };
 
-  // === Guardar cambios desde el modal Modified
+  // =========================
+  // Guardar cambios desde el modal Modified (solo front por ahora)
+  // =========================
   const handleSaveEdited = (payload) => {
     let updated = payload?.rows?.[0];
     if (!updated || !editRow) return;
 
-    // Normalizaciones:
-    // - Si es caja y llegaron l/a/h sueltos, formo `medidas`
     if (editRow.tipo === "Caja") {
       const l = Number(updated.l ?? editRow.medidas?.l ?? 0);
       const a = Number(updated.a ?? editRow.medidas?.a ?? 0);
@@ -332,18 +530,13 @@ export default function StockList() {
       delete updated.l;
       delete updated.a;
       delete updated.h;
-
-      // unidad en caja siempre 'u'
       updated.unidad = "u";
     } else {
-      // Material → unidad puede venir del select ('kg' | 'u')
       if (updated.unidad !== "kg" && updated.unidad !== "u") {
-        updated.unidad = editRow.unidad; // fallback
+        updated.unidad = editRow.unidad;
       }
     }
 
-    // Nunca permitimos cambiar ultimoMov desde UI (readOnly),
-    // pero si llegara, lo ignoramos
     updated.ultimoMov = editRow.ultimoMov;
 
     setItems((prev) =>
@@ -351,7 +544,6 @@ export default function StockList() {
     );
   };
 
-  // === Helper: mapear valores del formulario a una fila de tabla
   const mapFormToRow = (v) => {
     if (v.tipo === "Caja") {
       return {
@@ -376,7 +568,7 @@ export default function StockList() {
         tipo: "Material",
         referencia: v.referencia,
         categoria: "—",
-        unidad: v.unidad, // "kg" | "u"
+        unidad: v.unidad,
         disponible: Number(v.cantidad || 0),
         ultimoMov: new Date().toISOString().slice(0, 10),
         precio: Number(v.precio || 0),
@@ -385,11 +577,9 @@ export default function StockList() {
     }
   };
 
-  // === Columnas dinámicas para el modal de edición
   const editColumns = useMemo(() => {
     if (!editRow) return [];
 
-    // Base
     const cols = [
       { key: "referencia", label: "Referencia", readOnly: true },
       { key: "tipo", label: "Tipo", readOnly: true },
@@ -414,7 +604,6 @@ export default function StockList() {
     ];
 
     if (editRow.tipo === "Caja") {
-      // Mostrar medidas y fijar unidad
       cols.splice(
         2,
         0,
@@ -425,7 +614,6 @@ export default function StockList() {
       );
       cols.splice(5, 0, { key: "unidad", label: "Unidad", readOnly: true });
     } else {
-      // Material → unidad editable con pick 'kg'/'u'
       cols.splice(2, 0, {
         key: "unidad",
         label: "Unidad",
@@ -441,6 +629,9 @@ export default function StockList() {
     return cols;
   }, [editRow]);
 
+  // =========================
+  // RENDER
+  // =========================
   return (
     <PageContainer
       title="Stock"
@@ -463,7 +654,6 @@ export default function StockList() {
         </div>
       }
     >
-      {/* === Pills y filtros */}
       <FilterBar
         filters={["Todo", "Cajas", "Materiales"]}
         fields={filterFields}
@@ -474,35 +664,44 @@ export default function StockList() {
         selectedFilter={filtroTipo}
       />
 
-      {/* === Tabla */}
-      <DataTable
-        columns={columns}
-        data={dataFiltrada}
-        zebra={false}
-        stickyHeader={false}
-        // ✅ el espacio superior va acá, no en la <table>
-        wrapperClass="mt-6 !mb-0"
-        // ❌ quitar mt-6 de la <table>
-        tableClass="w-full table-fixed text-sm border-collapse"
-        theadClass="bg-[#e8f4ef] text-[#154734]"
-        // ✅ bordes solo desde rowClass
-        rowClass="hover:bg-[#f6faf7] border-t border-[#edf2ef] first:border-t-0"
-        headerClass="px-4 py-3 font-semibold"
-        cellClass="px-4 py-4"
-        enableSort
-      />
-      {/* === Export */}
+      {err && (
+        <div className="mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          {err}
+        </div>
+      )}
+
+      <div className="mt-6">
+        {loading ? (
+          <p className="text-sm text-slate-600">Cargando stock…</p>
+        ) : (
+          <DataTable
+            columns={columns}
+            data={dataFiltrada}
+            zebra={false}
+            stickyHeader={false}
+            wrapperClass="!mb-0"
+            tableClass="w-full table-fixed text-sm border-collapse"
+            theadClass="bg-[#e8f4ef] text-[#154734]"
+            rowClass="hover:bg-[#f6faf7] border-t border-[#edf2ef] first:border-t-0"
+            headerClass="px-4 py-3 font-semibold"
+            cellClass="px-4 py-4"
+            enableSort
+          />
+        )}
+      </div>
+
+      {/* Export */}
       <div className="mt-6 flex justify-end">
         <button
           onClick={onExport}
           className="inline-flex items-center gap-2 rounded-md bg-[#0f7a4e] text-white px-4 py-2 hover:bg-[#0d6843]"
         >
           <Download className="h-4 w-4" />
-          Exportar (Excel/PDF)
+          Exportar (PDF)
         </button>
       </div>
 
-      {/* === Modal CREAR nuevo producto */}
+      {/* Modal CREAR */}
       <Modal
         isOpen={isNewOpen}
         title="Registrar nuevo producto"
@@ -523,15 +722,29 @@ export default function StockList() {
           }}
           labels={{ caja: "Caja", material: "Producto" }}
           onCancel={() => setNewOpen(false)}
-          onSubmit={(values) => {
-            const nuevaFila = mapFormToRow(values);
-            setItems((prev) => [nuevaFila, ...prev]);
-            setNewOpen(false);
+          onSubmit={async (values) => {
+            try {
+              // POST al backend
+              const row = await apiFetch("/api/stock/productos", {
+                method: "POST",
+                body: JSON.stringify(values),
+              });
+
+              // la view devuelve una fila de v_stock_list → la mapeamos a UI
+              const uiRow = mapDbRowToUi(row);
+
+              // metemos el nuevo producto arriba del listado
+              setItems((prev) => [uiRow, ...prev]);
+              setNewOpen(false);
+            } catch (e) {
+              console.error("Error al crear producto:", e);
+              alert(e.message || "Error al crear producto");
+            }
           }}
         />
       </Modal>
 
-      {/* === Modal EDITAR */}
+      {/* Modal EDITAR */}
       {editRow && (
         <Modified
           isOpen={isEditOpen}
@@ -541,7 +754,8 @@ export default function StockList() {
             rows: [
               {
                 ...editRow,
-                // precarga medidas l/a/h en inputs planos si es Caja
+                // mostramos fecha formateada SOLO en el formulario
+                ultimoMov: formatFechaCorta(editRow.ultimoMov),
                 ...(editRow.tipo === "Caja"
                   ? {
                       l: editRow.medidas?.l ?? "",
@@ -558,7 +772,7 @@ export default function StockList() {
         />
       )}
 
-      {/* === Modal DETALLE (muestra notas) */}
+      {/* Modal DETALLE */}
       {detailRow && (
         <Modal
           isOpen={isDetailOpen}
@@ -587,12 +801,12 @@ export default function StockList() {
               <span className="col-span-2">{detailRow.unidad}</span>
 
               <span className="font-semibold text-[#154734]">Disponible:</span>
-              <span className="col-span-2">
-                {detailRow.disponible} {detailRow.unidad}
-              </span>
+              <span className="col-span-2">{formatDisponible(detailRow)}</span>
 
               <span className="font-semibold text-[#154734]">Últ. mov.:</span>
-              <span className="col-span-2">{detailRow.ultimoMov}</span>
+              <span className="col-span-2">
+                {formatFechaCorta(detailRow.ultimoMov)}
+              </span>
 
               <span className="font-semibold text-[#154734]">
                 Precio unit.:

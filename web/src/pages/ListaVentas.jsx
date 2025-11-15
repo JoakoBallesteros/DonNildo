@@ -53,25 +53,25 @@ export default function Ventas() {
   // CARGA DE DATOS DESDE BACKEND
   // =========================
 
-const loadVentas = useCallback(async () => {
-  try {
-    setLoading(true);
-    setErr("");
+  const loadVentas = useCallback(async () => {
+    try {
+      setLoading(true);
+      setErr("");
 
-    const qs = mostrarAnuladas ? "?only=anuladas" : "?only=activas";
-    const data = await apiFetch(`/api/ventas${qs}`);
-    setVentas(data);
-  } catch (e) {
-    console.error("Error al cargar ventas:", e);
-    setErr(e.message);
-  } finally {
-    setLoading(false);
-  }
-}, [mostrarAnuladas]);
+      const qs = mostrarAnuladas ? "?only=anuladas" : "?only=activas";
+      const data = await apiFetch(`/api/ventas${qs}`);
+      setVentas(data);
+    } catch (e) {
+      console.error("Error al cargar ventas:", e);
+      setErr(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [mostrarAnuladas]);
 
-useEffect(() => {
-  loadVentas();
-}, [loadVentas]);
+  useEffect(() => {
+    loadVentas();
+  }, [loadVentas]);
 
   // =========================
   // MODALES
@@ -91,68 +91,73 @@ useEffect(() => {
   };
 
   const handleGuardarCambios = async (updated) => {
-  try {
-    if (!updated) return setEditOpen(false);
+    try {
+      if (!updated) return setEditOpen(false);
 
-    const id_venta = updated.id_venta; // 👈 usamos el id real, no "numero"
-    const body = { id_venta, productos: updated.productos };
+      const id_venta = updated.id_venta; // 👈 usamos el id real, no "numero"
+      const body = { id_venta, productos: updated.productos };
 
-    console.log("🧾 Guardando venta:", body);
+      console.log("🧾 Guardando venta:", body);
 
-    const data = await apiFetch(`/api/ventas/${id_venta}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+      const data = await apiFetch(`/api/ventas/${id_venta}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
 
-    setMessageModal({
-      isOpen: true,
-      title: "✅ Venta Modificada",
-      text: "La venta ha sido modificada correctamente.",
-      type: "success",
-    });
-    setEditOpen(false);
-    setSelectedVenta(null);
-    await loadVentas();
-  } catch (e) {
-    console.error("Error al guardar cambios:", e);
-    setMessageModal({ isOpen: true, title: "❌ Error al Guardar", text: e.message, type: "error" });
-  }
-};
+      setMessageModal({
+        isOpen: true,
+        title: "✅ Venta Modificada",
+        text: "La venta ha sido modificada correctamente.",
+        type: "success",
+      });
+      setEditOpen(false);
+      setSelectedVenta(null);
+      await loadVentas();
+    } catch (e) {
+      console.error("Error al guardar cambios:", e);
+      setMessageModal({
+        isOpen: true,
+        title: "❌ Error al Guardar",
+        text: e.message,
+        type: "error",
+      });
+    }
+  };
 
-const handleOpenAnularConfirm = (id_venta) => {
-  setVentaIdToAnular(id_venta);
-  setAnularConfirmOpen(true);
-};
+  const handleOpenAnularConfirm = (id_venta) => {
+    setVentaIdToAnular(id_venta);
+    setAnularConfirmOpen(true);
+  };
 
-const handleAnular = async () => {
-  try {
-    if (!ventaIdToAnular) return;
+  const handleAnular = async () => {
+    try {
+      if (!ventaIdToAnular) return;
 
-    setAnularConfirmOpen(false);
-    await apiFetch(`/api/ventas/${ventaIdToAnular}/anular`, {
-      method: "PUT",
-    });
+      setAnularConfirmOpen(false);
+      await apiFetch(`/api/ventas/${ventaIdToAnular}/anular`, {
+        method: "PUT",
+      });
 
-    setMessageModal({
-      isOpen: true,
-      title: "✅ Venta Anulada",
-      text: `La venta N° ${ventaIdToAnular} ha sido anulada correctamente.`,
-      type: "success",
-    });
-    await loadVentas();
-  } catch (e) {
-    console.error("Error al anular venta:", e);
-    setMessageModal({
-      isOpen: true,
-      title: "❌ Error al Anular",
-      text: e.message,
-      type: "error",
-    });
-  } finally {
-    setVentaIdToAnular(null);
-  }
-};
+      setMessageModal({
+        isOpen: true,
+        title: "✅ Venta Anulada",
+        text: `La venta N° ${ventaIdToAnular} ha sido anulada correctamente.`,
+        type: "success",
+      });
+      await loadVentas();
+    } catch (e) {
+      console.error("Error al anular venta:", e);
+      setMessageModal({
+        isOpen: true,
+        title: "❌ Error al Anular",
+        text: e.message,
+        type: "error",
+      });
+    } finally {
+      setVentaIdToAnular(null);
+    }
+  };
 
   // =========================
   // DESCARGAR PDF
@@ -165,12 +170,14 @@ const handleAnular = async () => {
       return;
     }
 
-    const ventaId = venta.id_venta || 'N/A';
+    const ventaId = venta.id_venta || "N/A";
 
     doc.setFontSize(16);
     doc.text(`Detalle de Venta N° ${ventaId}`, 14, 20);
 
-    const head = [["Tipo", "Producto", "Cantidad", "Medida", "Precio Unitario", "Subtotal"]];
+    const head = [
+      ["Tipo", "Producto", "Cantidad", "Medida", "Precio Unitario", "Subtotal"],
+    ];
     const body = (venta.productos || []).map((p) => [
       p.tipo,
       p.producto,
@@ -183,7 +190,7 @@ const handleAnular = async () => {
     autoTable(doc, {
       startY: 30,
       head: head,
-      body: body
+      body: body,
     });
 
     const finalY = doc.lastAutoTable.finalY + 10;
@@ -201,7 +208,12 @@ const handleAnular = async () => {
   // =========================
   // FILTROS DE VISUALIZACIÓN
   // =========================
-  const tipoMap = { Todo: null, Productos: "Producto", Cajas: "Caja", Mixtas: "Mixta" };
+  const tipoMap = {
+    Todo: null,
+    Productos: "Producto",
+    Cajas: "Caja",
+    Mixtas: "Mixta",
+  };
   const ventasFiltradas = useMemo(() => {
     const tsel = tipoMap[filtroTipo];
     return ventas.filter((v) => {
@@ -225,60 +237,69 @@ const handleAnular = async () => {
   // =========================
   // COLUMNAS TABLA
   // =========================
- const columns = [
-    { id: "numero", header: "N° Venta", accessor: "id_venta", align: "center", sortable: true }, // ✅ Ordenable (Texto/Número)
-    { id: "tipo", header: "Tipo", accessor: "tipo", align: "center", sortable: true },           // ✅ Ordenable (Texto)
-    {
-      id: "fecha",
-      header: "Fecha",
-      align: "center",
-      sortable: true, 
+  const columns = [
+    {
+      id: "numero",
+      header: "N° Venta",
+      accessor: "id_venta",
+      align: "center",
+      sortable: true,
+    }, // ✅ Ordenable (Texto/Número)
+    {
+      id: "tipo",
+      header: "Tipo",
+      accessor: "tipo",
+      align: "center",
+      sortable: true,
+    }, // ✅ Ordenable (Texto)
+    {
+      id: "fecha",
+      header: "Fecha",
+      align: "center",
+      sortable: true,
       sortAccessor: (row) => row.fecha, // 💡 Usar el campo ISO para ordenar correctamente por fecha (YYYY-MM-DD)
-      render: (row) => {
-        const fecha = new Date(row.fecha);
-        return fecha.toLocaleDateString("es-AR", {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-         })
-        .replace(/\//g, "-"); 
-      },
-    },
-    {
-      id: "total",
-      header: "Total ($)",
-      sortable: true, 
+      render: (row) => {
+        const fecha = new Date(row.fecha);
+        return fecha
+          .toLocaleDateString("es-AR", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          })
+          .replace(/\//g, "-");
+      },
+    },
+    {
+      id: "total",
+      header: "Total ($)",
+      sortable: true,
       sortAccessor: (row) => Number(row.total || 0), // 💡 Usar el valor numérico puro para ordenar
-      render: (row) => `$${Number(row.total).toLocaleString("es-AR")}`,
-      align: "center",
-    },
-    {
-      id: "detalle",
-      header: "Detalle",
-      align: "center",
-      sortable: false, 
-      render: (row) => (
-        <button
-          onClick={() => handleVerDetalle(row)}
-          className="border border-[#d8e4df] rounded-md px-4 py-1.5 text-[#154734] hover:bg-[#e8f4ef] transition"
-        >
-          Ver Detalle
-        </button>
-      ),
-    },
-    {
+      render: (row) => `$${Number(row.total).toLocaleString("es-AR")}`,
+      align: "center",
+    },
+    {
+      id: "detalle",
+      header: "Detalle",
+      align: "center",
+      sortable: false,
+      render: (row) => (
+        <button
+          onClick={() => handleVerDetalle(row)}
+          className="border border-[#d8e4df] rounded-md px-4 py-1.5 text-[#154734] hover:bg-[#e8f4ef] transition"
+        >
+                    Ver Detalle        {" "}
+        </button>
+      ),
+    },
+    {
       id: "acciones",
       header: "Acciones",
       align: "center",
       render: (row) => {
-        const isAnulada = row.estado === "ANULADO"; 
-        
+        const isAnulada = row.estado === "ANULADO";
+
         if (isAnulada) {
-          return (
-            <span className="text-sm italic text-red-700">
-              Anulada
-            </span>
-          );
+          return <span className="text-sm italic text-red-700">Anulada</span>;
         }
 
         return (
@@ -337,7 +358,12 @@ const handleAnular = async () => {
       <FilterBar
         filters={["Todo", "Materiales", "Cajas", "Mixtas"]}
         fields={[
-          { label: "Buscar", type: "text", placeholder: "N° venta, tipo u observación...", name: "buscar" },
+          {
+            label: "Buscar",
+            type: "text",
+            placeholder: "N° venta, tipo u observación...",
+            name: "buscar",
+          },
           { label: "Desde", type: "date", name: "desde" },
           { label: "Hasta", type: "date", name: "hasta" },
         ]}
@@ -347,12 +373,15 @@ const handleAnular = async () => {
         resetSignal={resetSignal}
         selectedFilter={filtroTipo}
         applyButton={(props) => (
-          <button {...props} className="flex items-center gap-2 bg-[#154734] text-white px-4 py-2 rounded-md hover:bg-[#103a2b] transition">
+          <button
+            {...props}
+            className="flex items-center gap-2 bg-[#154734] text-white px-4 py-2 rounded-md hover:bg-[#103a2b] transition"
+          >
             <Filter size={16} /> Aplicar Filtros
           </button>
         )}
       />
-        <div className="flex justify-end mb-4">
+      <div className="flex justify-end mb-4">
         <button
           onClick={() => setMostrarAnuladas((prev) => !prev)}
           className="border border-[#154734] text-[#154734] px-3 py-1 rounded-md hover:bg-[#e8f4ef] transition"
@@ -361,25 +390,30 @@ const handleAnular = async () => {
         </button>
       </div>
       <div className="mt-6">
-          {loading ? (
-              <p className="text-sm text-slate-600">Cargando…</p>
-          ) : (
-              <DataTable
-                  columns={columns}
-                  data={ventasFiltradas}
-                  zebra={false}
-                  stickyHeader={true}
-                  tableClass="w-full text-sm text-center border-collapse"
-                  theadClass="bg-[#e8f4ef] text-[#154734] sticky top-0"
-                  rowClass={(row) => `border-t border-[#edf2ef] ${row.estado === "ANULADO" ? "bg-gray-100 text-gray-500 hover:bg-gray-200" : "bg-white hover:bg-[#f6faf7]"}`}
-                  headerClass="px-4 py-3 font-semibold text-center"
-                  cellClass="px-4 py-2 text-center"
-                  enableSort={true} 
-                  
-                  // 💡 AJUSTE: Aplicamos una altura base mínima para usar el espacio vacío.
-                  wrapperClass="min-h-[500px]" 
-              />
-          )}
+        {loading ? (
+          <p className="text-sm text-slate-600">Cargando…</p>
+        ) : (
+          <DataTable
+            columns={columns}
+            data={ventasFiltradas}
+            zebra={false}
+            stickyHeader={true}
+            tableClass="w-full text-sm text-center border-collapse"
+            theadClass="bg-[#e8f4ef] text-[#154734] sticky top-0"
+            rowClass={(row) =>
+              `border-t border-[#edf2ef] ${
+                row.estado === "ANULADO"
+                  ? "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                  : "bg-white hover:bg-[#f6faf7]"
+              }`
+            }
+            headerClass="px-4 py-3 font-semibold text-center"
+            cellClass="px-4 py-2 text-center"
+            enableSort={true}
+            // 💡 AJUSTE: Aplicamos una altura base mínima para usar el espacio vacío.
+            wrapperClass="min-h-[500px]"
+          />
+        )}
       </div>
 
       <DetailModal
@@ -457,13 +491,22 @@ const handleAnular = async () => {
 
       <Modal
         isOpen={messageModal.isOpen}
-        onClose={() => setMessageModal({ isOpen: false, title: "", text: "", type: "" })}
+        onClose={() =>
+          setMessageModal({ isOpen: false, title: "", text: "", type: "" })
+        }
         title={messageModal.title}
         size="max-w-md"
         footer={
           <div className="flex justify-end">
             <button
-              onClick={() => setMessageModal({ isOpen: false, title: "", text: "", type: "" })}
+              onClick={() =>
+                setMessageModal({
+                  isOpen: false,
+                  title: "",
+                  text: "",
+                  type: "",
+                })
+              }
               className={`px-4 py-2 rounded-md font-semibold text-white transition ${
                 messageModal.type === "success"
                   ? "bg-emerald-700 hover:bg-emerald-800"

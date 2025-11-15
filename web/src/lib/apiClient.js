@@ -1,17 +1,71 @@
-const API_BASE =
-  import.meta.env.VITE_API_URL || "http://127.0.0.1:4000";
+// src/lib/apiClient.js
+import supa from "./supabaseClient";
 
-export async function apiFetch(path, options = {}) {
-  const url = `${API_BASE}${path}`;
+const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:4000")
+  .replace(/\/$/, "");
+
+function toJsonSafe(text) {
   try {
-    const res = await fetch(url, options);
-    if (!res.ok) {
-      const msg = await res.text();
-      throw new Error(msg || `Error HTTP ${res.status}`);
-    }
-    return res.json();
-  } catch (e) {
-    console.error("❌ Error en fetch:", e);
-    throw new Error("No se pudo conectar con el servidor");
+    return JSON.parse(text);
+  } catch {
+    return null;
   }
 }
+
+export async function api(path, opts = {}) {
+  // 1) Sesión actual en Supabase
+  const {
+    data: { session } = {},
+  } = await supa.auth.getSession();
+  const token = session?.access_token;
+
+  const method = (opts.method || "GET").toUpperCase();
+  const isFormData = opts.body instanceof FormData;
+
+  // 2) Headers
+  const headers = {
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(opts.headers || {}),
+  };
+
+  const url = `${API_BASE}${path}`;
+  let resp;
+
+  try {
+    resp = await fetch(url, { ...opts, method, headers });
+  } catch (e) {
+    console.error("❌ Error de Conexión de Red (fetch falló):", e);
+    throw new Error(
+      "NETWORK_FAILURE: No se pudo establecer conexión con la API de Express en " +
+        API_BASE
+    );
+  }
+
+  let text = "";
+  try {
+    text = await resp.text();
+  } catch {
+    /* nada */
+  }
+
+  const data = text ? toJsonSafe(text) : null;
+
+  if (!resp.ok) {
+    const msg =
+      data?.error?.message || data?.message || text || `HTTP ${resp.status}`;
+
+    if (!resp.status) {
+      throw new Error("NETWORK_FAILURE: Falló la conexión con la API.");
+    }
+
+    throw new Error(`[${method}] ${url} → ${resp.status} ${msg}`);
+  }
+
+  return data ?? {};
+}
+
+// 👇 Alias para no romper nada que use apiFetch
+export const apiFetch = api;
+
+export default api;

@@ -145,7 +145,7 @@ export default function ProductFormTabs({
         <input
           value={form.referencia}
           onChange={(e) => setField("referencia", e.target.value)}
-          placeholder="Caja corrugada 40x30x20"
+          placeholder="Caja corrugada"
           className={inputCls}
         />
       </div>
