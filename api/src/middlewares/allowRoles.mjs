@@ -11,12 +11,12 @@ import { supaAsUser } from "../lib/supabaseUserClient.mjs";
 export function allowRoles(rolesPermitidos = []) {
   return async (req, res, next) => {
     try {
-      // Verificamos usuario autenticado
+      // Debe haber usuario autenticado
       if (!req.user?.id || !req.accessToken) {
         return res.status(401).json({ error: "UNAUTHORIZED" });
       }
 
-      // Consultamos su rol real desde la base de datos
+      // Consulto mi propio usuario usando el token
       const s = supaAsUser(req.accessToken);
       const { data: me, error } = await s
         .from("usuarios")
@@ -30,7 +30,13 @@ export function allowRoles(rolesPermitidos = []) {
       }
 
       const myRole = me.roles?.nombre;
+
       if (!rolesPermitidos.includes(myRole)) {
+        console.warn(
+          "[allowRoles] acceso denegado",
+          "role:", myRole,
+          "necesita uno de:", rolesPermitidos
+        );
         return res.status(403).json({ error: "FORBIDDEN" });
       }
 

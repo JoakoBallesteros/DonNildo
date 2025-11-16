@@ -7,9 +7,14 @@
 
 import { Router } from "express";
 import { requireAuth } from "../middlewares/requireAuth.mjs";
-import { allowRoles } from "../middlewares/allowRoles.mjs"; // ✅ nuevo
+import { allowRoles } from "../middlewares/allowRoles.mjs"; 
 import { supaAsUser } from "../lib/supabaseUserClient.mjs";
 import { supaAdmin } from "../lib/supaAdmin.mjs";
+
+import {
+  registrarAuditoria,
+  getUserIdFromToken,
+} from "../utils/auditoriaService.mjs";
 
 const router = Router();
 
@@ -106,6 +111,19 @@ router.post("/", requireAuth, allowRoles(["ADMIN"]), async (req, res) => {
       .single();
     if (e2) throw e2;
 
+    // 3️⃣ Auditoría CREAR_USUARIO
+    try {
+      const adminId = await getUserIdFromToken(req.accessToken); // quién hizo la acción
+      registrarAuditoria(
+        adminId,
+        "CREAR_USUARIO",
+        "SEGURIDAD",
+        `Usuario creado: ${data.nombre} (${data.mail}) con rol ID ${data.id_rol}`
+      );
+    } catch (logErr) {
+      console.warn("[usuarios] auditoría create falló:", logErr.message);
+    }
+
     res.status(201).json(data);
   } catch (err) {
     console.error("[usuarios] crear error:", err);
@@ -136,6 +154,20 @@ router.put("/:id", requireAuth, allowRoles(["ADMIN"]), async (req, res) => {
       .single();
 
     if (error) throw error;
+
+    // Auditoría MODIFICAR_USUARIO
+    try {
+      const adminId = await getUserIdFromToken(req.accessToken);
+      registrarAuditoria(
+        adminId,
+        "MODIFICAR_USUARIO",
+        "SEGURIDAD",
+        `Usuario ID ${id} modificado: ${data.nombre} (${data.mail}), estado=${data.estado}, rol ID=${data.id_rol}`
+      );
+    } catch (logErr) {
+      console.warn("[usuarios] auditoría update falló:", logErr.message);
+    }
+
     res.json(data);
   } catch (e) {
     console.error("[usuarios] update error:", e);
@@ -154,6 +186,19 @@ router.delete("/:id", requireAuth, allowRoles(["ADMIN"]), async (req, res) => {
 
     const { error } = await s.rpc("usuarios_delete", { p_id: id });
     if (error) throw error;
+
+    // Auditoría ELIMINAR_USUARIO
+    try {
+      const adminId = await getUserIdFromToken(req.accessToken);
+      registrarAuditoria(
+        adminId,
+        "ELIMINAR_USUARIO",
+        "SEGURIDAD",
+        `Usuario ID ${id} eliminado vía RPC usuarios_delete`
+      );
+    } catch (logErr) {
+      console.warn("[usuarios] auditoría delete falló:", logErr.message);
+    }
 
     res.json({ ok: true });
   } catch (err) {
