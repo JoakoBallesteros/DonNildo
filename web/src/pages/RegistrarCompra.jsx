@@ -6,7 +6,6 @@ import { Plus, ChevronDown, Calendar } from "lucide-react";
 import PageContainer from "../components/pages/PageContainer.jsx";
 import PrimaryButton from "../components/buttons/PrimaryButton.jsx";
 import IconButton from "../components/buttons/IconButton.jsx";
-import ActionButton from "../components/buttons/ActionButton.jsx";
 import DataTable from "../components/tables/DataTable.jsx";
 
 /* Formularios / Modales */
@@ -235,30 +234,18 @@ export default function RegistrarCompra() {
   ];
 
   return (
-    <PageContainer
-      title="Registrar Compra"
-      actions={
-        <IconButton
-          title="Crear nuevo producto"
-          variant="outline"
-          className="rounded-full"
-          onClick={() => setNewProdOpen(true)}
-        >
-          <Plus className="h-4 w-4" />
-          <span className="text-sm">Nuevo producto</span>
-        </IconButton>
-      }
-    >
+    <PageContainer title="Registrar Compra">
       {/* Datos de la compra */}
-      <div className="rounded-2xl border border-emerald-100 bg-white">
+      <div className="rounded-2xl border border-[#d8e4df] bg-white">
         <div className="p-4 md:p-5">
-          <p className="text-[13px] font-semibold text-emerald-900 mb-3">Datos de la compra</p>
+          <p className="text-[13px] font-semibold text-[#154734] mb-3">Datos de la compra</p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* === Bloque de campos === */}
+          <div className="grid grid-cols-1 gap-4">
             {/* Producto + Tipo */}
-            <div className="grid grid-cols-[1fr,150px] gap-3">
+            <div className="grid grid-cols-[minmax(0,1.4fr)_220px] gap-3">
               <div className="relative">
-                <label className="block text-sm text-emerald-900 mb-1">Producto</label>
+                <label className="block text-sm text-[#154734] mb-1">Producto</label>
                 <div className="relative">
                   <input
                     value={busquedaProd}
@@ -267,14 +254,14 @@ export default function RegistrarCompra() {
                       setProducto(null);
                     }}
                     placeholder="Buscar o escribir"
-                    className="h-9 w-full rounded-md border border-emerald-200 bg-white pl-3 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                    className="h-9 w-full rounded-md border border-[#d8e4df] bg-white pl-3 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E5A3E]"
                   />
-                  <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-500 pointer-events-none" />
+                  <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-[#154734] pointer-events-none" />
                 </div>
 
                 {/* Dropdown simple */}
                 {busquedaProd && !producto && (
-                  <div className="absolute z-10 mt-1 w-full rounded-md border bg-white shadow max-h-56 overflow-auto">
+                  <div className="absolute z-10 mt-1 w-full rounded-md border border-[#d8e4df] bg-white shadow max-h-56 overflow-auto">
                     {productosFiltrados.length === 0 && (
                       <div className="px-3 py-2 text-sm text-gray-500">Sin resultados</div>
                     )}
@@ -282,7 +269,7 @@ export default function RegistrarCompra() {
                       <button
                         key={p.id}
                         onClick={() => onSelectProducto(p)}
-                        className="w-full px-3 py-2 text-left text-sm hover:bg-emerald-50"
+                        className="w-full px-3 py-2 text-left text-sm hover:bg-[#e8f4ef]"
                       >
                         {p.nombre}{" "}
                         <span className="text-gray-500">({p.tipo} · {p.medida})</span>
@@ -293,104 +280,120 @@ export default function RegistrarCompra() {
               </div>
 
               <div>
-                <label className="block text-sm text-emerald-900 mb-1">Tipo</label>
-                <div className="h-9 w-full rounded-md border border-emerald-200 bg-gray-50 text-sm px-3 flex items-center">
+                <label className="block text-sm text-[#154734] mb-1">Tipo</label>
+                <div className="h-9 w-full rounded-md border border-[#d8e4df] bg-gray-50 text-sm px-3 flex items-center">
                   {producto ? producto.tipo : "—"}
                 </div>
               </div>
             </div>
 
             {/* Cantidad / Precio / Subtotal */}
-            <div className="grid grid-cols-[1fr,1fr,1fr] gap-3">
+            <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-3">
               <div>
-                <label className="block text-sm text-emerald-900 mb-1">Cant. (u/kg)</label>
+                <label className="block text-sm text-[#154734] mb-1">Cant. (u/kg)</label>
                 <input
                   ref={cantRef}
                   inputMode="decimal"
                   value={cantidad}
                   onChange={(e) => setCantidad(e.target.value)}
                   placeholder="0"
-                  className="h-9 w-full rounded-md border border-emerald-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                  className="h-9 w-full rounded-md border border-[#d8e4df] bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E5A3E]"
                 />
               </div>
               <div>
-                <label className="block text-sm text-emerald-900 mb-1">Precio unit.</label>
+                <label className="block text-sm text-[#154734] mb-1">Precio unit.</label>
                 <input
                   inputMode="decimal"
                   value={precioUnit}
                   onChange={(e) => setPrecioUnit(e.target.value)}
                   placeholder="0,00"
-                  className="h-9 w-full rounded-md border border-emerald-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                  className="h-9 w-full rounded-md border border-[#d8e4df] bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E5A3E]"
                 />
               </div>
               <div>
-                <label className="block text-sm text-emerald-900 mb-1">Subtotal</label>
-                <div className="h-9 w-full rounded-md border border-emerald-200 bg-gray-50 text-sm px-3 flex items-center">
+                <label className="block text-sm text-[#154734] mb-1">Subtotal</label>
+                <div className="h-9 w-full rounded-md border border-[#d8e4df] bg-gray-50 text-sm px-3 flex items-center">
                   {subtotalCalc ? fmt.format(subtotalCalc) : "—"}
                 </div>
               </div>
             </div>
 
-            {/* Proveedor / Fecha / Observaciones */}
-            <div className="grid grid-cols-[1fr,190px,1fr] gap-3 col-span-1 md:col-span-2">
+            {/* Proveedor / Fecha / Observaciones + Botones */}
+            <div className="grid grid-cols-[minmax(0,1.4fr)_190px_minmax(0,1.4fr)_auto_auto] gap-3 items-end">
               <div className="relative">
-                <label className="block text-sm text-emerald-900 mb-1">Proveedor (opcional)</label>
+                <label className="block text-sm text-[#154734] mb-1">Proveedor (opcional)</label>
                 <div className="relative">
                   <select
                     value={proveedor}
                     onChange={(e) => setProveedor(e.target.value)}
-                    className="h-9 w-full rounded-md border border-emerald-200 bg-white pr-8 pl-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                    className="h-9 w-full rounded-md border border-[#d8e4df] bg-white pr-8 pl-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E5A3E] appearance-none"
                   >
                     <option value="">Seleccione un proveedor</option>
                     {PROVEEDORES.map((p) => (
-                      <option key={p.id} value={p.nombre}>{p.nombre}</option>
+                      <option key={p.id} value={p.nombre}>
+                        {p.nombre}
+                      </option>
                     ))}
                   </select>
-                  <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-500" />
+                  {/* Flecha personalizada (se oculta la nativa con appearance-none) */}
+                  <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-[#154734]" />
                 </div>
               </div>
 
               <div className="relative">
-                <label className="block text-sm text-emerald-900 mb-1">Fecha</label>
-                <Calendar className="absolute left-3 top-9 h-4 w-4 text-emerald-400" />
+                <label className="block text-sm text-[#154734] mb-1">Fecha</label>
+                <Calendar className="absolute left-3 top-9 h-4 w-4 text-[#154734]/40" />
                 <input
                   type="date"
                   value={fecha}
                   onChange={(e) => setFecha(e.target.value)}
-                  className="h-9 w-full rounded-md border border-emerald-200 bg-white pl-8 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                  className="h-9 w-full rounded-md border border-[#d8e4df] bg-white pl-8 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E5A3E]"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-emerald-900 mb-1">Observaciones</label>
+                <label className="block text-sm text-[#154734] mb-1">Observaciones</label>
                 <input
                   value={obs}
                   onChange={(e) => setObs(e.target.value)}
                   placeholder="Opcional"
-                  className="h-9 w-full rounded-md border border-emerald-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                  className="h-9 w-full rounded-md border border-[#d8e4df] bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E5A3E]"
                 />
               </div>
-            </div>
 
-            {/* Botón Añadir */}
-            <div className="col-span-1 md:col-span-2 flex justify-end">
-              <PrimaryButton
-                onClick={addItem}
-                className={`rounded-full ${addDisabled ? "opacity-60 pointer-events-none" : ""}`}
-                text={
-                  <span className="inline-flex items-center gap-2">
-                    <Plus className="h-4 w-4" /> Añadir
-                  </span>
-                }
-              />
+              <div className="flex justify-end">
+                <PrimaryButton
+                  onClick={addItem}
+                  className={`h-9 rounded-full px-5 ${
+                    addDisabled ? "opacity-60 pointer-events-none" : ""
+                  }`}
+                  text={
+                    <span className="inline-flex items-center gap-2">
+                      <Plus className="h-4 w-4" /> Añadir
+                    </span>
+                  }
+                />
+              </div>
+
+              <div className="flex justify-end">
+                <IconButton
+                  title="Crear nuevo producto"
+                  variant="outline"
+                  className="h-9 rounded-full px-4 flex items-center gap-2"
+                  onClick={() => setNewProdOpen(true)}
+                >
+                  <Plus className="h-4 w-4" />
+                  <span className="text-xs md:text-sm">Nuevo producto</span>
+                </IconButton>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Tabla Próximos a confirmar */}
-      <div>
-        <p className="text-[12px] text-emerald-900 mb-1 ml-2">Próximos a confirmar</p>
+      <div className="mt-4">
+        <p className="text-[12px] text-[#154734] mb-1 ml-2">Próximos a confirmar</p>
         <DataTable
           columns={columns}
           data={items}
@@ -416,26 +419,28 @@ export default function RegistrarCompra() {
           Productos: {fmtNum.format(subProductos.cantKg)} kg — {fmt.format(subProductos.total)}
         </div>
         <div className="ml-auto">
-          <div className="rounded-xl border border-emerald-100 bg-white px-4 py-2 inline-flex items-center gap-3">
-            <span className="text-emerald-900 font-semibold">Total compra:</span>
-            <span className="text-emerald-900 font-bold">{fmt.format(totalCompra)}</span>
+          <div className="rounded-xl border border-[#d8e4df] bg-white px-4 py-2 inline-flex items-center gap-3">
+            <span className="text-[#154734] font-semibold">Total compra:</span>
+            <span className="text-[#154734] font-bold">{fmt.format(totalCompra)}</span>
           </div>
         </div>
       </div>
 
-      {/* === Footer acciones (igual a RegistrarVenta) === */}
-      <div className="flex justify-center gap-4 py-10">
+      {/* === Footer acciones === */}
+      <div className="flex justify-center gap-6 py-10">
         <button
+          type="button"
           onClick={onCancelar}
-          className="px-6 py-2 rounded-md border border-[#154734] text-[#154734] hover:bg-[#e8f4ef] transition"
+          className="min-w-[160px] px-8 py-2.5 rounded-md border border-[#154734] text-[#154734] font-semibold hover:bg-[#e8f4ef] transition"
         >
           CANCELAR
         </button>
 
         <button
+          type="button"
           onClick={onGuardar}
           disabled={items.length === 0}
-          className={`px-6 py-2 rounded-md text-white transition ${
+          className={`min-w-[160px] px-8 py-2.5 rounded-md font-semibold text-white transition ${
             items.length === 0
               ? "bg-[#154734]/50 cursor-not-allowed"
               : "bg-[#154734] hover:bg-[#103a2b]"
@@ -516,7 +521,6 @@ export default function RegistrarCompra() {
             setEditRow(null);
           }}
           title={`Modificar ítem — ${editRow.producto ?? ""}`}
-          // Editamos una sola fila: se la pasamos como items[0]
           data={{ ...editRow, items: [{ ...editRow }] }}
           itemsKey="items"
           columns={editColumns}
