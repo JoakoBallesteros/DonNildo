@@ -62,7 +62,7 @@ export default function DataTable({
   // si cambian datos/filtros/orden, volvemos a la página 1
   useEffect(() => {
     setPage(1);
-  }, [data, JSON.stringify(filters), sort]);
+  }, [data, filters, sort]);
 
   const sortIcon = (col) => {
     if (!enableSort || !col.sortable) return null;
@@ -227,18 +227,12 @@ export default function DataTable({
               {columns.map((col, i) => {
                 if (!col.filter) {
                   return (
-                    <th
-                      key={`f-${col.id ?? i}`}
-                      className={`${headerClass}`}
-                    />
+                    <th key={`f-${col.id ?? i}`} className={`${headerClass}`} />
                   );
                 }
                 if (col.filter === "text") {
                   return (
-                    <th
-                      key={`f-${col.id ?? i}`}
-                      className={`${headerClass}`}
-                    >
+                    <th key={`f-${col.id ?? i}`} className={`${headerClass}`}>
                       <input
                         type="text"
                         className="w-full border border-[#dfe8e4] rounded-md px-2 py-1 text-sm"
@@ -254,10 +248,7 @@ export default function DataTable({
                 }
                 if (col.filter === "number") {
                   return (
-                    <th
-                      key={`f-${col.id ?? i}`}
-                      className={`${headerClass}`}
-                    >
+                    <th key={`f-${col.id ?? i}`} className={`${headerClass}`}>
                       <div className="flex gap-2">
                         <input
                           type="number"
@@ -291,10 +282,7 @@ export default function DataTable({
                 }
                 if (col.filter === "date") {
                   return (
-                    <th
-                      key={`f-${col.id ?? i}`}
-                      className={`${headerClass}`}
-                    >
+                    <th key={`f-${col.id ?? i}`} className={`${headerClass}`}>
                       <div className="flex gap-2">
                         <input
                           type="date"
@@ -325,10 +313,7 @@ export default function DataTable({
                   );
                 }
                 return (
-                  <th
-                    key={`f-${col.id ?? i}`}
-                    className={`${headerClass}`}
-                  />
+                  <th key={`f-${col.id ?? i}`} className={`${headerClass}`} />
                 );
               })}
             </tr>
@@ -415,9 +400,7 @@ export default function DataTable({
             </span>
             <button
               type="button"
-              onClick={() =>
-                setPage((p) => Math.min(totalPages, p + 1))
-              }
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
               className={`px-2 py-1 rounded border text-xs ${
                 currentPage === totalPages

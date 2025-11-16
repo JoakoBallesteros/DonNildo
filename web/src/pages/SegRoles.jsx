@@ -1,5 +1,5 @@
 // src/pages/SegRoles.jsx
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import PageContainer from "../components/pages/PageContainer";
 import DataTable from "../components/tables/DataTable";
 import { supa } from "../lib/supabaseClient";
@@ -27,10 +27,11 @@ export default function SegRoles() {
 
       // Montar filas iniciales con rol y usuario
       const inicial = (usuariosData || [])
-        .filter(u => u.id_rol)            // solo usuarios con rol asignado
-        .map(u => {
-          const rol = rolesData?.find(r => r.id_rol === u.id_rol)?.nombre || "";
-          return { id: `${u.id_usuario}`, rol, usuario: u.nombre };
+        .filter((u) => u.id_rol) // solo usuarios con rol asignado
+        .map((u) => {
+          const rol =
+            rolesData?.find((r) => r.id_rol === u.id_rol)?.nombre || "";
+          return { id: u.id_usuario, rol, usuario: u.nombre };  // ⬅️ id = id_usuario
         });
       setRows(inicial);
     };
@@ -39,60 +40,67 @@ export default function SegRoles() {
 
   // Asignar rol a un usuario
   const onAssign = async () => {
-    const rol = roles.find(r => r.id_rol === parseInt(rolSel));
-    const usr = usuarios.find(u => u.id_usuario === parseInt(usrSel));
+    const rol = roles.find((r) => r.id_rol === parseInt(rolSel));
+    const usr = usuarios.find((u) => u.id_usuario === parseInt(usrSel));
     if (!rol || !usr) return;
 
-    // Evitar duplicados
-    if (rows.some(r => r.rol === rol.nombre && r.usuario === usr.nombre)) return;
-
-    // Actualizar en Supabase (esto requiere permisos INSERT/UPDATE en usuarios)
+    // Actualizar en Supabase
     await supa
       .from("usuarios")
       .update({ id_rol: rol.id_rol })
       .eq("id_usuario", usr.id_usuario);
 
-    setRows(prev => [
-      ...prev,
-      {
-        id: `${usr.id_usuario}-${rol.id_rol}`,
-        rol: rol.nombre,
-        usuario: usr.nombre,
-      },
-    ]);
+    // Reemplazar la fila del usuario (una sola fila por usuario)
+    setRows((prev) => {
+      const sinUsuario = prev.filter((r) => r.id !== usr.id_usuario);
+      return [
+        ...sinUsuario,
+        {
+          id: usr.id_usuario,
+          rol: rol.nombre,
+          usuario: usr.nombre,
+        },
+      ];
+    });
   };
 
   // Remover rol (dejar id_rol en NULL)
-  const onRemove = async (row) => {
-    const usuario = usuarios.find(u => u.nombre === row.usuario);
-    if (!usuario) return;
+  const onRemove = useCallback(
+    async (row) => {
+      const usuario = usuarios.find((u) => u.nombre === row.usuario);
+      if (!usuario) return;
 
-    await supa
-      .from("usuarios")
-      .update({ id_rol: null })
-      .eq("id_usuario", usuario.id_usuario);
+      await supa
+        .from("usuarios")
+        .update({ id_rol: null })
+        .eq("id_usuario", usuario.id_usuario);
 
-    setRows(prev => prev.filter(r => r.id !== row.id));
-  };
-
-  const cols = useMemo(() => [
-    { id: "rol", header: "Rol", accessor: "rol", width: 180 },
-    { id: "usuario", header: "Usuario", accessor: "usuario" },
-    {
-      id: "acc",
-      header: "Acciones",
-      width: 140,
-      align: "center",
-      render: (row) => (
-        <button
-          className="px-2 py-1 text-xs rounded-md bg-[#a30000] text-white"
-          onClick={() => onRemove(row)}
-        >
-          Remover
-        </button>
-      ),
+      setRows((prev) => prev.filter((r) => r.id !== row.id));
     },
-  ], [rows]);
+    [usuarios]
+  );
+
+  const cols = useMemo(
+    () => [
+      { id: "rol", header: "Rol", accessor: "rol", width: 180 },
+      { id: "usuario", header: "Usuario", accessor: "usuario" },
+      {
+        id: "acc",
+        header: "Acciones",
+        width: 140,
+        align: "center",
+        render: (row) => (
+          <button
+            className="px-2 py-1 text-xs rounded-md bg-[#a30000] text-white"
+            onClick={() => onRemove(row)}
+          >
+            Remover
+          </button>
+        ),
+      },
+    ],
+    [onRemove]
+  );
 
   return (
     <PageContainer title="Gestión de roles">
@@ -161,12 +169,12 @@ export default function SegRoles() {
         >
           Cancelar
         </a>
-        <button
-          className="px-5 py-2 rounded-md text-white bg-[#154734] hover:bg-[#103a2b]"
-        >
+        <button className="px-5 py-2 rounded-md text-white bg-[#154734] hover:bg-[#103a2b]">
           Guardar
         </button>
       </div>
     </PageContainer>
   );
 }
+
+

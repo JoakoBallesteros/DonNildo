@@ -12,6 +12,13 @@ import Modal from "../components/modals/Modals.jsx";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../lib/apiClient";
 
+const TIPO_MAP = {
+  Todo: null,
+  Productos: "Producto",
+  Cajas: "Caja",
+  Mixtas: "Mixta",
+};
+
 export default function Ventas() {
   const navigate = useNavigate();
 
@@ -100,7 +107,7 @@ export default function Ventas() {
 
       console.log("🧾 Guardando venta:", body);
 
-      const data = await apiFetch(`/api/ventas/${id_venta}`, {
+      await apiFetch(`/api/ventas/${id_venta}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -209,31 +216,27 @@ export default function Ventas() {
   // =========================
   // FILTROS DE VISUALIZACIÓN
   // =========================
-  const tipoMap = {
-    Todo: null,
-    Productos: "Producto",
-    Cajas: "Caja",
-    Mixtas: "Mixta",
-  };
+
   const ventasFiltradas = useMemo(() => {
-    const tsel = tipoMap[filtroTipo];
-    return ventas.filter((v) => {
-      if (tsel && v.tipo !== tsel) return false;
-      if (filtros.buscar) {
-        const txt = filtros.buscar.toLowerCase();
-        if (
-          !String(v.id_venta).includes(txt) &&
-          !v.tipo.toLowerCase().includes(txt) &&
-          !(v.observaciones || "").toLowerCase().includes(txt)
-        )
-          return false;
-      }
-      const fecha = new Date(v.fecha);
-      if (filtros.desde && fecha < new Date(filtros.desde)) return false;
-      if (filtros.hasta && fecha > new Date(filtros.hasta)) return false;
-      return true;
-    });
-  }, [ventas, filtroTipo, filtros]);
+  const tsel = TIPO_MAP[filtroTipo];
+  return ventas.filter((v) => {
+    if (tsel && v.tipo !== tsel) return false;
+    if (filtros.buscar) {
+      const txt = filtros.buscar.toLowerCase();
+      if (
+        !String(v.id_venta).includes(txt) &&
+        !v.tipo.toLowerCase().includes(txt) &&
+        !(v.observaciones || "").toLowerCase().includes(txt)
+      )
+        return false;
+    }
+    const fecha = new Date(v.fecha);
+    if (filtros.desde && fecha < new Date(filtros.desde)) return false;
+    if (filtros.hasta && fecha > new Date(filtros.hasta)) return false;
+    return true;
+  });
+}, [ventas, filtroTipo, filtros]);
+
 
   // =========================
   // COLUMNAS TABLA
@@ -288,7 +291,7 @@ export default function Ventas() {
           onClick={() => handleVerDetalle(row)}
           className="border border-[#d8e4df] rounded-md px-4 py-1.5 text-[#154734] hover:bg-[#e8f4ef] transition"
         >
-                    Ver Detalle        {" "}
+          Ver detalle
         </button>
       ),
     },
@@ -390,7 +393,7 @@ export default function Ventas() {
           {mostrarAnuladas ? "Ocultar anuladas" : "Ver anuladas"}
         </button>
       </div>
-           <div className="mt-6">
+      <div className="mt-6">
         {loading ? (
           <p className="text-sm text-slate-600">Cargando…</p>
         ) : (
@@ -420,7 +423,6 @@ export default function Ventas() {
           />
         )}
       </div>
-
 
       <DetailModal
         isOpen={isDetailOpen}

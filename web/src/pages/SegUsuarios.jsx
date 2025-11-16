@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import PageContainer from "../components/pages/PageContainer";
 import DataTable from "../components/tables/DataTable";
 import Modal from "../components/modals/Modals";
@@ -21,7 +21,7 @@ export default function SegUsuarios() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
-  async function cargar() {
+  const cargar = useCallback(async () => {
     try {
       setLoading(true);
       setErr("");
@@ -33,10 +33,11 @@ export default function SegUsuarios() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
   useEffect(() => {
     cargar();
-  }, []);
+  }, [cargar]);
 
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
@@ -50,29 +51,31 @@ export default function SegUsuarios() {
     );
   }, [items, q]);
 
-  // ✅ Handler para eliminar con manejo de errores
-  const handleEliminar = async (row) => {
-    if (!confirm(`¿Estás seguro de eliminar al usuario ${row.nombre}?`)) {
-      return;
-    }
+  // Handler para eliminar con manejo de errores
+  const handleEliminar = useCallback(
+    async (row) => {
+      if (!confirm(`¿Estás seguro de eliminar al usuario ${row.nombre}?`)) {
+        return;
+      }
 
-    try {
-      console.log("🗑️ Eliminando usuario:", row.id_usuario);
+      try {
+        console.log("🗑️ Eliminando usuario:", row.id_usuario);
 
-      await eliminarUsuario(row.id_usuario);
+        await eliminarUsuario(row.id_usuario);
 
-      console.log("✅ Usuario eliminado exitosamente");
+        console.log("✅ Usuario eliminado exitosamente");
 
-      // Recargar desde el servidor para asegurar sincronización
-      await cargar();
-    } catch (error) {
-      console.error("❌ Error al eliminar:", error);
-      setErr(`Error al eliminar usuario: ${error.message}`);
+        // Recargar desde el servidor para asegurar sincronización
+        await cargar();
+      } catch (error) {
+        console.error("❌ Error al eliminar:", error);
+        setErr(`Error al eliminar usuario: ${error.message}`);
 
-      // Opcional: mostrar alerta al usuario
-      alert(`No se pudo eliminar el usuario: ${error.message}`);
-    }
-  };
+        alert(`No se pudo eliminar el usuario: ${error.message}`);
+      }
+    },
+    [cargar]
+  );
 
   const cols = useMemo(
     () => [
@@ -131,7 +134,7 @@ export default function SegUsuarios() {
             </button>
             <button
               className="px-2 py-1 text-xs rounded-md bg-[#a30000] text-white hover:bg-[#8a0000]"
-              onClick={() => handleEliminar(row)} // ✅ Usar el handler
+              onClick={() => handleEliminar(row)}
             >
               Eliminar
             </button>
@@ -140,7 +143,7 @@ export default function SegUsuarios() {
       },
     ],
     [handleEliminar]
-  ); // ✅ Agregar dependencia
+  );
 
   const onNew = () => {
     setEdit(null);
@@ -237,3 +240,4 @@ export default function SegUsuarios() {
     </PageContainer>
   );
 }
+

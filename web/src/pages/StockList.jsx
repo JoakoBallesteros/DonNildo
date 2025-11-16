@@ -676,39 +676,6 @@ export default function StockList() {
     }
   };
 
-  const mapFormToRow = (v) => {
-    if (v.tipo === "Caja") {
-      return {
-        id: crypto.randomUUID?.() || String(Date.now()),
-        tipo: "Caja",
-        referencia: v.referencia,
-        categoria: v.categoria,
-        medidas: {
-          l: Number(v.medidas.l || 0),
-          a: Number(v.medidas.a || 0),
-          h: Number(v.medidas.h || 0),
-        },
-        unidad: "u",
-        disponible: Number(v.cantidad || 0),
-        ultimoMov: new Date().toISOString().slice(0, 10),
-        precio: Number(v.precio || 0),
-        notas: v.notas || "",
-      };
-    } else {
-      return {
-        id: crypto.randomUUID?.() || String(Date.now()),
-        tipo: "Material",
-        referencia: v.referencia,
-        categoria: "—",
-        unidad: v.unidad,
-        disponible: Number(v.cantidad || 0),
-        ultimoMov: new Date().toISOString().slice(0, 10),
-        precio: Number(v.precio || 0),
-        notas: v.notas || "",
-      };
-    }
-  };
-
   const editColumns = useMemo(() => {
     if (!editRow) return [];
 

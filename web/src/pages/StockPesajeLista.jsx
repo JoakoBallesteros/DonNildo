@@ -12,7 +12,7 @@ function parseToLocalDate(value) {
   if (!value) return null;
 
   // Si ya viene con zona horaria, usamos tal cual
-  const hasTZ = /[Zz]|[+\-]\d{2}:\d{2}$/.test(value);
+  const hasTZ = /[Zz]|[+-]\d{2}:\d{2}$/.test(value);
   const iso = hasTZ ? value : value + "Z"; // lo tratamos como UTC
 
   const d = new Date(iso);

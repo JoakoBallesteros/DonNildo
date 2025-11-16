@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import PageContainer from "../components/pages/PageContainer";
@@ -51,10 +51,10 @@ export default function RegistrarVentas() {
   const [errors, setErrors] = useState({});
   const [selectedVenta, setSelectedVenta] = useState(null);
   const [isEditOpen, setEditOpen] = useState(false);
-  const [isNewProductOpen, setNewProductOpen] = useState(false); // Mantener para el botón
+  // const [isNewProductOpen, setNewProductOpen] = useState(false);  // Mantener para el botón
   const [isCancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   // === Modal crear nuevo producto (reutiliza ProductFormTabs)
-    const [isNewOpen, setNewOpen] = useState(false);
+  const [isNewOpen, setNewOpen] = useState(false);
   // Estados para Eliminación de Ítem (Borrador)
   const [isItemDeleteConfirmOpen, setItemDeleteConfirmOpen] = useState(false);
   const [itemToDeleteIndex, setItemToDeleteIndex] = useState(null);
@@ -70,7 +70,7 @@ export default function RegistrarVentas() {
   // =========================
   // EFECTOS
   // =========================
-  
+
   // 2. Guardar 'ventas' cada vez que cambian (Efecto de escritura en Session Storage)
   useEffect(() => {
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(ventas));
@@ -172,25 +172,25 @@ export default function RegistrarVentas() {
   // =========================
   // MODALES Y ACCIONES
   // =========================
-  
+
   // Handlers para ELIMINAR ITEM (Borrador)
   const handleOpenItemDelete = (index) => {
     setItemToDeleteIndex(index);
     setItemDeleteConfirmOpen(true);
-  }
+  };
 
   const handleConfirmItemDelete = () => {
     setVentas((prev) => prev.filter((_, idx) => idx !== itemToDeleteIndex));
     setItemDeleteConfirmOpen(false);
     setItemToDeleteIndex(null);
-  }
+  };
 
   // Modificar item (Revertido a la lógica original)
   const handleEditar = (venta, index) => {
     setSelectedVenta({ productos: [{ ...venta }], index });
     setEditOpen(true);
   };
-  
+
   const handleGuardarCambios = (updated) => {
     const edited = updated?.productos?.[0];
     if (!edited) {
@@ -220,7 +220,7 @@ export default function RegistrarVentas() {
       navigate("/ventas");
     }
   };
-  
+
   const handleCancelConfirm = () => {
     sessionStorage.removeItem(SESSION_KEY); // <-- Limpiar storage
     setVentas([]);
@@ -259,22 +259,31 @@ export default function RegistrarVentas() {
     } catch (err) {
       console.error("Error al guardar venta:", err.message);
 
-      let friendlyMsg = "Error al comunicarse con el servidor. Intente más tarde.";
+      let friendlyMsg =
+        "Error al comunicarse con el servidor. Intente más tarde.";
       let title = "❌ Error al Guardar";
 
       if (err.message.includes("STOCK_INSUFICIENTE")) {
         const match = err.message.match(/STOCK_INSUFICIENTE: (.*)/);
         if (match && match[1]) {
-          friendlyMsg = "No se puede completar la operación. " + match[1].trim().replace(/\.$/, '');
+          friendlyMsg =
+            "No se puede completar la operación. " +
+            match[1].trim().replace(/\.$/, "");
         } else {
-          friendlyMsg = "Stock insuficiente para uno o más productos. Por favor, verifique el inventario.";
+          friendlyMsg =
+            "Stock insuficiente para uno o más productos. Por favor, verifique el inventario.";
         }
         title = "⚠️ Stock Insuficiente";
-      } else if (err.message.includes("NETWORK_FAILURE") || err.message.includes("404")) {
-        friendlyMsg = "No se pudo conectar al sistema. Asegúrese de que el backend esté activo.";
+      } else if (
+        err.message.includes("NETWORK_FAILURE") ||
+        err.message.includes("404")
+      ) {
+        friendlyMsg =
+          "No se pudo conectar al sistema. Asegúrese de que el backend esté activo.";
         title = "❌ Error de Conexión";
       } else if (err.message.includes("500")) {
-        friendlyMsg = "Ocurrió un error inesperado en el servidor. Revise el log de Express.";
+        friendlyMsg =
+          "Ocurrió un error inesperado en el servidor. Revise el log de Express.";
       }
 
       setMessageModal({
@@ -285,7 +294,6 @@ export default function RegistrarVentas() {
       });
     }
   };
-
 
   // =========================
   // TOTALES Y COLUMNAS
@@ -338,7 +346,7 @@ export default function RegistrarVentas() {
                 MODIFICAR
               </button>
               <button
-                onClick={() => handleOpenItemDelete(i)} 
+                onClick={() => handleOpenItemDelete(i)}
                 className="bg-[#A30000] text-white px-3 py-1 text-xs rounded-md hover:bg-[#7A0000]"
               >
                 ELIMINAR
@@ -350,6 +358,27 @@ export default function RegistrarVentas() {
     },
   ];
 
+  const handleNewProductSubmit = (values) => {
+    // armamos un objeto compatible con productosDisponibles
+    const nuevoProducto = {
+      id_producto: Date.now(), // id temporal (solo frontend)
+      nombre: values.referencia,
+      precio: Number(values.precio || 0),
+      tipoVenta: values.tipo === "Caja" ? "Caja" : "Producto",
+    };
+
+    setProductosDisponibles((prev) => [...prev, nuevoProducto]);
+
+    // feedback suave, sin navegar
+    setMessageModal({
+      isOpen: true,
+      title: "Producto agregado",
+      text: "El producto ya está disponible para seleccionarlo en esta venta.",
+      type: "info", // 👈 NO 'success' así no dispara el navigate
+    });
+
+    setNewOpen(false);
+  };
   // =========================
   // RENDER PRINCIPAL
   // =========================
@@ -461,13 +490,13 @@ export default function RegistrarVentas() {
                 + Añadir
               </button>
 
-                <button
-                  type="button"
-                  onClick={() => setNewOpen(true)}
-                  className=" rounded-md border border-[#154734] text-[#154734] px-4 py-2 hover:bg-[#e8f4ef] transition w-full ml-56"
-                  >  
-                  + Nuevo producto
-                </button>
+              <button
+                type="button"
+                onClick={() => setNewOpen(true)}
+                className=" rounded-md border border-[#154734] text-[#154734] px-4 py-2 hover:bg-[#e8f4ef] transition w-full ml-56"
+              >
+                + Nuevo producto
+              </button>
             </div>
           </div>
 
@@ -476,11 +505,7 @@ export default function RegistrarVentas() {
           </h3>
 
           <div className="flex-1 min-h-[150px] rounded-t-xl border-t border-[#e3e9e5]">
-            <DataTable 
-              columns={columns} 
-              data={ventas}
-              cellClass="px-4 py-2"
-            />
+            <DataTable columns={columns} data={ventas} cellClass="px-4 py-2" />
           </div>
 
           {ventas.length > 0 && (
@@ -517,7 +542,7 @@ export default function RegistrarVentas() {
             GUARDAR
           </button>
         </div>
-        
+
         {/* ======================= MODALES DE LA PÁGINA ======================= */}
 
         {/* 1. MODAL DE ELIMINACIÓN DE ÍTEM (BORRADOR) */}
@@ -547,7 +572,6 @@ export default function RegistrarVentas() {
             ¿Estás seguro de eliminar este producto del borrador de la venta?
           </p>
         </Modal>
-
 
         {/* 2. MODAL DE CONFIRMACIÓN DE CANCELAR (Pérdida de datos) */}
         <Modal
@@ -579,35 +603,30 @@ export default function RegistrarVentas() {
         </Modal>
 
         {/* === Modal CREAR nuevo producto */}
-      <Modal
-        isOpen={isNewOpen}
-        title="Registrar nuevo producto"
-        onClose={() => setNewOpen(false)}
-        size="max-w-2xl"
-      >
-        <ProductFormTabs
-          mode="create"
-          initialValues={{
-            tipo: "Caja",
-            referencia: "",
-            categoria: "",
-            medidas: { l: "", a: "", h: "" },
-            unidad: "u",
-            cantidad: "",
-            precio: "",
-            notas: "",
-          }}
-          labels={{ caja: "Caja", material: "Producto" }}
-          onCancel={() => setNewOpen(false)}
-          onSubmit={(values) => {
-            const nuevaFila = mapFormToRow(values);
-            setItems((prev) => [nuevaFila, ...prev]);
-            setNewOpen(false);
-          }}
-        />
-      </Modal>
+        <Modal
+          isOpen={isNewOpen}
+          title="Registrar nuevo producto"
+          onClose={() => setNewOpen(false)}
+          size="max-w-2xl"
+        >
+          <ProductFormTabs
+            mode="create"
+            initialValues={{
+              tipo: "Caja",
+              referencia: "",
+              categoria: "",
+              medidas: { l: "", a: "", h: "" },
+              unidad: "u",
+              cantidad: "",
+              precio: "",
+              notas: "",
+            }}
+            labels={{ caja: "Caja", material: "Producto" }}
+            onCancel={() => setNewOpen(false)}
+            onSubmit={handleNewProductSubmit}
+          />
+        </Modal>
 
-            
         {/* 3. MODAL DE MENSAJES (Éxito/Error/Aviso) */}
         <Modal
           isOpen={messageModal.isOpen}
@@ -623,7 +642,12 @@ export default function RegistrarVentas() {
             <div className="flex justify-end">
               <button
                 onClick={() => {
-                  setMessageModal({ isOpen: false, title: "", text: "", type: "" });
+                  setMessageModal({
+                    isOpen: false,
+                    title: "",
+                    text: "",
+                    type: "",
+                  });
                   if (messageModal.type === "success") navigate("/ventas");
                 }}
                 className={`px-4 py-2 rounded-md font-semibold text-white transition ${
@@ -639,13 +663,15 @@ export default function RegistrarVentas() {
         >
           <p className="text-sm text-slate-700">{messageModal.text}</p>
         </Modal>
-            
+
         {/* 4. MODAL DE MODIFICACIÓN (REVERTIDO A LA LÓGICA ORIGINAL) */}
         {selectedVenta && (
           <Modified
             isOpen={isEditOpen}
             onClose={() => setEditOpen(false)}
-            title={`Modificando ${selectedVenta.productos?.[0]?.producto || ""}`}
+            title={`Modificando ${
+              selectedVenta.productos?.[0]?.producto || ""
+            }`}
             data={selectedVenta}
             itemsKey="productos"
             columns={[

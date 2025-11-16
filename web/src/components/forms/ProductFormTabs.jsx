@@ -46,11 +46,14 @@ export default function ProductFormTabs({
     }));
   };
 
-  // Efecto para calcular categoría automáticamente según medidas y tipo
+  // desestructuramos para que las deps sean más claras
+  const { tipo, medidas } = form;
+
   useEffect(() => {
     // Solo aplica a cajas
-    if (form.tipo !== "Caja") return;
-    const { l, a, h } = form.medidas || {};
+    if (tipo !== "Caja") return;
+
+    const { l, a, h } = medidas || {};
     if (!l || !a || !h) return;
 
     const maxDim = Math.max(Number(l), Number(a), Number(h));
@@ -62,7 +65,7 @@ export default function ProductFormTabs({
     setForm((prev) =>
       prev.categoria === cat ? prev : { ...prev, categoria: cat }
     );
-  }, [form.medidas?.l, form.medidas?.a, form.medidas?.h, form.tipo]);
+  }, [tipo, medidas]);
 
   // Valida los datos antes de enviar
   const validate = () => {
