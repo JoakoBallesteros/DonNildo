@@ -1,6 +1,7 @@
 // src/pages/RegistrarCompra.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Plus, ChevronDown, Calendar } from "lucide-react";
+import api from "../lib/apiClient";
 
 /* Layout & UI */
 import PageContainer from "../components/pages/PageContainer.jsx";
@@ -13,47 +14,114 @@ import ProductFormTabs from "../components/forms/ProductFormTabs.jsx";
 import Modal from "../components/modals/Modals.jsx";
 import Modified from "../components/modals/Modified.jsx";
 
-/* ====== Mock básico ====== */
-const PRODUCTOS = [
-  { id: "p1", nombre: "Cartón corrugado", tipo: "Productos", medida: "kg", precioRef: 250 },
-  { id: "p2", nombre: "Papel blanco",      tipo: "Productos", medida: "kg", precioRef: 300 },
-  { id: "c1", nombre: "Caja 40x30",        tipo: "Cajas",     medida: "u",  precioRef: 1800 },
-];
-
-const PROVEEDORES = [
-  { id: "prov1", nombre: "Reciclados Norte S.A." },
-  { id: "prov2", nombre: "Plásticos del Sur" },
-  { id: "prov3", nombre: "Vidrios Industriales" },
-];
-
 /* ====== Helpers ====== */
-const fmt    = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 2 });
-const fmtNum = new Intl.NumberFormat("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const toNumber = (v) =>
-  Number(String(v ?? "").replace(/\./g, "").replace(",", ".").replace(/[^\d.]/g, "")) || 0;
+const fmt = new Intl.NumberFormat("es-AR", {
+  style: "currency",
+  currency: "ARS",
+  maximumFractionDigits: 2,
+});
+const fmtNum = new Intl.NumberFormat("es-AR", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+const toNumber = (v) => {
+  if (v == null) return 0;
+  const s = String(v).trim();
+  if (!s) return 0;
+
+  // Caso formato latino: 1.234,56 → quitamos puntos y usamos coma como decimal
+  if (s.includes(",") && !s.includes(".")) {
+    const normalized = s.replace(/\./g, "").replace(",", ".");
+    return Number(normalized) || 0;
+  }
+
+  // Caso normal: 600 o 600.50 → dejamos el punto como decimal
+  const normalized = s.replace(/[^0-9.]/g, "");
+  return Number(normalized) || 0;
+};
 
 /* ====== Página ====== */
 export default function RegistrarCompra() {
+  // Catálogos desde la API
+  const [productos, setProductos] = useState([]); // [{id, nombre, tipo, medida, precioRef}]
+  const [proveedores, setProveedores] = useState([]); // [{id, nombre, cuit?}]
+
   // Form principal
-  const [producto, setProducto]         = useState(null);
+  const [producto, setProducto] = useState(null);
   const [busquedaProd, setBusquedaProd] = useState("");
-  const [cantidad, setCantidad]         = useState("");
-  const [precioUnit, setPrecioUnit]     = useState("");
-  const [proveedor, setProveedor]       = useState("");
-  const [fecha, setFecha]               = useState("");
-  const [obs, setObs]                   = useState("");
+  const [cantidad, setCantidad] = useState("");
+  const [precioUnit, setPrecioUnit] = useState("");
+  const [proveedor, setProveedor] = useState(""); // guarda el id del proveedor
+  const [fecha, setFecha] = useState("");
+  const [obs, setObs] = useState("");
 
   // Items agregados
-  const [items, setItems]               = useState([]);
+  const [items, setItems] = useState([]);
 
   // Modales
-  const [newProdOpen, setNewProdOpen]   = useState(false);
-  const [confirmOpen, setConfirmOpen]   = useState(false);
-  const [editOpen, setEditOpen]         = useState(false);
-  const [editRow, setEditRow]           = useState(null);
+  const [newProdOpen, setNewProdOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editRow, setEditRow] = useState(null);
 
   // Focus
   const cantRef = useRef(null);
+
+  // ==========================
+  // Cargar catálogos desde BD
+  // ==========================
+  useEffect(() => {
+    async function cargarCatalogos() {
+      try {
+        const [resProd, resProv] = await Promise.all([
+          api("/api/compras/productos"),
+          api("/api/compras/proveedores"),
+        ]);
+
+        // Productos
+        if (resProd?.ok && Array.isArray(resProd.productos)) {
+          const mappedProd = resProd.productos.map((p) => {
+            // Intentamos mapear diferentes nombres de campos a la forma que usa la UI
+            const id = p.id ?? p.id_producto;
+            const nombre = p.nombre;
+            const categoria = p.categoria ?? p.categoria_nombre;
+            const tipoDb = p.tipo ?? p.tipo_nombre;
+
+            // Tipo visual: "Cajas" o "Productos"
+            const tipo =
+              tipoDb ??
+              (categoria === "Cajas" ? "Cajas" : "Productos");
+
+            const medida =
+              p.medida ??
+              p.unidad_stock ??
+              p.medida_simbolo ??
+              "u";
+
+            const precioRef = p.precioRef ?? p.precio_unitario ?? 0;
+
+            return { id, nombre, tipo, medida, precioRef };
+          });
+
+          setProductos(mappedProd);
+        }
+
+        // Proveedores
+        if (resProv?.ok && Array.isArray(resProv.proveedores)) {
+          const mappedProv = resProv.proveedores.map((p) => ({
+            id: p.id ?? p.id_proveedor,
+            nombre: p.nombre,
+            cuit: p.cuit,
+          }));
+          setProveedores(mappedProv);
+        }
+      } catch (err) {
+        console.error("Error cargando catálogos de compras:", err);
+      }
+    }
+
+    cargarCatalogos();
+  }, []);
 
   const subtotalCalc = useMemo(() => {
     const q = toNumber(cantidad);
@@ -63,45 +131,53 @@ export default function RegistrarCompra() {
 
   const productosFiltrados = useMemo(() => {
     const q = busquedaProd.trim().toLowerCase();
-    if (!q) return PRODUCTOS;
-    return PRODUCTOS.filter((p) => p.nombre.toLowerCase().includes(q));
-  }, [busquedaProd]);
+    if (!q) return productos;
+    return productos.filter((p) => p.nombre.toLowerCase().includes(q));
+  }, [busquedaProd, productos]);
+
+  const proveedorNombre = useMemo(
+    () =>
+      proveedores.find((p) => String(p.id) === String(proveedor))?.nombre ||
+      "",
+    [proveedor, proveedores]
+  );
 
   function onSelectProducto(p) {
     setProducto(p);
     setBusquedaProd(p.nombre);
-    if (!precioUnit) setPrecioUnit(String(p.precioRef));
+    if (!precioUnit) setPrecioUnit(String(p.precioRef ?? p.precio_unitario ?? ""));
     setTimeout(() => cantRef.current?.focus(), 0);
   }
 
   function addItem() {
-    if (!producto) return;
-    const cant = toNumber(cantidad);
-    const pu   = toNumber(precioUnit);
-    if (cant <= 0 || pu <= 0) return;
+  if (!producto) return;
+  const cant = toNumber(cantidad);
+  const pu = toNumber(precioUnit);
+  if (cant <= 0 || pu <= 0) return;
 
-    const nuevo = {
-      id: crypto.randomUUID(),
-      tipo: producto.tipo,
-      producto: producto.nombre,
-      medida: producto.medida,
-      cantidad: cant,
-      precioUnit: pu,
-      subtotal: cant * pu,
-      obs: obs?.trim() || "—",
-      proveedor: proveedor || "",
-      fecha: fecha || "",
-      prodId: producto.id,
-    };
-    setItems((prev) => [...prev, nuevo]);
+  const nuevo = {
+    id: crypto.randomUUID(),
+    tipo: producto.tipo,
+    producto: producto.nombre,
+    medida: producto.medida,
+    cantidad: cant,
+    precioUnit: pu,
+    subtotal: cant * pu,
+    // si querés, que el ítem no dependa de este campo:
+    obs: obs?.trim() || "—",
+    proveedor: proveedor || "",
+    fecha: fecha || "",
+    prodId: producto.id,
+  };
+  setItems((prev) => [...prev, nuevo]);
 
-    // limpiar campos
-    setCantidad("");
-    setPrecioUnit("");
-    setObs("");
-    setBusquedaProd("");
-    setProducto(null);
-  }
+  // limpiar campos de la línea, PERO NO las observaciones de la compra
+  setCantidad("");
+  setPrecioUnit("");
+  // setObs("");          ❌  sacamos esto
+  setBusquedaProd("");
+  setProducto(null);
+}
 
   function eliminarItem(id) {
     setItems((prev) => prev.filter((i) => i.id !== id));
@@ -109,16 +185,16 @@ export default function RegistrarCompra() {
 
   // Subtotales por tipo
   const subCajas = useMemo(() => {
-    const list  = items.filter((i) => i.tipo === "Cajas");
-    const cant  = list.reduce((a, b) => a + (Number(b.cantidad) || 0), 0);
+    const list = items.filter((i) => i.tipo === "Cajas");
+    const cant = list.reduce((a, b) => a + (Number(b.cantidad) || 0), 0);
     const total = list.reduce((a, b) => a + (Number(b.subtotal) || 0), 0);
     return { cant, total };
   }, [items]);
 
   const subProductos = useMemo(() => {
-    const list   = items.filter((i) => i.tipo === "Productos");
+    const list = items.filter((i) => i.tipo === "Productos");
     const cantKg = list.reduce((a, b) => a + (Number(b.cantidad) || 0), 0);
-    const total  = list.reduce((a, b) => a + (Number(b.subtotal) || 0), 0);
+    const total = list.reduce((a, b) => a + (Number(b.subtotal) || 0), 0);
     return { cantKg, total };
   }, [items]);
 
@@ -140,24 +216,64 @@ export default function RegistrarCompra() {
   }
 
   function onGuardar() {
+    if (items.length === 0) return;
     setConfirmOpen(true);
   }
 
-  function onConfirmarGuardar() {
-    // TODO: integrar con API real
-    console.log("Guardar compra:", { proveedor, fecha, items, total: totalCompra });
-    setConfirmOpen(false);
-    onCancelar();
+  // 👉 POST al backend
+  async function onConfirmarGuardar() {
+    try {
+      const payload = {
+        id_proveedor: proveedor ? Number(proveedor) : null,
+        fecha: fecha || null,
+        observaciones: obs || null,
+        items: items.map((it) => ({
+          id_producto: it.prodId,
+          cantidad: it.cantidad,
+          precio_unitario: it.precioUnit,
+        })),
+      };
+
+      const resp = await api("/api/compras", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+
+      console.log("Compra registrada:", resp);
+
+      setConfirmOpen(false);
+      onCancelar();
+    } catch (error) {
+      console.error("Error al registrar la compra:", error);
+      alert(
+        "No se pudo registrar la compra. Revisá la consola del navegador para más detalles."
+      );
+    }
   }
 
   // ===== Edición de un ítem con Modified (adapter precioUnit <-> precio) =====
   const editColumns = [
-    { key: "tipo",       label: "Tipo" },
-    { key: "producto",   label: "Producto / Material", width: "220px", type: "text" },
-    { key: "cantidad",   label: "Cantidad",            width: "120px", type: "number" },
-    { key: "medida",     label: "Medida",              width: "120px", type: "text" },
-    { key: "precio",     label: "Precio unit.",        width: "140px", type: "number" }, // usa "precio" para recalcular
-    { key: "subtotal",   label: "Subtotal",            width: "140px", readOnly: true },
+    { key: "tipo", label: "Tipo" },
+    {
+      key: "producto",
+      label: "Producto / Material",
+      width: "220px",
+      type: "text",
+    },
+    {
+      key: "cantidad",
+      label: "Cantidad",
+      width: "120px",
+      type: "number",
+    },
+    { key: "medida", label: "Medida", width: "120px", type: "text" },
+    {
+      key: "precio",
+      label: "Precio unit.",
+      width: "140px",
+      type: "number",
+    }, // usa "precio" para recalcular
+    { key: "subtotal", label: "Subtotal", width: "140px", readOnly: true },
   ];
 
   const computeTotal = (list) =>
@@ -184,13 +300,18 @@ export default function RegistrarCompra() {
     setEditRow(null);
   }
 
-  const addDisabled = !producto || toNumber(cantidad) <= 0 || toNumber(precioUnit) <= 0;
+  const addDisabled =
+    !producto || toNumber(cantidad) <= 0 || toNumber(precioUnit) <= 0;
 
   // Atajos: Esc = cancelar, Ctrl/Cmd+Enter = guardar
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === "Escape") onCancelar();
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "enter" && items.length > 0) {
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        e.key.toLowerCase() === "enter" &&
+        items.length > 0
+      ) {
         onGuardar();
       }
     };
@@ -200,12 +321,47 @@ export default function RegistrarCompra() {
 
   /* ====== DataTable: Próximos a confirmar ====== */
   const columns = [
-    { id: "tipo", header: "Tipo", accessor: (r) => r.tipo, align: "center", width: "110px" },
-    { id: "producto", header: "Producto", accessor: (r) => r.producto, align: "center" },
-    { id: "medida", header: "Medida/Estado", accessor: (r) => r.medida, align: "center", width: "130px" },
-    { id: "cantidad", header: "Cant. (u/kg)", render: (r) => fmtNum.format(r.cantidad), align: "center", width: "130px" },
-    { id: "precioUnit", header: "Precio unit.", render: (r) => fmt.format(r.precioUnit), align: "center", width: "140px" },
-    { id: "subtotal", header: "Subtotal", render: (r) => fmt.format(r.subtotal), align: "center", width: "140px" },
+    {
+      id: "tipo",
+      header: "Tipo",
+      accessor: (r) => r.tipo,
+      align: "center",
+      width: "110px",
+    },
+    {
+      id: "producto",
+      header: "Producto",
+      accessor: (r) => r.producto,
+      align: "center",
+    },
+    {
+      id: "medida",
+      header: "Medida/Estado",
+      accessor: (r) => r.medida,
+      align: "center",
+      width: "130px",
+    },
+    {
+      id: "cantidad",
+      header: "Cant. (u/kg)",
+      render: (r) => fmtNum.format(r.cantidad),
+      align: "center",
+      width: "130px",
+    },
+    {
+      id: "precioUnit",
+      header: "Precio unit.",
+      render: (r) => fmt.format(r.precioUnit),
+      align: "center",
+      width: "140px",
+    },
+    {
+      id: "subtotal",
+      header: "Subtotal",
+      render: (r) => fmt.format(r.subtotal),
+      align: "center",
+      width: "140px",
+    },
     { id: "obs", header: "Observ.", accessor: (r) => r.obs, align: "center" },
     {
       id: "acciones",
@@ -238,14 +394,18 @@ export default function RegistrarCompra() {
       {/* Datos de la compra */}
       <div className="rounded-2xl border border-[#d8e4df] bg-white">
         <div className="p-4 md:p-5">
-          <p className="text-[13px] font-semibold text-[#154734] mb-3">Datos de la compra</p>
+          <p className="text-[13px] font-semibold text-[#154734] mb-3">
+            Datos de la compra
+          </p>
 
           {/* === Bloque de campos === */}
           <div className="grid grid-cols-1 gap-4">
             {/* Producto + Tipo */}
             <div className="grid grid-cols-[minmax(0,1.4fr)_220px] gap-3">
               <div className="relative">
-                <label className="block text-sm text-[#154734] mb-1">Producto</label>
+                <label className="block text-sm text-[#154734] mb-1">
+                  Producto
+                </label>
                 <div className="relative">
                   <input
                     value={busquedaProd}
@@ -263,7 +423,9 @@ export default function RegistrarCompra() {
                 {busquedaProd && !producto && (
                   <div className="absolute z-10 mt-1 w-full rounded-md border border-[#d8e4df] bg-white shadow max-h-56 overflow-auto">
                     {productosFiltrados.length === 0 && (
-                      <div className="px-3 py-2 text-sm text-gray-500">Sin resultados</div>
+                      <div className="px-3 py-2 text-sm text-gray-500">
+                        Sin resultados
+                      </div>
                     )}
                     {productosFiltrados.map((p) => (
                       <button
@@ -272,7 +434,9 @@ export default function RegistrarCompra() {
                         className="w-full px-3 py-2 text-left text-sm hover:bg-[#e8f4ef]"
                       >
                         {p.nombre}{" "}
-                        <span className="text-gray-500">({p.tipo} · {p.medida})</span>
+                        <span className="text-gray-500">
+                          ({p.tipo} · {p.medida})
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -280,7 +444,9 @@ export default function RegistrarCompra() {
               </div>
 
               <div>
-                <label className="block text-sm text-[#154734] mb-1">Tipo</label>
+                <label className="block text-sm text-[#154734] mb-1">
+                  Tipo
+                </label>
                 <div className="h-9 w-full rounded-md border border-[#d8e4df] bg-gray-50 text-sm px-3 flex items-center">
                   {producto ? producto.tipo : "—"}
                 </div>
@@ -290,7 +456,9 @@ export default function RegistrarCompra() {
             {/* Cantidad / Precio / Subtotal */}
             <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-3">
               <div>
-                <label className="block text-sm text-[#154734] mb-1">Cant. (u/kg)</label>
+                <label className="block text-sm text-[#154734] mb-1">
+                  Cant. (u/kg)
+                </label>
                 <input
                   ref={cantRef}
                   inputMode="decimal"
@@ -301,7 +469,9 @@ export default function RegistrarCompra() {
                 />
               </div>
               <div>
-                <label className="block text-sm text-[#154734] mb-1">Precio unit.</label>
+                <label className="block text-sm text-[#154734] mb-1">
+                  Precio unit.
+                </label>
                 <input
                   inputMode="decimal"
                   value={precioUnit}
@@ -311,7 +481,9 @@ export default function RegistrarCompra() {
                 />
               </div>
               <div>
-                <label className="block text-sm text-[#154734] mb-1">Subtotal</label>
+                <label className="block text-sm text-[#154734] mb-1">
+                  Subtotal
+                </label>
                 <div className="h-9 w-full rounded-md border border-[#d8e4df] bg-gray-50 text-sm px-3 flex items-center">
                   {subtotalCalc ? fmt.format(subtotalCalc) : "—"}
                 </div>
@@ -321,7 +493,9 @@ export default function RegistrarCompra() {
             {/* Proveedor / Fecha / Observaciones + Botones */}
             <div className="grid grid-cols-[minmax(0,1.4fr)_190px_minmax(0,1.4fr)_auto_auto] gap-3 items-end">
               <div className="relative">
-                <label className="block text-sm text-[#154734] mb-1">Proveedor (opcional)</label>
+                <label className="block text-sm text-[#154734] mb-1">
+                  Proveedor (opcional)
+                </label>
                 <div className="relative">
                   <select
                     value={proveedor}
@@ -329,13 +503,13 @@ export default function RegistrarCompra() {
                     className="h-9 w-full rounded-md border border-[#d8e4df] bg-white pr-8 pl-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E5A3E] appearance-none"
                   >
                     <option value="">Seleccione un proveedor</option>
-                    {PROVEEDORES.map((p) => (
-                      <option key={p.id} value={p.nombre}>
+                    {proveedores.map((p) => (
+                      <option key={p.id} value={p.id}>
                         {p.nombre}
                       </option>
                     ))}
                   </select>
-                  {/* Flecha personalizada (se oculta la nativa con appearance-none) */}
+                  {/* Flecha personalizada (ocultamos la nativa con appearance-none) */}
                   <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-[#154734]" />
                 </div>
               </div>
@@ -352,7 +526,9 @@ export default function RegistrarCompra() {
               </div>
 
               <div>
-                <label className="block text-sm text-[#154734] mb-1">Observaciones</label>
+                <label className="block text-sm text-[#154734] mb-1">
+                  Observaciones
+                </label>
                 <input
                   value={obs}
                   onChange={(e) => setObs(e.target.value)}
@@ -393,7 +569,9 @@ export default function RegistrarCompra() {
 
       {/* Tabla Próximos a confirmar */}
       <div className="mt-4">
-        <p className="text-[12px] text-[#154734] mb-1 ml-2">Próximos a confirmar</p>
+        <p className="text-[12px] text-[#154734] mb-1 ml-2">
+          Próximos a confirmar
+        </p>
         <DataTable
           columns={columns}
           data={items}
@@ -416,12 +594,17 @@ export default function RegistrarCompra() {
         </div>
         <div>
           <span className="font-medium">Subtotales:</span>{" "}
-          Productos: {fmtNum.format(subProductos.cantKg)} kg — {fmt.format(subProductos.total)}
+          Productos: {fmtNum.format(subProductos.cantKg)} kg —{" "}
+          {fmt.format(subProductos.total)}
         </div>
         <div className="ml-auto">
           <div className="rounded-xl border border-[#d8e4df] bg-white px-4 py-2 inline-flex items-center gap-3">
-            <span className="text-[#154734] font-semibold">Total compra:</span>
-            <span className="text-[#154734] font-bold">{fmt.format(totalCompra)}</span>
+            <span className="text-[#154734] font-semibold">
+              Total compra:
+            </span>
+            <span className="text-[#154734] font-bold">
+              {fmt.format(totalCompra)}
+            </span>
           </div>
         </div>
       </div>
@@ -502,10 +685,11 @@ export default function RegistrarCompra() {
       >
         <div className="space-y-3">
           <p className="text-sm text-[#154734]">
-            Va a registrar una compra de <strong>{fmt.format(totalCompra)}</strong>.
+            Va a registrar una compra de{" "}
+            <strong>{fmt.format(totalCompra)}</strong>.
           </p>
           <ul className="list-disc pl-5 text-sm text-slate-700">
-            <li>Proveedor: {proveedor || "—"}</li>
+            <li>Proveedor: {proveedorNombre || "—"}</li>
             <li>Fecha: {fecha || "—"}</li>
             <li>Ítems: {items.length}</li>
           </ul>

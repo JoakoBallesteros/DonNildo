@@ -225,3 +225,158 @@ WHERE NOT EXISTS (SELECT 1 FROM detalle_venta WHERE subtotal=180.50);
 -- ==========================================================
 -- FIN DEL SEED
 -- ==========================================================
+-- ==========================================================
+
+
+
+-- ==========================================================
+-- 003_seed_compras.sql
+-- Datos de prueba para el módulo de COMPRAS — Don Nildo
+-- ==========================================================
+
+-- 14. COMPRAS DE PRUEBA (ORDEN_COMPRA + DETALLE + REMITOS)
+-- ==============================
+
+-- ORDEN DE COMPRA 1 — Cartón corrugado (10 kg a 250 = 2.500)
+INSERT INTO orden_compra (id_proveedor, id_tipo_transaccion, total, fecha, observaciones, estado)
+SELECT
+  (SELECT id_proveedor        FROM proveedores      WHERE nombre = 'Reciclados Norte S.A.'),
+  (SELECT id_tipo_transaccion FROM tipo_transaccion WHERE nombre = 'COMPRA'),
+  2500.00,
+  CURRENT_DATE - INTERVAL '7 days',
+  'Compra de cartón corrugado para stock',
+  'COMPLETADO'
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM orden_compra oc
+  JOIN proveedores p ON p.id_proveedor = oc.id_proveedor
+  WHERE p.nombre = 'Reciclados Norte S.A.' AND oc.total = 2500.00
+);
+
+INSERT INTO detalle_compra (id_compra, id_producto, cantidad, precio_unitario, subtotal)
+SELECT
+  oc.id_compra,
+  (SELECT id_producto FROM productos WHERE nombre = 'Cartón corrugado'),
+  10,
+  250.00,
+  2500.00
+FROM orden_compra oc
+JOIN proveedores p ON p.id_proveedor = oc.id_proveedor
+WHERE p.nombre = 'Reciclados Norte S.A.' AND oc.total = 2500.00
+  AND NOT EXISTS (
+    SELECT 1 FROM detalle_compra dc
+    WHERE dc.id_compra = oc.id_compra AND dc.subtotal = 2500.00
+  );
+
+INSERT INTO remitos (id_compra, fecha, proveedor, tipo_compra, producto, cantidad, importe, observaciones)
+SELECT
+  oc.id_compra,
+  oc.fecha,
+  p.nombre,
+  'COMPRA',
+  'Cartón corrugado',
+  10,
+  2500.00,
+  'Remito asociado a OC de cartón corrugado'
+FROM orden_compra oc
+JOIN proveedores p ON p.id_proveedor = oc.id_proveedor
+WHERE p.nombre = 'Reciclados Norte S.A.' AND oc.total = 2500.00
+  AND NOT EXISTS (SELECT 1 FROM remitos r WHERE r.id_compra = oc.id_compra);
+
+-- ORDEN DE COMPRA 2 — Caja 40x30 (20 u a 1.800 = 36.000)
+INSERT INTO orden_compra (id_proveedor, id_tipo_transaccion, total, fecha, observaciones, estado)
+SELECT
+  (SELECT id_proveedor        FROM proveedores      WHERE nombre = 'Plásticos del Sur'),
+  (SELECT id_tipo_transaccion FROM tipo_transaccion WHERE nombre = 'COMPRA'),
+  36000.00,
+  CURRENT_DATE - INTERVAL '5 days',
+  'Reposición de cajas 40x30',
+  'COMPLETADO'
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM orden_compra oc
+  JOIN proveedores p ON p.id_proveedor = oc.id_proveedor
+  WHERE p.nombre = 'Plásticos del Sur' AND oc.total = 36000.00
+);
+
+INSERT INTO detalle_compra (id_compra, id_producto, cantidad, precio_unitario, subtotal)
+SELECT
+  oc.id_compra,
+  (SELECT id_producto FROM productos WHERE nombre = 'Caja 40x30'),
+  20,
+  1800.00,
+  36000.00
+FROM orden_compra oc
+JOIN proveedores p ON p.id_proveedor = oc.id_proveedor
+WHERE p.nombre = 'Plásticos del Sur' AND oc.total = 36000.00
+  AND NOT EXISTS (
+    SELECT 1 FROM detalle_compra dc
+    WHERE dc.id_compra = oc.id_compra AND dc.subtotal = 36000.00
+  );
+
+INSERT INTO remitos (id_compra, fecha, proveedor, tipo_compra, producto, cantidad, importe, observaciones)
+SELECT
+  oc.id_compra,
+  oc.fecha,
+  p.nombre,
+  'COMPRA',
+  'Caja 40x30',
+  20,
+  36000.00,
+  'Remito OC cajas 40x30'
+FROM orden_compra oc
+JOIN proveedores p ON p.id_proveedor = oc.id_proveedor
+WHERE p.nombre = 'Plásticos del Sur' AND oc.total = 36000.00
+  AND NOT EXISTS (SELECT 1 FROM remitos r WHERE r.id_compra = oc.id_compra);
+
+-- ORDEN DE COMPRA 3 — Papel blanco (15 kg a 300 = 4.500)
+INSERT INTO orden_compra (id_proveedor, id_tipo_transaccion, total, fecha, observaciones, estado)
+SELECT
+  (SELECT id_proveedor        FROM proveedores      WHERE nombre = 'Vidrios Industriales'),
+  (SELECT id_tipo_transaccion FROM tipo_transaccion WHERE nombre = 'COMPRA'),
+  4500.00,
+  CURRENT_DATE - INTERVAL '3 days',
+  'Compra de papel blanco para producción',
+  'COMPLETADO'
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM orden_compra oc
+  JOIN proveedores p ON p.id_proveedor = oc.id_proveedor
+  WHERE p.nombre = 'Vidrios Industriales' AND oc.total = 4500.00
+);
+
+INSERT INTO detalle_compra (id_compra, id_producto, cantidad, precio_unitario, subtotal)
+SELECT
+  oc.id_compra,
+  (SELECT id_producto FROM productos WHERE nombre = 'Papel blanco'),
+  15,
+  300.00,
+  4500.00
+FROM orden_compra oc
+JOIN proveedores p ON p.id_proveedor = oc.id_proveedor
+WHERE p.nombre = 'Vidrios Industriales' AND oc.total = 4500.00
+  AND NOT EXISTS (
+    SELECT 1 FROM detalle_compra dc
+    WHERE dc.id_compra = oc.id_compra AND dc.subtotal = 4500.00
+  );
+
+INSERT INTO remitos (id_compra, fecha, proveedor, tipo_compra, producto, cantidad, importe, observaciones)
+SELECT
+  oc.id_compra,
+  oc.fecha,
+  p.nombre,
+  'COMPRA',
+  'Papel blanco',
+  15,
+  4500.00,
+  'Remito OC papel blanco'
+FROM orden_compra oc
+JOIN proveedores p ON p.id_proveedor = oc.id_proveedor
+WHERE p.nombre = 'Vidrios Industriales' AND oc.total = 4500.00
+  AND NOT EXISTS (SELECT 1 FROM remitos r WHERE r.id_compra = oc.id_compra);
+
+-- ==========================================================
+-- FIN DEL SEED
+-- ==========================================================
+
+COMMIT;

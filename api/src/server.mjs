@@ -10,6 +10,8 @@ import { requireAuth } from "./middlewares/requireAuth.mjs";
 import authRoutes from "./routes/auth.mjs";
 import usuariosRoutes from "./routes/usuarios.mjs";
 import rolesRoutes from "./routes/roles.mjs";
+import comprasRoutes from "./routes/compras.mjs";
+
 import ventasRoutes from "./routes/ventas.mjs";
 import stockRoutes from "./routes/stock.mjs";
 import { supaAsUser } from "./lib/supabaseUserClient.mjs";
@@ -49,6 +51,7 @@ app.use(
 app.use("/v1/auth", authRoutes);
 app.use("/v1/usuarios", usuariosRoutes);
 app.use("/v1/roles", rolesRoutes);
+app.use("/api/compras", comprasRoutes);
 app.use("/api/ventas", ventasRoutes);
 app.use("/api/stock", stockRoutes);
 
