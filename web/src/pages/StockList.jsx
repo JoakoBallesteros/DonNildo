@@ -803,13 +803,13 @@ export default function StockList() {
             columns={columns}
             data={dataFiltrada}
             zebra={false}
-            stickyHeader={false}
-            wrapperClass="!mb-0"
+            stickyHeader={true} // header
+            wrapperClass="!mb-0 !max-h-[480px] overflow-y-auto shadow-sm"
             tableClass="w-full table-fixed text-sm border-collapse"
             theadClass="bg-[#e8f4ef] text-[#154734]"
             rowClass="hover:bg-[#f6faf7] border-t border-[#edf2ef] first:border-t-0"
             headerClass="px-4 py-3 font-semibold"
-            cellClass="px-4 py-4"
+            cellClass="px-4 py-3" // 
             enableSort
           />
         )}
