@@ -8,6 +8,18 @@ import PrintButton from "../components/buttons/PrintButton";
 import Modal from "../components/modals/Modals";
 import { apiFetch } from "../lib/apiClient";
 
+function genId() {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return (
+    "row-" +
+    Date.now().toString(36) +
+    "-" +
+    Math.random().toString(36).slice(2, 8)
+  );
+}
+
 function IconButton({ children, className = "", ...rest }) {
   return (
     <button
@@ -94,7 +106,7 @@ export default function StockPesaje() {
     setItems((prev) => [
       ...prev,
       {
-        id: crypto.randomUUID(),
+        id: genId(), // 👈 acá usamos genId en vez de crypto.randomUUID()
         id_producto: material.id_producto,
         tipo: material.nombre,
         unidad: material.unidad_stock || "kg",
@@ -104,7 +116,8 @@ export default function StockPesaje() {
         observaciones: obsFila && obsFila.trim() ? obsFila.trim() : "—",
       },
     ]);
-    limpiarForm();
+
+    limpiarForm(); // 👈 esto queda igual, solo limpia los inputs
   };
 
   const onDelete = (row) => {
@@ -266,129 +279,226 @@ export default function StockPesaje() {
 
   return (
     <PageContainer title="Registro de Pesaje">
-      {/* Form de alta */}
-      <div className="bg-white rounded-2xl border border-[#e3e9e5] p-5 md:p-6 mb-5">
-        {err && (
-          <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded">
-            {err}
-          </div>
-        )}
+      <div className="space-y-5 md:space-y-6 pb-28 md:pb-12">
+        {/* Form de alta */}
+        <div className="bg-white rounded-2xl border border-[#e3e9e5] shadow-sm p-4 sm:p-5 md:p-6">
+          {err && (
+            <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded">
+              {err}
+            </div>
+          )}
 
-        <div className="grid grid-cols-1 md:grid-cols-[1.5fr_1fr_1fr_auto] gap-4 items-end">
-          <div className="flex flex-col">
-            <label className="text-sm font-semibold text-[#154734] mb-1">
-              Tipo de Material
-            </label>
-            <select
-              value={matId}
-              onChange={(e) => setMatId(e.target.value)}
-              className="border border-[#d8e4df] rounded-md px-3 py-2"
-              disabled={loadingMat}
-            >
-              <option value="">
-                {loadingMat ? "Cargando materiales..." : "Seleccione…"}
-              </option>
-              {materiales.map((m) => (
-                <option key={m.id_producto} value={m.id_producto}>
-                  {m.nombre}
+          <div className="grid grid-cols-1 md:grid-cols-[1.5fr_1fr_1fr_auto] gap-4 items-end">
+            <div className="flex flex-col">
+              <label className="text-sm font-semibold text-[#154734] mb-1">
+                Tipo de Material
+              </label>
+              <select
+                value={matId}
+                onChange={(e) => setMatId(e.target.value)}
+                className="border border-[#d8e4df] rounded-md px-3 py-2"
+                disabled={loadingMat}
+              >
+                <option value="">
+                  {loadingMat ? "Cargando materiales..." : "Seleccione…"}
                 </option>
-              ))}
-            </select>
-          </div>
+                {materiales.map((m) => (
+                  <option key={m.id_producto} value={m.id_producto}>
+                    {m.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <div className="flex flex-col">
-            <label className="text-sm font-semibold text-[#154734] mb-1">
-              Cantidad (kg)
-            </label>
-            <input
-              type="number"
-              min={0}
-              value={cantidad}
-              onChange={(e) => setCantidad(e.target.value)}
-              placeholder="Ingresar cantidad…"
-              className="border border-[#d8e4df] rounded-md px-3 py-2"
-            />
-          </div>
+            <div className="flex flex-col">
+              <label className="text-sm font-semibold text-[#154734] mb-1">
+                Cantidad (kg)
+              </label>
+              <input
+                type="number"
+                min={0}
+                value={cantidad}
+                onChange={(e) => setCantidad(e.target.value)}
+                placeholder="Ingresar cantidad…"
+                className="border border-[#d8e4df] rounded-md px-3 py-2"
+              />
+            </div>
 
-          <div className="flex flex-col">
-            <label className="text-sm font-semibold text-[#154734] mb-1">
-              Precio x Kg (opcional)
-            </label>
-            <input
-              type="number"
-              min={0}
-              value={precioKg}
-              onChange={(e) => setPrecioKg(e.target.value)}
-              placeholder="Ingresar precio…"
-              className="border border-[#d8e4df] rounded-md px-3 py-2"
-            />
-          </div>
+            <div className="flex flex-col">
+              <label className="text-sm font-semibold text-[#154734] mb-1">
+                Precio x Kg (opcional)
+              </label>
+              <input
+                type="number"
+                min={0}
+                value={precioKg}
+                onChange={(e) => setPrecioKg(e.target.value)}
+                placeholder="Ingresar precio…"
+                className="border border-[#d8e4df] rounded-md px-3 py-2"
+              />
+            </div>
 
-          <div className="flex md:justify-end">
-            <IconButton onClick={onAdd} className="px-4 py-2">
-              <Plus className="w-4 h-4" />
-              <span className="font-medium">Añadir</span>
-            </IconButton>
-          </div>
+            <div className="flex md:justify-end">
+              <IconButton
+                onClick={onAdd}
+                className="w-full justify-center md:w-auto px-4 py-2"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="font-medium">Añadir</span>
+              </IconButton>
+            </div>
 
-          <div className="md:col-span-4 flex flex-col">
-            <label className="text-sm font-semibold text-[#154734] mb-1">
-              Observaciones (opcional)
-            </label>
-            <input
-              value={obsFila}
-              onChange={(e) => setObsFila(e.target.value)}
-              placeholder="(Opcional)"
-              className="border border-[#d8e4df] rounded-md px-3 py-2"
-            />
+            <div className="md:col-span-4 flex flex-col">
+              <label className="text-sm font-semibold text-[#154734] mb-1">
+                Observaciones (opcional)
+              </label>
+              <input
+                value={obsFila}
+                onChange={(e) => setObsFila(e.target.value)}
+                placeholder="(Opcional)"
+                className="border border-[#d8e4df] rounded-md px-3 py-2"
+              />
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Tabla para imprimir */}
-      <div
-        id="pesaje-print"
-        className="bg-white rounded-2xl border border-[#e3e9e5] p-3 md:p-4"
-      >
-        <DataTable
-          columns={columns}
-          data={items}
-          zebra={false}
-          stickyHeader={false}
-          theadClass="bg-[#e8f4ef] text-[#154734]"
-          rowClass="hover:bg-[#f6faf7] border-t border-[#edf2ef]"
-          headerClass="px-3 py-2.5 font-semibold"
-          cellClass="px-3 py-2.5"
-          emptyLabel="Sin ítems cargados"
-        />
-      </div>
+        {/* Tabla para imprimir */}
+        <div className="space-y-4">
+          {/* Versión desktop */}
+          <div
+            id="pesaje-print"
+            className="hidden md:block bg-white rounded-2xl border border-[#e3e9e5] shadow-sm p-3 md:p-4"
+          >
+            <DataTable
+              columns={columns}
+              data={items}
+              zebra={false}
+              stickyHeader={true}
+              wrapperClass="max-h-[360px] md:max-h-[460px] overflow-y-auto overflow-x-auto"
+              tableClass="w-full text-sm border-collapse"
+              theadClass="bg-[#e8f4ef] text-[#154734]"
+              rowClass="hover:bg-[#f6faf7] border-t border-[#edf2ef]"
+              headerClass="px-3 py-2.5 font-semibold"
+              cellClass="px-3 py-2.5"
+              emptyLabel="Sin ítems cargados"
+            />
+          </div>
 
-      {/* Acciones: imprimir */}
-      <div className="mt-5 flex items-center">
-        <div className="ml-auto">
-          <PrintButton targetId="pesaje-print" />
+          {/* Versión mobile */}
+          <div className="md:hidden space-y-3">
+            {!items.length && (
+              <div className="rounded-2xl border border-dashed border-[#d8e4df] bg-[#f7fbf9] px-4 py-6 text-center text-sm text-[#62736a]">
+                Sin ítems cargados
+              </div>
+            )}
+            {items.map((row) => (
+              <div
+                key={row.id}
+                className="rounded-2xl border border-[#e3e9e5] bg-white shadow-sm p-4 space-y-3"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-[#7a8b82]">
+                      Tipo
+                    </p>
+                    <p className="text-base font-semibold text-[#0d231a]">
+                      {row.tipo}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs uppercase tracking-wide text-[#7a8b82]">
+                      Subtotal
+                    </p>
+                    <p className="text-base font-semibold text-[#154734]">
+                      {(row.subtotal ?? 0).toLocaleString("es-AR", {
+                        style: "currency",
+                        currency: "ARS",
+                        maximumFractionDigits: 0,
+                      })}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 text-sm text-[#1f2e27]">
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-[#7a8b82]">
+                      Cantidad
+                    </p>
+                    <p className="font-medium">
+                      {row.cantidad} {row.unidad}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-[#7a8b82]">
+                      Precio x Kg
+                    </p>
+                    <p className="font-medium">
+                      {(row.precio ?? 0).toLocaleString("es-AR", {
+                        style: "currency",
+                        currency: "ARS",
+                        maximumFractionDigits: 0,
+                      })}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-1 text-sm">
+                  <p className="text-xs font-semibold text-[#7a8b82]">
+                    Observaciones
+                  </p>
+                  <p className="text-[#1f2e27]">
+                    {row.observaciones && row.observaciones !== "—"
+                      ? row.observaciones
+                      : "—"}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => onOpenEdit(row)}
+                    className="flex-1 rounded-md bg-[#154734] text-white px-3 py-2 text-sm font-medium hover:bg-[#103a2b] transition"
+                  >
+                    Modificar
+                  </button>
+                  <button
+                    onClick={() => onDelete(row)}
+                    className="flex-1 rounded-md bg-[#a30000] text-white px-3 py-2 text-sm font-medium hover:bg-[#7a0000] transition"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
 
-      {/* Botones Confirmar / Cancelar */}
-      <div className="mt-6 flex justify-center gap-3">
-        <button
-          type="button"
-          className="rounded-md border border-[#154734] text-[#154734] px-8 py-2 hover:bg-[#e8f4ef]"
-          onClick={() => {
-            setItems([]);
-            limpiarForm();
-          }}
-        >
-          Cancelar
-        </button>
-        <button
-          type="button"
-          className="bg-[#154734] text-white px-8 py-2 rounded-md hover:bg-[#103a2b]"
-          onClick={onConfirm}
-        >
-          Confirmar
-        </button>
+        {/* Acciones: imprimir */}
+        <div className="flex flex-col gap-4 md:flex-row md:items-center">
+          <div className="md:ml-auto">
+            <PrintButton targetId="pesaje-print" />
+          </div>
+        </div>
+
+        {/* Botones Confirmar / Cancelar */}
+        <div className="flex flex-col md:flex-row md:justify-center gap-3">
+          <button
+            type="button"
+            className="w-full md:w-auto rounded-md border border-[#154734] text-[#154734] px-8 py-2 font-semibold hover:bg-[#e8f4ef] transition"
+            onClick={() => {
+              setItems([]);
+              limpiarForm();
+            }}
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            className="w-full md:w-auto bg-[#154734] text-white px-8 py-2 rounded-md font-semibold hover:bg-[#103a2b] transition"
+            onClick={onConfirm}
+          >
+            Confirmar
+          </button>
+        </div>
       </div>
 
       {/* Modal editar fila */}
@@ -466,4 +576,3 @@ export default function StockPesaje() {
     </PageContainer>
   );
 }
-

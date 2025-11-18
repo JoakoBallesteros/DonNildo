@@ -1,8 +1,8 @@
-// src/lib/apiClient.js
 import supa from "./supabaseClient";
 
-const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:4000")
-  .replace(/\/$/, "");
+const API_BASE = (import.meta.env.VITE_API_URL || "/api").replace(/\/$/, "");
+
+console.log("🔧 API_BASE en runtime:", API_BASE);
 
 function toJsonSafe(text) {
   try {
@@ -13,7 +13,6 @@ function toJsonSafe(text) {
 }
 
 export async function api(path, opts = {}) {
-  // 1) Sesión actual en Supabase
   const {
     data: { session } = {},
   } = await supa.auth.getSession();
@@ -22,16 +21,22 @@ export async function api(path, opts = {}) {
   const method = (opts.method || "GET").toUpperCase();
   const isFormData = opts.body instanceof FormData;
 
-  // 2) Headers
+  // 🧼 NORMALIZAR PATH: asegurar slash y evitar /api duplicado
+  let cleanPath = path || "";
+  if (!cleanPath.startsWith("/")) cleanPath = `/${cleanPath}`;
+  cleanPath = cleanPath.replace(/^\/api(?=\/|$)/, "");
+  if (!cleanPath.startsWith("/")) cleanPath = `/${cleanPath}`;
+  if (cleanPath === "/") cleanPath = "";
+
+  const url = `${API_BASE}${cleanPath || "/"}`;
+
   const headers = {
     ...(isFormData ? {} : { "Content-Type": "application/json" }),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(opts.headers || {}),
   };
 
-  const url = `${API_BASE}${path}`;
   let resp;
-
   try {
     resp = await fetch(url, { ...opts, method, headers });
   } catch (e) {
@@ -65,7 +70,6 @@ export async function api(path, opts = {}) {
   return data ?? {};
 }
 
-// 👇 Alias para no romper nada que use apiFetch
-export const apiFetch = api;
 
+export const apiFetch = api;
 export default api;

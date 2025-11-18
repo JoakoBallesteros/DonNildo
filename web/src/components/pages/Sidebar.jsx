@@ -87,6 +87,8 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
     if (onCloseMobile) onCloseMobile();
   };
 
+  const shouldRenderContent = open || mobileOpen;
+
   return (
     <>
       {mobileOpen && (
@@ -98,14 +100,14 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
 
       <aside
         className={[
-          "fixed md:static z-50 bg-emerald-50 border-r border-emerald-100 h-screen transition-all duration-200",
+          "fixed md:static z-50 bg-emerald-50 border-r border-emerald-100 min-h-screen transition-all duration-200",
           mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
           open
             ? "md:w-72 md:pointer-events-auto"
             : "md:w-0 md:border-0 md:pointer-events-none md:overflow-hidden",
         ].join(" ")}
       >
-        {open && (
+        {shouldRenderContent && (
           <div className="w-72 h-full flex flex-col">
             {/* Header brand + toggle */}
             <div className="flex items-center justify-between px-4 pt-5 pb-4">
@@ -114,11 +116,15 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
                 <br />
                 NILDO
               </div>
-              <HamburgerButton onClick={onToggle} />
+              <HamburgerButton
+                onClick={onToggle}
+                className="hidden md:inline-flex"
+                label={open ? "Contraer menú" : "Expandir menú"}
+              />
             </div>
 
             {/* NAV: columna + scroll + badge abajo */}
-            <nav className="flex-1 overflow-y-auto px-3 pb-3 flex flex-col space-y-1">
+           <nav className="flex-1 overflow-y-auto md:overflow-visible px-3 pb-3 flex flex-col space-y-1">
               {/* Inicio */}
               <NavLink
                 to="/"

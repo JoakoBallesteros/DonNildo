@@ -1,4 +1,4 @@
-import api from "../lib/api.js";
+import api from "../lib/apiClient";
 
 // GET /v1/account/me
 export function getAccountMe() {

@@ -1,5 +1,5 @@
 import { supa } from "../lib/supabaseClient";
-import api from "../lib/api";
+import api from "../lib/apiClient";
 
 // Mantener dn_token sincronizado con la sesión de Supabase
 supa.auth.onAuthStateChange((_event, session) => {

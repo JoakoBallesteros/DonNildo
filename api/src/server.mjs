@@ -19,7 +19,7 @@ import { webcrypto } from "node:crypto";
 import adminUsers from "./routes/adminUsers.mjs";
 import accountRouter from "./routes/account.mjs";
 import auditoriaRoutes from "./routes/auditoria.mjs";
-if (!globalThis.crypto) globalThis.crypto = webcrypto
+if (!globalThis.crypto) globalThis.crypto = webcrypto;
 
 const app = express();
 
@@ -29,8 +29,8 @@ app.use(morgan("dev"));
 // Poner aca todos los origenes para permitir en dev
 const allowedOrigins = [
   "http://localhost:5173",
-  process.env.CORS_ORIGIN, 
-  "https://5173.brs.devtunnels.ms", // puerto forwardeado 
+  process.env.CORS_ORIGIN,
+  "https://5173.brs.devtunnels.ms", // puerto forwardeado
 ].filter(Boolean);
 
 app.use(
@@ -48,30 +48,39 @@ app.use(
   })
 );
 // Rutas
+
+// --- versión con /api/v1 (lo que espera el front) ---
+app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/usuarios", usuariosRoutes);
+app.use("/api/v1/roles", rolesRoutes);
+app.use("/api/v1/admin/users", adminUsers);
+app.use("/api/v1/account", accountRouter);
+
+// Estas ya tenían /api, solo les agrego /v1 si querés versionar todo igual:
+app.use("/api/v1/compras", comprasRoutes);
+app.use("/api/v1/ventas", ventasRoutes);
+app.use("/api/v1/stock", stockRoutes);
+app.use("/api/v1/auditoria", auditoriaRoutes);
+
+// --- opcional: mantener las rutas viejas por compatibilidad (no estorban) ---
 app.use("/v1/auth", authRoutes);
 app.use("/v1/usuarios", usuariosRoutes);
 app.use("/v1/roles", rolesRoutes);
+app.use("/v1/admin/users", adminUsers);
+app.use("/v1/account", accountRouter);
+
 app.use("/api/compras", comprasRoutes);
 app.use("/api/ventas", ventasRoutes);
 app.use("/api/stock", stockRoutes);
-
-app.use("/v1/admin/users", adminUsers);
-app.use("/v1/account", accountRouter);
 app.use("/api/auditoria", auditoriaRoutes);
 
-console.log('MODE: supabase-only')
-console.log(
-  "DB URL:",
-  (process.env.DATABASE_URL || "").replace(
-    /\/\/([^:]+):([^@]+)@/,
-    (_m, u) => `//${u}:***@`
-  )
-);
-
 // ------ Health ------
-app.get("/v1/health", (_req, res) => {
+// lo que ve el front: /api/v1/health
+app.get("/api/v1/health", (_req, res) => {
   res.json({ ok: true, mode: "supabase" });
 });
+
+
 
 app.get("/v1/health/db", async (_req, res) => {
   try {
@@ -84,12 +93,19 @@ app.get("/v1/health/db", async (_req, res) => {
 });
 
 // ------ Endpoints protegidos ------
+
+// lo que usaría el front si alguna vez pegás a /api/v1/me
+app.get("/api/v1/me", requireAuth, (req, res) => {
+  res.json({ user: req.user });
+});
+
+// versión vieja
 app.get("/v1/me", requireAuth, (req, res) => {
   res.json({ user: req.user });
 });
 
-// Productos bajo RLS real (sin pool, sin allowRoles)
-app.get("/v1/productos", requireAuth, async (req, res) => {
+// productos
+app.get("/api/v1/productos", requireAuth, async (req, res) => {
   const s = supaAsUser(req.accessToken);
   const { data, error } = await s
     .from("productos")
@@ -101,5 +117,10 @@ app.get("/v1/productos", requireAuth, async (req, res) => {
   res.json({ productos: data });
 });
 
+
+
 const PORT = Number(process.env.PORT || 4000);
-app.listen(PORT, () => console.log("API on :" + PORT));
+
+app.listen(PORT, () => {
+  console.log("API on :" + PORT);
+});

@@ -1,5 +1,5 @@
 // web/src/services/userService.mjs
-import { api } from "../lib/api.js";
+import { api } from "../lib/apiClient";
 
 export async function listarUsuarios(query) {
   const q = query ? `?search=${encodeURIComponent(query)}` : "";
