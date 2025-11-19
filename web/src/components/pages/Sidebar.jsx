@@ -272,52 +272,19 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
               )}
 
               {/* Reportes */}
-              {perms.canReportes && (
-                <>
-                  <div className="relative mx-1">
-                    <NavLink
-                      to="/reportes"
-                      end
-                      onClick={onCloseMobile}
-                      className={({ isActive }) =>
-                        `pr-10 ${linkBase} ${isActive ? active : inactive}`
-                      }
-                    >
-                      Reportes
-                    </NavLink>
-                    <button
-                      type="button"
-                      aria-expanded={reportesOpen}
-                      aria-label={
-                        reportesOpen
-                          ? "Ocultar opciones de reportes"
-                          : "Mostrar opciones de reportes"
-                      }
-                      onClick={() => toggleSection("reportes")}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 grid place-items-center rounded-lg hover:bg-emerald-100"
-                    >
-                      <ChevronRight
-                        className={`w-4 h-4 transition-transform ${
-                          reportesOpen ? "rotate-90" : ""
-                        }`}
-                      />
-                    </button>
-                  </div>
-                  {reportesOpen && (
-                    <div className="pl-5 space-y-1">
-                      <NavLink
-                        to="/reportes/nuevo"
-                        onClick={onCloseMobile}
-                        className={({ isActive }) =>
-                          `mx-1 ${linkBase} ${isActive ? active : inactive}`
-                        }
-                      >
-                        Crear nuevo reporte
-                      </NavLink>
-                    </div>
-                  )}
-                </>
-              )}
+              <div className="relative mx-1">
+                <NavLink
+                  to="/reportes"
+                  end
+                  onClick={onCloseMobile}
+                  className={({ isActive }) =>
+                    `pr-10 ${linkBase} ${isActive ? active : inactive}`
+                  }
+                >
+                  Reportes
+                  </NavLink>
+              </div>
+              
 
               {/* Seguridad (solo ADMIN) */}
               {perms.isAdmin && (

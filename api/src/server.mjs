@@ -20,8 +20,9 @@ import { webcrypto } from "node:crypto";
 import adminUsers from "./routes/adminUsers.mjs";
 import accountRouter from "./routes/account.mjs";
 import auditoriaRoutes from "./routes/auditoria.mjs";
+import reportesRoutes from "./routes/reportes.mjs";
 
-if (!globalThis.crypto) globalThis.crypto = webcrypto;
+if (!globalThis.crypto) globalThis.crypto = webcrypto
 
 const app = express();
 
@@ -83,8 +84,15 @@ app.use("/api/compras", comprasRoutes);
 app.use("/api/ventas", ventasRoutes);
 app.use("/api/stock", stockRoutes);
 app.use("/api/auditoria", auditoriaRoutes);
-
-// -------- Health --------
+app.use("/api/reportes", reportesRoutes);
+console.log('MODE: supabase-only')
+console.log(
+  "DB URL:",
+  (process.env.DATABASE_URL || "").replace(
+    /\/\/([^:]+):([^@]+)@/,
+    (_m, u) => `//${u}:***@`
+  )
+);
 
 // nueva
 app.get("/api/v1/health", (_req, res) => {
