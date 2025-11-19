@@ -28,8 +28,6 @@ import RegistrarVentas from "./pages/RegistrarVentas.jsx";
 
 /* Reportes */
 import Reportes from "./pages/Reportes.jsx";
-import ReportesNuevo from "./pages/ReportesNuevo";
-
 /* Seguridad*/
 import SegUsuarios from "./pages/SegUsuarios";
 import SegAuditoria from "./pages/SegAuditoria";
@@ -67,7 +65,7 @@ export default function App() {
             </Route>
 
             <Route path="reportes" element={<Reportes />} />
-            <Route path="reportes/nuevo" element={<ReportesNuevo />} />
+           
 
             <Route path="seguridad" element={<SegUsuarios />} />
             <Route path="seguridad/auditoria" element={<SegAuditoria />} />

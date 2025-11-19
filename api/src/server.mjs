@@ -19,6 +19,8 @@ import { webcrypto } from "node:crypto";
 import adminUsers from "./routes/adminUsers.mjs";
 import accountRouter from "./routes/account.mjs";
 import auditoriaRoutes from "./routes/auditoria.mjs";
+import reportesRoutes from "./routes/reportes.mjs";
+
 if (!globalThis.crypto) globalThis.crypto = webcrypto
 
 const app = express();
@@ -58,7 +60,7 @@ app.use("/api/stock", stockRoutes);
 app.use("/v1/admin/users", adminUsers);
 app.use("/v1/account", accountRouter);
 app.use("/api/auditoria", auditoriaRoutes);
-
+app.use("/api/reportes", reportesRoutes);
 console.log('MODE: supabase-only')
 console.log(
   "DB URL:",

@@ -13,10 +13,9 @@
     "dev:api": "npm run dev -w api",
     "dev:web": "npm run dev -w web",
     "dev": "concurrently -n API,WEB -c cyan,green \"npm run dev:api\" \"wait-on http://localhost:4000/v1/health && npm run dev:web\""
-    
   },
   "devDependencies": {
-    "autoprefixer": "^10.4.21"      ,
+    "autoprefixer": "^10.4.21",
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
     "postcss": "^8.5.6",
@@ -35,6 +34,7 @@
   },
   "homepage": "https://github.com/JoakoBallesteros/DonNildo#readme",
   "dependencies": {
+    "@headlessui/react": "^2.2.9",
     "@supabase/supabase-js": "^2.76.1",
     "jose": "^6.1.0",
     "jspdf": "^3.0.3",
