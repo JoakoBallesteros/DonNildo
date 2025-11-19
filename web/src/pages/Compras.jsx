@@ -86,6 +86,13 @@ const fmtARS = new Intl.NumberFormat("es-AR", {
   maximumFractionDigits: 0,
 });
 
+// Saca el número de un ID tipo "OC-0012" → 12
+function getNumericIdFromDisplay(id) {
+  if (typeof id === "number") return id;
+  const match = String(id).match(/(\d+)$/);
+  return match ? Number(match[1]) : null;
+}
+
 function mapCompraFromApi(c) {
   // Normalizamos varios posibles nombres de campos para que el front no explote
   const idRaw = c.id ?? c.id_compra ?? c.numero_oc;
@@ -96,40 +103,31 @@ function mapCompraFromApi(c) {
       ? `OC-${String(idRaw).padStart(4, "0")}`
       : "OC-S/N";
 
-  const proveedor =
-    c.proveedor ??
-    c.proveedor_nombre ??
-    c.proveedorNombre ??
-    "—";
+  // ID numérico real de la compra en la DB
+  const dbId =
+    typeof c.id_compra === "number"
+      ? c.id_compra
+      : typeof idRaw === "number"
+      ? idRaw
+      : null;
 
-  const tipo =
-    c.tipo ??
-    c.tipo_compra ??
-    c.clase ??
-    "Mixtas";
+  const proveedor =
+    c.proveedor ?? c.proveedor_nombre ?? c.proveedorNombre ?? "—";
+
+  const tipo = c.tipo ?? c.tipo_compra ?? c.clase ?? "Mixtas";
 
   const fecha =
-    c.fecha ??
-    c.fecha_compra ??
-    c.fecha_emision ??
-    new Date().toISOString().slice(0, 10);
+    c.fecha ?? c.fecha_compra ?? c.fecha_emision ?? new Date().toISOString().slice(0, 10);
 
   const total = Number(c.total ?? 0);
   const obs = c.observaciones ?? c.obs ?? "—";
 
   // Detalles: puede venir como items, detalles, detalle_compra, etc.
-  const rawItems =
-    c.items ??
-    c.detalles ??
-    c.detalle_compra ??
-    [];
+  const rawItems = c.items ?? c.detalles ?? c.detalle_compra ?? [];
 
   const items = rawItems.map((it, idx) => ({
     producto:
-      it.producto ??
-      it.nombre_producto ??
-      it.nombre ??
-      `Item ${idx + 1}`,
+      it.producto ?? it.nombre_producto ?? it.nombre ?? `Item ${idx + 1}`,
     medida: it.medida ?? it.unidad ?? it.unidad_stock ?? "u",
     cantidad: Number(it.cantidad ?? 0),
     precio: Number(it.precio ?? it.precio_unitario ?? 0),
@@ -137,7 +135,7 @@ function mapCompraFromApi(c) {
     subtotal: Number(it.subtotal ?? 0),
   }));
 
-  return { id, proveedor, tipo, total, fecha, obs, items };
+  return { id, dbId, proveedor, tipo, total, fecha, obs, items };
 }
 
 export default function Compras() {
@@ -182,7 +180,9 @@ export default function Compras() {
         setRows(mapped);
       } catch (err) {
         console.error("Error cargando compras:", err);
-        setErrorMsg("No se pudieron cargar las compras desde el servidor.");
+        setErrorMsg(
+          "No se pudieron cargar las compras desde el servidor."
+        );
         // fallback al mock
         setRows(INITIAL);
       } finally {
@@ -240,9 +240,48 @@ export default function Compras() {
     setEditOpen(true);
   }
 
-  function onAnular(id) {
-    // De momento solo afecta al front. Luego podés engancharlo a una API DELETE/PUT.
-    setRows((prev) => prev.filter((r) => r.id !== id));
+  // ===> AHORA ANULA EN BACKEND Y DESPUÉS ACTUALIZA EL FRONT
+  async function onAnular(row) {
+    const compraId =
+      row.dbId ?? row.id_compra ?? getNumericIdFromDisplay(row.id);
+
+    if (!compraId) {
+      // Sin ID numérico: sólo afectamos el front y listo
+      if (window.confirm(`¿Anular sólo visualmente la compra ${row.id}?`)) {
+        setRows((prev) => prev.filter((r) => r.id !== row.id));
+      }
+      return;
+    }
+
+    if (
+      !window.confirm(
+        `¿Seguro que querés anular la compra ${row.id}? Esta acción no se puede deshacer.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const resp = await api(`/api/compras/${compraId}/anular`, {
+        method: "PUT",
+      });
+
+      if (!resp?.ok) {
+        console.error("Error anulando compra:", resp);
+        alert(
+          resp?.message ||
+            "No se pudo anular la compra. Revisá el servidor."
+        );
+        return;
+      }
+
+      // Podés elegir: o la sacás de la lista, o la marcás como ANULADA.
+      // Acá la saco (comportamiento original):
+      setRows((prev) => prev.filter((r) => r.id !== row.id));
+    } catch (err) {
+      console.error("Error de red anulando compra:", err);
+      alert("Error de red al anular la compra.");
+    }
   }
 
   function onDownload(row) {
@@ -330,7 +369,7 @@ export default function Compras() {
               MODIFICAR
             </button>
             <button
-              onClick={() => onAnular(row.id)}
+              onClick={() => onAnular(row)}
               className="bg-[#A30000] text-white px-5 py-1 text-xs rounded-md hover:bg-[#7A0000]"
             >
               ANULAR
@@ -365,13 +404,65 @@ export default function Compras() {
   ];
 
   const computeTotal = (list) =>
-    list.reduce((sum, it) => sum + Number(it.subtotal || 0), 0).toFixed(2);
+    list
+      .reduce((sum, it) => sum + Number(it.subtotal || 0), 0)
+      .toFixed(2);
 
-  function onSaveEdit(updated) {
-    // `updated` debería venir con la misma estructura que la compra original
-    setRows((prev) => prev.map((r) => (r.id === updated.id ? { ...r, ...updated } : r)));
+  // ===> AHORA GUARDA EN BACKEND Y LUEGO ACTUALIZA LA FILA
+  async function onSaveEdit(updated) {
+    const compraId =
+      updated.dbId ??
+      updated.id_compra ??
+      getNumericIdFromDisplay(updated.id);
+
+    // Actualización visual inmediata (optimista)
+    setRows((prev) =>
+      prev.map((r) => (r.id === updated.id ? { ...r, ...updated } : r))
+    );
     setEditOpen(false);
     setEditRow(null);
+
+    if (!compraId) {
+      console.warn(
+        "No hay ID numérico de compra; sólo se actualizó en el front."
+      );
+      return;
+    }
+
+    try {
+      const payload = {
+        fecha: updated.fecha,
+        observaciones: updated.obs,
+        items: updated.items,
+      };
+
+      const resp = await api(`/api/compras/${compraId}`, {
+        method: "PUT",
+        body: payload,
+      });
+
+      if (!resp?.ok) {
+        console.error("Error modificando compra en backend:", resp);
+        alert(
+          resp?.message ||
+            "La compra se modificó visualmente, pero falló al guardar en el servidor."
+        );
+        return;
+      }
+
+      // Si el backend devuelve la compra actualizada, podés re-mapearla:
+      if (resp.compra) {
+        const mapped = mapCompraFromApi(resp.compra);
+        setRows((prev) =>
+          prev.map((r) => (r.id === mapped.id ? mapped : r))
+        );
+      }
+    } catch (err) {
+      console.error("Error de red modificando compra:", err);
+      alert(
+        "La compra se modificó visualmente, pero hubo un error de red al guardar."
+      );
+    }
   }
 
   return (
@@ -442,7 +533,9 @@ export default function Compras() {
         isOpen={detailOpen}
         onClose={() => setDetailOpen(false)}
         title={
-          detailRow ? `Detalle de Compra ${detailRow.id}` : "Detalle de Compra"
+          detailRow
+            ? `Detalle de Compra ${detailRow.id}`
+            : "Detalle de Compra"
         }
         data={detailRow}
         itemsKey="items"

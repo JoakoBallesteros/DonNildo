@@ -268,4 +268,108 @@ router.post("/", async (req, res) => {
   }
 });
 
+router.put("/:id/anular", async (req, res) => {
+  const id = Number(req.params.id);
+
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ ok: false, message: "ID de compra inválido" });
+  }
+
+  try {
+    // 1) Actualizar la compra en la DB (ajustá el estado según tu modelo)
+    const { rows } = await pool.query(
+      `
+      UPDATE orden_compra
+      SET estado = 'ANULADA'
+      WHERE id_compra = $1
+      RETURNING id_compra, total, estado;
+      `,
+      [id]
+    );
+
+    if (!rows.length) {
+      return res.status(404).json({ ok: false, message: "Compra no encontrada" });
+    }
+
+    const compra = rows[0];
+
+    // 2) Auditoría
+    try {
+      const userId = await getUserIdFromToken(req.accessToken);
+      await registrarAuditoria(
+        userId,
+        "ANULAR_COMPRA",
+        "COMPRAS",
+        `Compra ${compra.id_compra} anulada (estado=${compra.estado})`
+      );
+    } catch (errAud) {
+      console.error("Error registrando auditoría de anulación:", errAud.message);
+    }
+
+    return res.json({ ok: true, compra });
+  } catch (err) {
+    console.error("❌ Error en PUT /api/compras/:id/anular:", err);
+    return res.status(500).json({
+      ok: false,
+      message: "Error al anular la compra",
+      detail: err.message,
+    });
+  }
+});
+
+/* ============================================
+ * PUT /api/compras/:id  → modificar compra
+ * ============================================ */
+router.put("/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  const { observaciones, fecha } = req.body; // o lo que quieras permitir modificar
+
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ ok: false, message: "ID de compra inválido" });
+  }
+
+  try {
+    const { rows } = await pool.query(
+      `
+      UPDATE orden_compra
+      SET
+        observaciones = COALESCE($2, observaciones),
+        fecha         = COALESCE($3, fecha)
+      WHERE id_compra = $1
+      RETURNING id_compra, total, estado;
+      `,
+      [id, observaciones ?? null, fecha ?? null]
+    );
+
+    if (!rows.length) {
+      return res.status(404).json({ ok: false, message: "Compra no encontrada" });
+    }
+
+    const compra = rows[0];
+
+    // Auditoría
+    try {
+      const userId = await getUserIdFromToken(req.accessToken);
+      await registrarAuditoria(
+        userId,
+        "MODIFICAR_COMPRA",
+        "COMPRAS",
+        `Compra ${compra.id_compra} modificada`
+      );
+    } catch (errAud) {
+      console.error("Error registrando auditoría de modificación:", errAud.message);
+    }
+
+    return res.json({ ok: true, compra });
+  } catch (err) {
+    console.error("❌ Error en PUT /api/compras/:id:", err);
+    return res.status(500).json({
+      ok: false,
+      message: "Error al modificar la compra",
+      detail: err.message,
+    });
+  }
+});
+
+
 export default router;
