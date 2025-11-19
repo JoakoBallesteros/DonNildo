@@ -331,17 +331,17 @@ export default function ProductFormTabs({
         </div>
       )}
 
-      <div className="mt-8 flex justify-center gap-4 pt-2">
+      <div className="mt-8 flex flex-col sm:flex-row sm:justify-center gap-3 sm:gap-4 pt-2">
         <button
           type="button"
           onClick={onCancel}
-          className="h-12 px-8 rounded-xl border-2 border-[#154734] text-[#154734] font-semibold hover:bg-[#e8f4ef]"
+          className="h-12 px-8 rounded-xl border-2 border-[#154734] text-[#154734] font-semibold hover:bg-[#e8f4ef] w-full sm:w-auto"
         >
           Cancelar
         </button>
         <button
           type="submit"
-          className="h-12 px-10 rounded-xl bg-[#154734] text-white font-semibold shadow hover:bg-[#103a2b]"
+          className="h-12 px-10 rounded-xl bg-[#154734] text-white font-semibold shadow hover:bg-[#103a2b] w-full sm:w-auto"
         >
           {mode === "create" ? "Guardar" : "Guardar cambios"}
         </button>

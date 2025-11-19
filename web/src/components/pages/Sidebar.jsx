@@ -1,6 +1,6 @@
 // src/components/Sidebar.jsx
-import { useState, useEffect } from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import HamburgerButton from "../buttons/HamburgerButton.jsx";
 import AccountBadge from "../buttons/AccountBadge.jsx";
@@ -10,7 +10,6 @@ const linkBase =
 const active = "bg-emerald-700 text-white";
 const inactive = "text-emerald-900/85 hover:bg-emerald-100";
 
-// leemos el rol guardado por AccountBadge (o login)
 const getRole = () => localStorage.getItem("dn_role") || "";
 const ACCORDION = true;
 
@@ -19,7 +18,6 @@ const isSectionActive = (pathname, base) =>
 
 export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
   const { pathname } = useLocation();
-  const navigate = useNavigate();
   const [role, setRole] = useState(getRole());
 
   // acordeones
@@ -71,7 +69,7 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
     else openOnly(null);
   }, [pathname]);
 
-  // si cambia el rol en localStorage (p. ej. al cargar AccountBadge), actualizamos
+  // refresca rol desde localStorage
   useEffect(() => {
     const id = setInterval(() => {
       const r = getRole();
@@ -80,12 +78,23 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
     return () => clearInterval(id);
   }, [role]);
 
-  // helper: cierre del menú móvil cuando navegamos
-  // eslint-disable-next-line no-unused-vars
-  const handleNav = (to) => () => {
-    navigate(to);
-    if (onCloseMobile) onCloseMobile();
-  };
+  // permisos calculados
+  const perms = useMemo(() => {
+    const r = (role || "").toUpperCase();
+    const isAdmin = r === "ADMIN";
+    const isCompras = r === "COMPRAS";
+    const isVentas = r === "VENTAS";
+
+    return {
+      isAdmin,
+      canCompras: isAdmin || isCompras,
+      canVentas: isAdmin || isVentas,
+      canStock: isAdmin || isCompras || isVentas || !r,
+      canReportes: isAdmin || isCompras || isVentas || !r,
+    };
+  }, [role]);
+
+  const shouldRenderContent = open || mobileOpen;
 
   return (
     <>
@@ -98,14 +107,14 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
 
       <aside
         className={[
-          "fixed md:static z-50 bg-emerald-50 border-r border-emerald-100 h-screen transition-all duration-200",
+          "fixed md:static z-50 bg-emerald-50 border-r border-emerald-100 min-h-screen transition-all duration-200",
           mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
           open
             ? "md:w-72 md:pointer-events-auto"
             : "md:w-0 md:border-0 md:pointer-events-none md:overflow-hidden",
         ].join(" ")}
       >
-        {open && (
+        {shouldRenderContent && (
           <div className="w-72 h-full flex flex-col">
             {/* Header brand + toggle */}
             <div className="flex items-center justify-between px-4 pt-5 pb-4">
@@ -114,11 +123,15 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
                 <br />
                 NILDO
               </div>
-              <HamburgerButton onClick={onToggle} />
+              <HamburgerButton
+                onClick={onToggle}
+                className="hidden md:inline-flex"
+                label={open ? "Contraer menú" : "Expandir menú"}
+              />
             </div>
 
-            {/* NAV: columna + scroll + badge abajo */}
-            <nav className="flex-1 overflow-y-auto px-3 pb-3 flex flex-col space-y-1">
+            {/* NAV */}
+            <nav className="flex-1 overflow-y-auto md:overflow-visible px-3 pb-3 flex flex-col space-y-1">
               {/* Inicio */}
               <NavLink
                 to="/"
@@ -132,123 +145,134 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
               </NavLink>
 
               {/* Compras */}
-              <NavLink
-                to="/compras"
-                onClick={onCloseMobile}
-                className={({ isActive }) =>
-                  `mx-1 ${linkBase} ${isActive ? active : inactive}`
-                }
-              >
-                Compras
-              </NavLink>
-
-              {/* Ventas */}
-              <div className="relative mx-1">
+              {perms.canCompras && (
                 <NavLink
-                  to="/ventas"
-                  end
+                  to="/compras"
                   onClick={onCloseMobile}
                   className={({ isActive }) =>
-                    `pr-10 ${linkBase} ${isActive ? active : inactive}`
+                    `mx-1 ${linkBase} ${isActive ? active : inactive}`
                   }
                 >
-                  Ventas
+                  Compras
                 </NavLink>
-                <button
-                  type="button"
-                  aria-expanded={ventasOpen}
-                  aria-label={
-                    ventasOpen
-                      ? "Ocultar opciones de ventas"
-                      : "Mostrar opciones de ventas"
-                  }
-                  onClick={() => toggleSection("ventas")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 grid place-items-center rounded-lg hover:bg-emerald-100"
-                >
-                  <ChevronRight
-                    className={`w-4 h-4 transition-transform ${
-                      ventasOpen ? "rotate-90" : ""
-                    }`}
-                  />
-                </button>
-              </div>
-              {ventasOpen && (
-                <div className="pl-5 space-y-1">
-                  <NavLink
-                    to="/ventas/nueva"
-                    onClick={onCloseMobile}
-                    className={({ isActive }) =>
-                      `mx-1 ${linkBase} ${isActive ? active : inactive}`
-                    }
-                  >
-                    Registrar nueva venta
-                  </NavLink>
-                </div>
+              )}
+
+              {/* Ventas */}
+              {perms.canVentas && (
+                <>
+                  <div className="relative mx-1">
+                    <NavLink
+                      to="/ventas"
+                      end
+                      onClick={onCloseMobile}
+                      className={({ isActive }) =>
+                        `pr-10 ${linkBase} ${isActive ? active : inactive}`
+                      }
+                    >
+                      Ventas
+                    </NavLink>
+                    <button
+                      type="button"
+                      aria-expanded={ventasOpen}
+                      aria-label={
+                        ventasOpen
+                          ? "Ocultar opciones de ventas"
+                          : "Mostrar opciones de ventas"
+                      }
+                      onClick={() => toggleSection("ventas")}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 grid place-items-center rounded-lg hover:bg-emerald-100"
+                    >
+                      <ChevronRight
+                        className={`w-4 h-4 transition-transform ${
+                          ventasOpen ? "rotate-90" : ""
+                        }`}
+                      />
+                    </button>
+                  </div>
+                  {ventasOpen && (
+                    <div className="pl-5 space-y-1">
+                      <NavLink
+                        to="/ventas/nueva"
+                        onClick={onCloseMobile}
+                        className={({ isActive }) =>
+                          `mx-1 ${linkBase} ${isActive ? active : inactive}`
+                        }
+                      >
+                        Registrar nueva venta
+                      </NavLink>
+                    </div>
+                  )}
+                </>
               )}
 
               {/* Stock */}
-              <div className="relative mx-1">
-                <NavLink
-                  to="/stock"
-                  end
-                  onClick={onCloseMobile}
-                  className={({ isActive }) =>
-                    `pr-10 ${linkBase} ${isActive ? active : inactive}`
-                  }
-                >
-                  Stock
-                </NavLink>
-                <button
-                  type="button"
-                  aria-expanded={stockOpen}
-                  aria-label={
-                    stockOpen
-                      ? "Ocultar opciones de stock"
-                      : "Mostrar opciones de stock"
-                  }
-                  onClick={() => toggleSection("stock")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 grid place-items-center rounded-lg hover:bg-emerald-100"
-                >
-                  <ChevronRight
-                    className={`w-4 h-4 transition-transform ${
-                      stockOpen ? "rotate-90" : ""
-                    }`}
-                  />
-                </button>
-              </div>
-              {stockOpen && (
-                <div className="pl-5 space-y-1">
-                  <NavLink
-                    to="/stock/nuevo-producto"
-                    onClick={onCloseMobile}
-                    className={({ isActive }) =>
-                      `mx-1 ${linkBase} ${isActive ? active : inactive}`
-                    }
-                  >
-                    Registrar nuevo producto
-                  </NavLink>
-                  <NavLink
-                    to="/stock/pesaje"
-                    onClick={onCloseMobile}
-                    className={({ isActive }) =>
-                      `mx-1 ${linkBase} ${isActive ? active : inactive}`
-                    }
-                  >
-                    Registrar pesaje
-                  </NavLink>
-                  <NavLink
-                    to="/stock/pesajes"
-                    onClick={onCloseMobile}
-                    className={({ isActive }) =>
-                      `mx-1 ${linkBase} ${isActive ? active : inactive}`
-                    }
-                  >
-                    Historial de pesajes
-                  </NavLink>
-                </div>
+              {perms.canStock && (
+                <>
+                  <div className="relative mx-1">
+                    <NavLink
+                      to="/stock"
+                      end
+                      onClick={onCloseMobile}
+                      className={({ isActive }) =>
+                        `pr-10 ${linkBase} ${isActive ? active : inactive}`
+                      }
+                    >
+                      Stock
+                    </NavLink>
+                    <button
+                      type="button"
+                      aria-expanded={stockOpen}
+                      aria-label={
+                        stockOpen
+                          ? "Ocultar opciones de stock"
+                          : "Mostrar opciones de stock"
+                      }
+                      onClick={() => toggleSection("stock")}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 grid place-items-center rounded-lg hover:bg-emerald-100"
+                    >
+                      <ChevronRight
+                        className={`w-4 h-4 transition-transform ${
+                          stockOpen ? "rotate-90" : ""
+                        }`}
+                      />
+                    </button>
+                  </div>
+                  {stockOpen && (
+                    <div className="pl-5 space-y-1">
+                      <NavLink
+                        to="/stock/nuevo-producto"
+                        onClick={onCloseMobile}
+                        className={({ isActive }) =>
+                          `mx-1 ${linkBase} ${isActive ? active : inactive}`
+                        }
+                      >
+                        Registrar nuevo producto
+                      </NavLink>
+                      <NavLink
+                        to="/stock/pesaje"
+                        onClick={onCloseMobile}
+                        className={({ isActive }) =>
+                          `mx-1 ${linkBase} ${isActive ? active : inactive}`
+                        }
+                      >
+                        Registrar pesaje
+                      </NavLink>
+                      <NavLink
+                        to="/stock/pesajes"
+                        onClick={onCloseMobile}
+                        className={({ isActive }) =>
+                          `mx-1 ${linkBase} ${isActive ? active : inactive}`
+                        }
+                      >
+                        Historial de pesajes
+                      </NavLink>
+                    </div>
+                  )}
+                </>
               )}
 
               {/* Reportes */}
+<<<<<<< HEAD
               <div className="relative mx-1">
                 <NavLink
                   to="/reportes"
@@ -262,9 +286,57 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
                   </NavLink>
               </div>
               
+=======
+              {perms.canReportes && (
+                <>
+                  <div className="relative mx-1">
+                    <NavLink
+                      to="/reportes"
+                      end
+                      onClick={onCloseMobile}
+                      className={({ isActive }) =>
+                        `pr-10 ${linkBase} ${isActive ? active : inactive}`
+                      }
+                    >
+                      Reportes
+                    </NavLink>
+                    <button
+                      type="button"
+                      aria-expanded={reportesOpen}
+                      aria-label={
+                        reportesOpen
+                          ? "Ocultar opciones de reportes"
+                          : "Mostrar opciones de reportes"
+                      }
+                      onClick={() => toggleSection("reportes")}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 grid place-items-center rounded-lg hover:bg-emerald-100"
+                    >
+                      <ChevronRight
+                        className={`w-4 h-4 transition-transform ${
+                          reportesOpen ? "rotate-90" : ""
+                        }`}
+                      />
+                    </button>
+                  </div>
+                  {reportesOpen && (
+                    <div className="pl-5 space-y-1">
+                      <NavLink
+                        to="/reportes/nuevo"
+                        onClick={onCloseMobile}
+                        className={({ isActive }) =>
+                          `mx-1 ${linkBase} ${isActive ? active : inactive}`
+                        }
+                      >
+                        Crear nuevo reporte
+                      </NavLink>
+                    </div>
+                  )}
+                </>
+              )}
+>>>>>>> 0b45c5512899536f3270ace9831b7ed70e926a6d
 
               {/* Seguridad (solo ADMIN) */}
-              {role === "ADMIN" && (
+              {perms.isAdmin && (
                 <>
                   <div className="relative mx-1">
                     <NavLink
@@ -321,7 +393,6 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
                   localStorage.removeItem("dn_token");
                   localStorage.removeItem("dn_user");
                   localStorage.removeItem("dn_refresh");
-                  // también limpiamos nombre/rol cacheados
                   localStorage.removeItem("dn_user_name");
                   localStorage.removeItem("dn_role");
                   sessionStorage.clear();
@@ -332,7 +403,7 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
                 Salir
               </button>
 
-              {/* Badge pegado abajo */}
+              {/* Badge abajo */}
               <div className="mt-auto px-1 pt-3">
                 <AccountBadge />
               </div>

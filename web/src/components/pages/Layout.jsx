@@ -16,11 +16,23 @@ export default function Layout() {
         onToggle={() => setSidebarOpen((o) => !o)}
       />
 
-      <main className="flex-1">
-        {/* Top bar sólo cuando la sidebar está cerrada */}
+      <main className="flex-1 min-h-screen overflow-y-auto overflow-x-hidden">
+        {/* Barra móvil con botón hamburguesa */}
+        <div className="sticky top-0 z-30 bg-slate-50/95 backdrop-blur shadow-sm md:hidden">
+          <div className="px-4 py-2 flex items-center gap-3">
+            <HamburgerButton
+              onClick={() => setSidebarMobileOpen(true)}
+              label="Abrir menú"
+            />
+            <div className="text-2xl font-extrabold text-emerald-900 select-none">
+              DON&nbsp;NILDO
+            </div>
+          </div>
+        </div>
+
+        {/* Top bar sólo cuando la sidebar está cerrada en desktop */}
         {!sidebarOpen && (
-          <div className="sticky top-0 z-30 bg-slate-50/95 backdrop-blur shadow-sm">
-            {/* Alineado a la izquierda; mismo padding que el contenido */}
+          <div className="sticky top-0 z-30 bg-slate-50/95 backdrop-blur shadow-sm hidden md:block">
             <div className="px-4 md:px-8 py-2 flex items-center gap-3">
               <HamburgerButton onClick={() => setSidebarOpen(true)} />
               <div className="text-2xl font-extrabold text-emerald-900 select-none">

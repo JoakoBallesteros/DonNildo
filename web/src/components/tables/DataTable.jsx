@@ -25,7 +25,7 @@ export default function DataTable({
   // wrapper
   wrapperClass = "",
 
-  // ✅ NUEVO: paginación
+  // paginación
   enablePagination = false,
   pageSize = 10,
 }) {

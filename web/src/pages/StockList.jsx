@@ -795,23 +795,134 @@ export default function StockList() {
         </div>
       )}
 
-      <div className="mt-6">
+      <div className="mt-6 space-y-5">
         {loading ? (
           <p className="text-sm text-slate-600">Cargando stock…</p>
         ) : (
-          <DataTable
-            columns={columns}
-            data={dataFiltrada}
-            zebra={false}
-            stickyHeader={false}
-            wrapperClass="!mb-0"
-            tableClass="w-full table-fixed text-sm border-collapse"
-            theadClass="bg-[#e8f4ef] text-[#154734]"
-            rowClass="hover:bg-[#f6faf7] border-t border-[#edf2ef] first:border-t-0"
-            headerClass="px-4 py-3 font-semibold"
-            cellClass="px-4 py-4"
-            enableSort
-          />
+          <>
+            <div className="hidden md:block">
+              <DataTable
+                columns={columns}
+                data={dataFiltrada}
+                zebra={false}
+                stickyHeader={true}
+                wrapperClass="!mb-0 !max-h-[480px] overflow-y-auto shadow-sm"
+                tableClass="w-full table-fixed text-sm border-collapse"
+                theadClass="bg-[#e8f4ef] text-[#154734]"
+                rowClass="hover:bg-[#f6faf7] border-t border-[#edf2ef] first:border-t-0"
+                headerClass="px-4 py-3 font-semibold"
+                cellClass="px-4 py-3"
+                enableSort
+              />
+            </div>
+
+            <div className="md:hidden space-y-3">
+              {!dataFiltrada.length && (
+                <div className="rounded-2xl border border-dashed border-[#d8e4df] bg-[#f7fbf9] px-4 py-6 text-center text-sm text-[#62736a]">
+                  No hay productos que coincidan con los filtros.
+                </div>
+              )}
+              {dataFiltrada.map((row) => (
+                <div
+                  key={row.id}
+                  className="rounded-2xl border border-[#e3e9e5] bg-white shadow-sm p-4 space-y-3"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-[#7a8b82]">
+                        {row.tipo}
+                      </p>
+                      <p className="text-lg font-semibold text-[#0d231a]">
+                        {row.referencia}
+                      </p>
+                      {row.tipo === "Caja" && (
+                        <p className="text-sm text-[#4c5f56]">
+                          {row.categoria || "—"} ·{" "}
+                          {row.medidas
+                            ? `${row.medidas.l}x${row.medidas.a}x${row.medidas.h} cm`
+                            : "—"}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs font-semibold text-[#7a8b82]">
+                        Disponible
+                      </p>
+                      <p className="text-base font-semibold text-[#154734]">
+                        {formatDisponible(row)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-sm text-[#1f2e27]">
+                    <div>
+                      <p className="text-xs font-semibold text-[#7a8b82]">
+                        Unidad
+                      </p>
+                      <p className="font-medium">{row.unidad || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-[#7a8b82]">
+                        Último mov.
+                      </p>
+                      <p className="font-medium">
+                        {row.ultimoMov ? formatFechaCorta(row.ultimoMov) : "—"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-[#7a8b82]">
+                        Precio
+                      </p>
+                      <p className="font-medium">
+                        {row.precio != null
+                          ? `${Number(row.precio).toLocaleString("es-AR", {
+                              style: "currency",
+                              currency: "ARS",
+                              maximumFractionDigits: 0,
+                            })} / ${row.unidad || "u"}`
+                          : "—"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-[#7a8b82]">
+                        Observaciones
+                      </p>
+                      <p className="font-medium">
+                        {row.notas?.trim() || "—"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => {
+                        setDetailRow(row);
+                        setDetailOpen(true);
+                      }}
+                      className="flex-1 rounded-md border border-[#154734] text-[#154734] px-3 py-2 text-sm font-medium hover:bg-[#e8f4ef] transition"
+                    >
+                      Detalle
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditRow(row);
+                        setEditOpen(true);
+                      }}
+                      className="flex-1 rounded-md bg-[#154734] text-white px-3 py-2 text-sm font-medium hover:bg-[#103a2b] transition"
+                    >
+                      Modificar
+                    </button>
+                    <button
+                      onClick={() => openDeleteConfirm(row)}
+                      className="flex-1 rounded-md bg-red-700 text-white px-3 py-2 text-sm font-medium hover:bg-red-800 transition"
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
 

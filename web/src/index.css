@@ -7,5 +7,7 @@ html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; 
   h3{@apply text-xl font-semibold text-emerald-900;}
 }
 body {
-  overflow-y: hidden;
+  min-height: 100vh;
+  overflow-y: auto;
+  background-color: #f6f9f6;
 }

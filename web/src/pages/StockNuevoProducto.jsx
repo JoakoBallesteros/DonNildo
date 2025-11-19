@@ -61,8 +61,15 @@ export default function StockNuevoProducto() {
 
   return (
     <PageContainer title="Registrar nuevo producto">
-      <div className="min-h-[70vh] grid place-items-center">
-        <div className="w-full max-w-2xl">
+      <div className="min-h-[70vh] px-3 py-4 sm:px-4 lg:px-6">
+        <section className="w-full max-w-3xl mx-auto bg-white rounded-2xl border border-[#e3e9e5] shadow-sm p-4 sm:p-6 lg:p-8 space-y-6">
+          <div className="space-y-1">
+            <p className="text-xs font-semibold tracking-wide text-[#7a8b82] uppercase">
+              Formulario
+            </p>
+
+          </div>
+
           <ProductFormTabs
             mode="create"
             initialValues={{
@@ -79,7 +86,7 @@ export default function StockNuevoProducto() {
             onSubmit={handleSubmit}
             onCancel={handleCancel}
           />
-        </div>
+        </section>
       </div>
 
       {/* Modal de mensajes (éxito / error) */}

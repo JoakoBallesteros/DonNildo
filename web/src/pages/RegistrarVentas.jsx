@@ -6,7 +6,7 @@ import FormBuilder from "../components/forms/FormBuilder";
 import DataTable from "../components/tables/DataTable";
 import Modified from "../components/modals/Modified.jsx";
 import Modal from "../components/modals/Modals.jsx";
-import api from "../lib/api";
+import api from "../lib/apiClient";
 import ProductFormTabs from "../components/forms/ProductFormTabs";
 
 // ======================================================================

@@ -2,7 +2,7 @@
 import React, { useMemo, useState, useEffect, useCallback } from "react";
 import PageContainer from "../components/pages/PageContainer";
 import DataTable from "../components/tables/DataTable";
-import api from "../lib/api";
+import api from "../lib/apiClient";
 
 const TABS = [
   "Todo",
