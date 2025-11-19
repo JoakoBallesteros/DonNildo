@@ -1,4 +1,4 @@
-import api from "../lib/api.js";
+import api from "../lib/apiClient.js";
 
 function mapReporte(r) {
   return {

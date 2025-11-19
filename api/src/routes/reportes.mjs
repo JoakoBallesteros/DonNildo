@@ -92,13 +92,6 @@ router.post("/", requireAuth, allowRoles(["ADMIN"]), async (req, res) => {
       fecha_hasta,
     ]);
 
-    // Si la función no devolvió filas (no debería pasar si no hubo error)
-    if (!result || result.rows.length === 0) {
-      return res.status(400).json({
-        error: { message: "No se encontraron datos para generar el reporte." },
-      });
-    }
-
     return res.json({
       success: true,
       reporte: result.rows[0],
@@ -121,7 +114,6 @@ router.post("/", requireAuth, allowRoles(["ADMIN"]), async (req, res) => {
       });
     }
 
-    // Cualquier otra cosa sí es 500
     return res.status(500).json({
       error: { message: msg || "Error interno." },
     });
