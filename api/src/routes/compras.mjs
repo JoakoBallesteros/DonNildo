@@ -6,13 +6,19 @@ import {
   getUserIdFromToken,
 } from "../utils/auditoriaService.mjs";
 import { requireAuth } from "../middlewares/requireAuth.mjs";
+import { allowRoles } from "../middlewares/allowRoles.mjs";
 
 const router = Router();
 
+// Todas las rutas protegidas
+// Solo pueden usarlas ADMIN o COMPRAS
+router.use(requireAuth, allowRoles(["ADMIN", "COMPRAS"]));
+
 /* ============================================
  * GET /api/compras  → listado de compras
+ * (montado en server como /api/v1/compras)
  * ============================================ */
-router.get("/", requireAuth, async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const sql = `
       SELECT
@@ -71,7 +77,7 @@ router.get("/", requireAuth, async (req, res) => {
 /* ============================================
  * GET /api/compras/productos  → catálogo
  * ============================================ */
-router.get("/productos", requireAuth, async (req, res) => {
+router.get("/productos", async (req, res) => {
   try {
     const sql = `
       SELECT
@@ -113,7 +119,7 @@ router.get("/productos", requireAuth, async (req, res) => {
 /* ============================================
  * GET /api/compras/proveedores  → catálogo
  * ============================================ */
-router.get("/proveedores", requireAuth, async (req, res) => {
+router.get("/proveedores", async (req, res) => {
   try {
     const sql = `
       SELECT
@@ -145,7 +151,7 @@ router.get("/proveedores", requireAuth, async (req, res) => {
 /* ============================================
  * POST /api/compras  → registrar compra
  * ============================================ */
-router.post("/", requireAuth, async (req, res) => {
+router.post("/", async (req, res) => {
   try {
     const { id_proveedor, fecha, observaciones, items } = req.body || {};
 
