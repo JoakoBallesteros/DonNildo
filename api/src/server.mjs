@@ -85,6 +85,8 @@ app.use("/api/ventas", ventasRoutes);
 app.use("/api/stock", stockRoutes);
 app.use("/api/auditoria", auditoriaRoutes);
 app.use("/api/reportes", reportesRoutes);
+
+
 console.log('MODE: supabase-only')
 console.log(
   "DB URL:",

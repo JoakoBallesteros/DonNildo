@@ -13,20 +13,21 @@ export default function DataTable({
   theadClass = "bg-[#e8f4ef] text-[#154734]",
   tbodyClass = "",
   rowClass = "hover:bg-[#f6faf7] transition",
-  headerClass = "px-4 py-3 font-semibold border-r border-[#e3e9e5] last:border-none select-none",
+  headerClass =
+    "px-4 py-3 font-semibold border-r border-[#e3e9e5] last:border-none select-none",
   cellClass = "px-4 py-3 border-r border-[#edf2ef] last:border-none",
   zebra = false,
-  stickyHeader = false,
+  stickyHeader = true,
 
   // features
   enableSort = false,
   enableFilters = false,
 
-  // wrapper
+  // wrapper (ahora se aplica al contenedor scroll interno)
   wrapperClass = "",
 
   // paginación
-  enablePagination = false,
+  enablePagination = true,
   pageSize = 10,
 }) {
   const alignClass = (a) =>
@@ -180,198 +181,223 @@ export default function DataTable({
     : "";
 
   return (
-    <div
-      className={[
-        "relative bg-white rounded-xl border border-[#e3e9e5]",
-        "max-h-[320px] overflow-y-auto overflow-x-auto",
-        wrapperClass,
-      ].join(" ")}
-    >
-      <table className={tableClass}>
-        <colgroup>
-          {columns.map((col, i) => (
-            <col
-              key={col.id ?? i}
-              style={col.width ? { width: col.width } : {}}
-            />
-          ))}
-        </colgroup>
-
-        <thead className={[theadClass, "border-b border-[#edf2ef]"].join(" ")}>
-          <tr className={stickyHeadRowClass}>
+    <div className="relative bg-white rounded-xl border border-[#e3e9e5]">
+      {/* 🔹 contenedor con scroll (antes era el root) */}
+      <div
+        className={[
+          "max-h-[320px] overflow-y-auto overflow-x-auto",
+          wrapperClass,
+        ].join(" ")}
+      >
+        <table className={tableClass}>
+          <colgroup>
             {columns.map((col, i) => (
-              <th
+              <col
                 key={col.id ?? i}
-                className={`${headerClass} ${alignClass(col.align)} ${
-                  col.headerClass || ""
-                }`}
-                onClick={() => toggleSort(col)}
-                title={enableSort && col.sortable ? "Ordenar" : undefined}
-              >
-                <div
-                  className={`w-full flex items-center gap-2 ${headerJustify(
-                    col.align
-                  )}`}
-                >
-                  <span>{col.header}</span>
-                  {sortIcon(col)}
-                </div>
-              </th>
+                style={col.width ? { width: col.width } : {}}
+              />
             ))}
-          </tr>
+          </colgroup>
 
-          {enableFilters && (
-            <tr
-              className={stickyHeader ? "sticky top-[42px] bg-white z-10" : ""}
-            >
-              {columns.map((col, i) => {
-                if (!col.filter) {
-                  return (
-                    <th key={`f-${col.id ?? i}`} className={`${headerClass}`} />
-                  );
-                }
-                if (col.filter === "text") {
-                  return (
-                    <th key={`f-${col.id ?? i}`} className={`${headerClass}`}>
-                      <input
-                        type="text"
-                        className="w-full border border-[#dfe8e4] rounded-md px-2 py-1 text-sm"
-                        placeholder="Buscar…"
-                        value={filters[col.id]?.value ?? ""}
-                        onChange={(e) =>
-                          setFilter(col.id, { value: e.target.value })
-                        }
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    </th>
-                  );
-                }
-                if (col.filter === "number") {
-                  return (
-                    <th key={`f-${col.id ?? i}`} className={`${headerClass}`}>
-                      <div className="flex gap-2">
-                        <input
-                          type="number"
-                          className="w-1/2 border border-[#dfe8e4] rounded-md px-2 py-1 text-sm"
-                          placeholder="Min"
-                          value={filters[col.id]?.min ?? ""}
-                          onChange={(e) =>
-                            setFilter(col.id, {
-                              ...(filters[col.id] || {}),
-                              min: e.target.value,
-                            })
-                          }
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                        <input
-                          type="number"
-                          className="w-1/2 border border-[#dfe8e4] rounded-md px-2 py-1 text-sm"
-                          placeholder="Max"
-                          value={filters[col.id]?.max ?? ""}
-                          onChange={(e) =>
-                            setFilter(col.id, {
-                              ...(filters[col.id] || {}),
-                              max: e.target.value,
-                            })
-                          }
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      </div>
-                    </th>
-                  );
-                }
-                if (col.filter === "date") {
-                  return (
-                    <th key={`f-${col.id ?? i}`} className={`${headerClass}`}>
-                      <div className="flex gap-2">
-                        <input
-                          type="date"
-                          className="w-1/2 border border-[#dfe8e4] rounded-md px-2 py-1 text-sm"
-                          value={filters[col.id]?.min ?? ""}
-                          onChange={(e) =>
-                            setFilter(col.id, {
-                              ...(filters[col.id] || {}),
-                              min: e.target.value,
-                            })
-                          }
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                        <input
-                          type="date"
-                          className="w-1/2 border border-[#dfe8e4] rounded-md px-2 py-1 text-sm"
-                          value={filters[col.id]?.max ?? ""}
-                          onChange={(e) =>
-                            setFilter(col.id, {
-                              ...(filters[col.id] || {}),
-                              max: e.target.value,
-                            })
-                          }
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      </div>
-                    </th>
-                  );
-                }
-                return (
-                  <th key={`f-${col.id ?? i}`} className={`${headerClass}`} />
-                );
-              })}
+          <thead
+            className={[theadClass, "border-b border-[#edf2ef]"].join(" ")}
+          >
+            <tr className={stickyHeadRowClass}>
+              {columns.map((col, i) => (
+                <th
+                  key={col.id ?? i}
+                  className={`${headerClass} ${alignClass(col.align)} ${
+                    col.headerClass || ""
+                  }`}
+                  onClick={() => toggleSort(col)}
+                  title={enableSort && col.sortable ? "Ordenar" : undefined}
+                >
+                  <div
+                    className={`w-full flex items-center gap-2 ${headerJustify(
+                      col.align
+                    )}`}
+                  >
+                    <span>{col.header}</span>
+                    {sortIcon(col)}
+                  </div>
+                </th>
+              ))}
             </tr>
-          )}
-        </thead>
 
-        <tbody className={tbodyClass}>
-          {pageRows.length === 0 ? (
-            <tr>
-              <td
-                className="px-4 py-6 text-slate-500 text-center border-t border-[#edf2ef]"
-                colSpan={columns.length}
-              >
-                {emptyLabel}
-              </td>
-            </tr>
-          ) : (
-            pageRows.map((row, ri) => (
+            {enableFilters && (
               <tr
-                key={rowKey(row, ri)}
-                onClick={onRowClick ? () => onRowClick(row, ri) : undefined}
-                className={[
-                  typeof rowClass === "function" ? rowClass(row, ri) : rowClass,
-                  zebra && ri % 2 ? "bg-[#fafdfb]" : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
+                className={
+                  stickyHeader ? "sticky top-[42px] bg-white z-10" : ""
+                }
               >
-                {columns.map((col, ci) => {
-                  const content = col.render
-                    ? col.render(row, ri)
-                    : typeof col.accessor === "function"
-                    ? col.accessor(row, ri)
-                    : col.accessor
-                    ? row[col.accessor]
-                    : null;
-
+                {columns.map((col, i) => {
+                  if (!col.filter) {
+                    return (
+                      <th
+                        key={`f-${col.id ?? i}`}
+                        className={`${headerClass}`}
+                      />
+                    );
+                  }
+                  if (col.filter === "text") {
+                    return (
+                      <th
+                        key={`f-${col.id ?? i}`}
+                        className={`${headerClass}`}
+                      >
+                        <input
+                          type="text"
+                          className="w-full border border-[#dfe8e4] rounded-md px-2 py-1 text-sm"
+                          placeholder="Buscar…"
+                          value={filters[col.id]?.value ?? ""}
+                          onChange={(e) =>
+                            setFilter(col.id, { value: e.target.value })
+                          }
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </th>
+                    );
+                  }
+                  if (col.filter === "number") {
+                    return (
+                      <th
+                        key={`f-${col.id ?? i}`}
+                        className={`${headerClass}`}
+                      >
+                        <div className="flex gap-2">
+                          <input
+                            type="number"
+                            className="w-1/2 border border-[#dfe8e4] rounded-md px-2 py-1 text-sm"
+                            placeholder="Min"
+                            value={filters[col.id]?.min ?? ""}
+                            onChange={(e) =>
+                              setFilter(col.id, {
+                                ...(filters[col.id] || {}),
+                                min: e.target.value,
+                              })
+                            }
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <input
+                            type="number"
+                            className="w-1/2 border border-[#dfe8e4] rounded-md px-2 py-1 text-sm"
+                            placeholder="Max"
+                            value={filters[col.id]?.max ?? ""}
+                            onChange={(e) =>
+                              setFilter(col.id, {
+                                ...(filters[col.id] || {}),
+                                max: e.target.value,
+                              })
+                            }
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                      </th>
+                    );
+                  }
+                  if (col.filter === "date") {
+                    return (
+                      <th
+                        key={`f-${col.id ?? i}`}
+                        className={`${headerClass}`}
+                      >
+                        <div className="flex gap-2">
+                          <input
+                            type="date"
+                            className="w-1/2 border border-[#dfe8e4] rounded-md px-2 py-1 text-sm"
+                            value={filters[col.id]?.min ?? ""}
+                            onChange={(e) =>
+                              setFilter(col.id, {
+                                ...(filters[col.id] || {}),
+                                min: e.target.value,
+                              })
+                            }
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <input
+                            type="date"
+                            className="w-1/2 border border-[#dfe8e4] rounded-md px-2 py-1 text-sm"
+                            value={filters[col.id]?.max ?? ""}
+                            onChange={(e) =>
+                              setFilter(col.id, {
+                                ...(filters[col.id] || {}),
+                                max: e.target.value,
+                              })
+                            }
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                      </th>
+                    );
+                  }
                   return (
-                    <td
-                      key={ci}
-                      className={[
-                        cellClass,
-                        alignClass(col.align),
-                        col.cellClass || "",
-                        col.nowrap ? "whitespace-nowrap" : "",
-                      ].join(" ")}
-                    >
-                      {content}
-                    </td>
+                    <th
+                      key={`f-${col.id ?? i}`}
+                      className={`${headerClass}`}
+                    />
                   );
                 })}
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+            )}
+          </thead>
 
-      {/* ✅ Footer de paginación */}
+          <tbody className={tbodyClass}>
+            {pageRows.length === 0 ? (
+              <tr>
+                <td
+                  className="px-4 py-6 text-slate-500 text-center border-t border-[#edf2ef]"
+                  colSpan={columns.length}
+                >
+                  {emptyLabel}
+                </td>
+              </tr>
+            ) : (
+              pageRows.map((row, ri) => (
+                <tr
+                  key={rowKey(row, ri)}
+                  onClick={
+                    onRowClick ? () => onRowClick(row, ri) : undefined
+                  }
+                  className={[
+                    typeof rowClass === "function"
+                      ? rowClass(row, ri)
+                      : rowClass,
+                    zebra && ri % 2 ? "bg-[#fafdfb]" : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                >
+                  {columns.map((col, ci) => {
+                    const content = col.render
+                      ? col.render(row, ri)
+                      : typeof col.accessor === "function"
+                      ? col.accessor(row, ri)
+                      : col.accessor
+                      ? row[col.accessor]
+                      : null;
+
+                    return (
+                      <td
+                        key={ci}
+                        className={[
+                          cellClass,
+                          alignClass(col.align),
+                          col.cellClass || "",
+                          col.nowrap ? "whitespace-nowrap" : "",
+                        ].join(" ")}
+                      >
+                        {content}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Footer de paginación SIEMPRE visible (fuera del scroll) */}
       {enablePagination && totalRows > 0 && (
         <div className="flex items-center justify-between px-4 py-2 border-t border-[#e3e9e5] bg-[#f9fbfa] text-xs text-slate-600">
           <span>

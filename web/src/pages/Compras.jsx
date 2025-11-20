@@ -518,7 +518,7 @@ export default function Compras() {
           columns={columns}
           data={filtered}
           zebra={false}
-          stickyHeader={false}
+          stickyHeader={true}
           tableClass="w-full text-sm text-center border-collapse"
           theadClass="bg-[#e8f4ef] text-[#154734]"
           rowClass="hover:bg-[#f6faf7] border-t border-[#edf2ef]"
