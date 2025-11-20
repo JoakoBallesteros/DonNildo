@@ -1,5 +1,6 @@
 // src/pages/RegistrarCompra.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
+import MessageModal from "../components/modals/MessageModal";
 import { Plus, ChevronDown, Calendar } from "lucide-react";
 import api from "../lib/apiClient";
 
@@ -63,6 +64,12 @@ export default function RegistrarCompra() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editRow, setEditRow] = useState(null);
+  const [messageModal, setMessageModal] = useState({
+    isOpen: false,
+    title: "",
+    text: "",
+    type: "",
+  });
 
   // Focus
   const cantRef = useRef(null);
@@ -245,9 +252,12 @@ export default function RegistrarCompra() {
       onCancelar();
     } catch (error) {
       console.error("Error al registrar la compra:", error);
-      alert(
-        "No se pudo registrar la compra. Revisá la consola del navegador para más detalles."
-      );
+      setMessageModal({
+        isOpen: true,
+        title: "❌ Error al registrar compra",
+        text: "No se pudo registrar la compra. Revisá la consola del navegador para más detalles.",
+        type: "error",
+      });
     }
   }
 
@@ -713,6 +723,13 @@ export default function RegistrarCompra() {
           size="max-w-4xl"
         />
       )}
+      <MessageModal
+        isOpen={messageModal.isOpen}
+        title={messageModal.title}
+        text={messageModal.text}
+        type={messageModal.type}
+        onClose={() => setMessageModal(prev => ({ ...prev, isOpen: false }))}
+      />
     </PageContainer>
   );
 }

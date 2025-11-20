@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import MessageModal from "../modals/MessageModal";
 
 export default function ProductFormTabs({
   mode = "create",
@@ -98,11 +99,13 @@ export default function ProductFormTabs({
     e.preventDefault();
     const err = validate();
     if (err) {
-      alert(err);
+      setMessageModal({ isOpen: true, title: "❌ Error", text: err, type: "error" });
       return;
     }
     onSubmit?.(normalize(form));
   };
+
+  const [messageModal, setMessageModal] = useState({ isOpen: false, title: "", text: "", type: "" });
 
   const inputCls =
     "border border-[#d8e4df] rounded-md px-3 py-2 w-full focus:outline-none focus:ring-1 focus:ring-[#154734]";
@@ -305,7 +308,8 @@ export default function ProductFormTabs({
   );
 
   return (
-    <form onSubmit={submit} className="space-y-4">
+    <>
+      <form onSubmit={submit} className="space-y-4">
       {!lockTipo ? (
         <>
           {TabHeader}
@@ -346,6 +350,14 @@ export default function ProductFormTabs({
           {mode === "create" ? "Guardar" : "Guardar cambios"}
         </button>
       </div>
-    </form>
+      </form>
+      <MessageModal
+        isOpen={messageModal.isOpen}
+        title={messageModal.title}
+        text={messageModal.text}
+        type={messageModal.type}
+        onClose={() => setMessageModal(prev => ({ ...prev, isOpen: false }))}
+      />
+    </>
   );
 }

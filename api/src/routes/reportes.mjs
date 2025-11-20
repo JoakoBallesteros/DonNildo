@@ -71,10 +71,16 @@ router.get("/productos", async (req, res) => {
 // ============================
 // POST /api/reportes
 // ============================
+// ============================
+// POST /api/reportes
+// ============================
 router.post("/", requireAuth, allowRoles(["ADMIN"]), async (req, res) => {
   const client = await pool.connect();
 
   try {
+    console.log("\n🔥 NUEVO REPORTE");
+    console.log("Body:", req.body);
+
     const { tipo, id_producto, fecha_desde, fecha_hasta } = req.body || {};
 
     if (!tipo || !id_producto || !fecha_desde || !fecha_hasta) {
@@ -83,7 +89,7 @@ router.post("/", requireAuth, allowRoles(["ADMIN"]), async (req, res) => {
       });
     }
 
-    const sql = `SELECT * FROM generar_reporte_transaccional($1, $2, $3, $4);`;
+    const sql = `SELECT * FROM generar_reporte_transaccional($1,$2,$3,$4);`;
 
     const result = await client.query(sql, [
       tipo,
@@ -92,31 +98,43 @@ router.post("/", requireAuth, allowRoles(["ADMIN"]), async (req, res) => {
       fecha_hasta,
     ]);
 
-    return res.json({
-      success: true,
-      reporte: result.rows[0],
-    });
+    console.log("\nRAW SQL:", result.rows);
 
-  } catch (error) {
-    console.error("ERROR REPORTES:", error);
+    if (result.rows.length === 0)
+      return res.status(500).json({ error: { message: "Sin resultados" } });
 
-    const msg = String(error.message || "");
+    const raw = result.rows[0];
 
-    if (msg.includes("SIN_DATOS_REPORTE")) {
+    const reporte = {
+      id_reporte: raw.reporte_id,
+      codigo: raw.reporte_codigo,
+      tipo: raw.reporte_tipo,
+      id_producto: raw.reporte_id_producto,
+      producto: raw.reporte_producto,
+      fecha_desde: raw.reporte_fecha_desde,
+      fecha_hasta: raw.reporte_fecha_hasta,
+      cantidad_unidad: raw.reporte_cantidad,
+      monto_total: raw.reporte_monto_total,
+      fecha_generacion: raw.reporte_fecha_generado,
+    };
+
+    console.log("\n📤 REPORTE MAPEADO:");
+    console.log(reporte);
+
+    return res.json({ success: true, reporte });
+
+  } catch (err) {
+    console.error("ERROR:", err);
+
+    const msg = String(err.message || "");
+
+    if (msg.includes("SIN_DATOS_REPORTE"))
       return res.status(400).json({
-        error: { message: "No hay datos en el rango seleccionado para ese producto." },
+        error: { message: "No hay datos en ese rango para ese producto." },
       });
-    }
 
-    if (msg.includes("PRODUCTO_NO_EXISTE")) {
-      return res.status(400).json({
-        error: { message: "El producto seleccionado no existe en la base de datos." },
-      });
-    }
+    return res.status(500).json({ error: { message: msg } });
 
-    return res.status(500).json({
-      error: { message: msg || "Error interno." },
-    });
   } finally {
     client.release();
   }
@@ -157,4 +175,3 @@ router.delete("/", requireAuth, allowRoles(["ADMIN"]), async (req, res) => {
 });
 
 export default router;
-

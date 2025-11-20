@@ -70,7 +70,7 @@ export default function Ventas() {
       const data = await apiFetch(`/api/ventas${qs}`);
       setVentas(data);
     } catch (e) {
-      console.error("Error al cargar ventas:", e);
+     
       setErr(e.message);
     } finally {
       setLoading(false);
@@ -105,7 +105,7 @@ export default function Ventas() {
       const id_venta = updated.id_venta; // 👈 usamos el id real, no "numero"
       const body = { id_venta, productos: updated.productos };
 
-      console.log("🧾 Guardando venta:", body);
+    
 
       await apiFetch(`/api/ventas/${id_venta}`, {
         method: "PUT",
@@ -123,7 +123,7 @@ export default function Ventas() {
       setSelectedVenta(null);
       await loadVentas();
     } catch (e) {
-      console.error("Error al guardar cambios:", e);
+     
       setMessageModal({
         isOpen: true,
         title: "❌ Error al Guardar",
@@ -155,7 +155,7 @@ export default function Ventas() {
       });
       await loadVentas();
     } catch (e) {
-      console.error("Error al anular venta:", e);
+     
       setMessageModal({
         isOpen: true,
         title: "❌ Error al Anular",
@@ -174,7 +174,7 @@ export default function Ventas() {
     const doc = new jsPDF();
 
     if (!venta || !venta.productos) {
-      console.error("Error PDF: Objeto de venta o detalles faltante.");
+ 
       return;
     }
 

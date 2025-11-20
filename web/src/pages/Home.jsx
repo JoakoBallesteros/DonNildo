@@ -44,7 +44,7 @@ export default function Home() {
       </div>
 
       {/* Cuadrícula de botones grandes */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mt-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mt-24">
         {perms.canCompras && (
           <NavCard to="/compras" icon={ShoppingCart} label="Compras" />
         )}
