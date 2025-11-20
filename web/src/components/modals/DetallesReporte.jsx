@@ -5,73 +5,68 @@ const fmtARS = (n) =>
     style: "currency",
     currency: "ARS",
     maximumFractionDigits: 0,
-  }).format(Number.isFinite(Number(n)) ? Number(n) : 0);
+  }).format(Number(n || 0));
 
-const isISO = (s) => typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s);
-const safeDate = (s) => (isISO(s) ? s : "—");
+const fmtNum = (n) => Number(n || 0).toLocaleString('es-AR');
 
-export default function ReportDetail({
-  title = "Detalle de reporte",
-  data = {},
-}) {
-  // Acepta tanto la fila entera como un objeto "detalle" viejo.
+const safeDate = (s) => {
+  if (!s) return "—";
+  if (typeof s === "string") return s.slice(0, 10);
+  if (s instanceof Date) return s.toISOString().slice(0, 10);
+  return "—";
+};
+
+export default function ReportDetail({ title = "Detalle de reporte", data = {} }) {
   const src = data?.detalle ? { ...data, ...data.detalle } : data;
 
-  const id = src.id || src.reporteId || src.code || "—";
-  const tipo = src.tipo || (src.scope?.toLowerCase().includes("venta") ? "Venta" : src.scope?.toLowerCase().includes("comp") ? "Compra" : "—");
-  const producto = src.producto || src.productoNombre || "—";
+  const id = src.id || "—";
+  const tipo = src.tipo || "—";
+  const producto = src.producto || "—";
 
-  const desde = safeDate(src.desde || src.fechaDesde || src?.rango?.desde);
-  const hasta = safeDate(src.hasta || src.fechaHasta || src?.rango?.hasta);
+  const desde = safeDate(src.fecha_desde || src.desde);
+  const hasta = safeDate(src.fecha_hasta || src.hasta);
 
-  const cantidadUnidad =
-    src.cantidadUnidad ?? src.unidades ?? src.cantidad ?? src?.totales?.unidades ?? 0;
-
-  const cantidadDinero =
-    src.cantidadDinero ??
-    src?.totales?.monto ??
-    (src.precio != null && (src.cantidadUnidad ?? src.cantidad) != null
-      ? Number(src.precio) * Number(src.cantidadUnidad ?? src.cantidad)
-      : 0);
+  const cantidadUnidad = src.cantidadUnidad ?? 0;
+  const cantidadDinero = src.cantidadDinero ?? 0;
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold text-[#154734]">{title}</h2>
+      <h2 className="text-xl font-bold text-[#154734]">{title}</h2>
 
       <div className="grid grid-cols-2 gap-3 text-sm">
-        <div className="bg-[#f7fbf8] border border-[#e2ede8] rounded-xl p-3">
-          <div className="text-[#5c746b] text-xs">ID reporte</div>
-          <div className="font-semibold">{id}</div>
+        <div className="bg-[#f7fbf8] border rounded-xl p-3">
+          <div className="text-xs text-[#5c746b] mb-1">ID reporte</div>
+          <div className="text-base font-medium">{id}</div>
         </div>
-        <div className="bg-[#f7fbf8] border border-[#e2ede8] rounded-xl p-3">
-          <div className="text-[#5c746b] text-xs">Tipo</div>
-          <div className="font-semibold">{tipo}</div>
+        <div className="bg-[#f7fbf8] border rounded-xl p-3">
+          <div className="text-xs text-[#5c746b] mb-1">Tipo</div>
+          <div className="text-base font-medium">{tipo}</div>
         </div>
-        <div className="bg-[#f7fbf8] border border-[#e2ede8] rounded-xl p-3 col-span-2">
-          <div className="text-[#5c746b] text-xs">Producto</div>
-          <div className="font-semibold">{producto}</div>
+        <div className="bg-[#f7fbf8] border rounded-xl p-3 col-span-2">
+          <div className="text-xs text-[#5c746b] mb-1">Producto</div>
+          <div className="text-base font-medium">{producto}</div>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 text-sm">
-        <div className="bg-[#f7fbf8] border border-[#e2ede8] rounded-xl p-3">
-          <div className="text-[#5c746b] text-xs">Desde</div>
-          <div className="font-semibold">{desde}</div>
+        <div className="bg-[#f7fbf8] border rounded-xl p-3">
+          <div className="text-xs text-[#5c746b] mb-1">Desde</div>
+          <div className="text-base font-medium">{desde}</div>
         </div>
-        <div className="bg-[#f7fbf8] border border-[#e2ede8] rounded-xl p-3">
-          <div className="text-[#5c746b] text-xs">Hasta</div>
-          <div className="font-semibold">{hasta}</div>
+        <div className="bg-[#f7fbf8] border rounded-xl p-3">
+          <div className="text-xs text-[#5c746b] mb-1">Hasta</div>
+          <div className="text-base font-medium">{hasta}</div>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 text-sm">
-        <div className="bg-[#f7fbf8] border border-[#e2ede8] rounded-xl p-3">
-          <div className="text-[#5c746b] text-xs">Cantidad (unidades)</div>
-          <div className="text-xl font-bold">{cantidadUnidad}</div>
+        <div className="bg-[#f7fbf8] border rounded-xl p-3">
+          <div className="text-xs text-[#5c746b] mb-1">Cantidad (unidades)</div>
+          <div className="text-base font-medium">{fmtNum(cantidadUnidad)}</div>
         </div>
-        <div className="bg-[#f7fbf8] border border-[#e2ede8] rounded-xl p-3">
-          <div className="text-[#5c746b] text-xs">Monto (dinero)</div>
-          <div className="text-xl font-bold">{fmtARS(cantidadDinero)}</div>
+        <div className="bg-[#f7fbf8] border rounded-xl p-3">
+          <div className="text-xs text-[#5c746b] mb-1">Monto (dinero)</div>
+          <div className="text-base font-medium">{fmtARS(cantidadDinero)}</div>
         </div>
       </div>
     </div>

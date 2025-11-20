@@ -74,6 +74,15 @@ export default function DetailModal({
             </p>
           </div>
         )}
+        {/* Footer: botón para cerrar el modal sin usar la X */}
+        <div className="flex justify-end mt-4">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-full bg-[#0f7a4e] text-white hover:bg-[#0d6843] transition"
+          >
+            Aceptar
+          </button>
+        </div>
       </div>
     </div>
   );

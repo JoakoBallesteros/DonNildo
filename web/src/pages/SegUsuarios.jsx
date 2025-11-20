@@ -3,6 +3,7 @@ import PageContainer from "../components/pages/PageContainer";
 import DataTable from "../components/tables/DataTable";
 import Modal from "../components/modals/Modals";
 import UsuarioForm from "../components/forms/UsuarioForm.jsx";
+import MessageModal from "../components/modals/MessageModal";
 
 import {
   listarUsuarios,
@@ -20,6 +21,7 @@ export default function SegUsuarios() {
   const [edit, setEdit] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+  const [messageModal, setMessageModal] = useState({ isOpen: false, title: "", text: "", type: "" });
 
   const cargar = useCallback(async () => {
     try {
@@ -70,8 +72,12 @@ export default function SegUsuarios() {
       } catch (error) {
         console.error("❌ Error al eliminar:", error);
         setErr(`Error al eliminar usuario: ${error.message}`);
-
-        alert(`No se pudo eliminar el usuario: ${error.message}`);
+        setMessageModal({
+          isOpen: true,
+          title: "❌ Error",
+          text: `No se pudo eliminar el usuario: ${error.message}`,
+          type: "error",
+        });
       }
     },
     [cargar]
@@ -237,6 +243,13 @@ export default function SegUsuarios() {
           />
         </Modal>
       )}
+      <MessageModal
+        isOpen={messageModal.isOpen}
+        title={messageModal.title}
+        text={messageModal.text}
+        type={messageModal.type}
+        onClose={() => setMessageModal(prev => ({ ...prev, isOpen: false }))}
+      />
     </PageContainer>
   );
 }

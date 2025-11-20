@@ -97,10 +97,22 @@ export default function StockPesaje() {
     const precio = Number(precioKg || 0);
 
     if (!material) {
-      return alert("Seleccioná el tipo de material.");
+      setMessageModal({
+        isOpen: true,
+        title: "⚠️ Error",
+        text: "Seleccioná el tipo de material.",
+        type: "error",
+      });
+      return;
     }
     if (!cant || cant <= 0) {
-      return alert("Ingresá la cantidad (kg).");
+      setMessageModal({
+        isOpen: true,
+        title: "⚠️ Error",
+        text: "Ingresá la cantidad (kg).",
+        type: "error",
+      });
+      return;
     }
 
     setItems((prev) => [
