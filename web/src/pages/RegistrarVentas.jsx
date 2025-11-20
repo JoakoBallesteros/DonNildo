@@ -383,8 +383,8 @@ export default function RegistrarVentas() {
   // RENDER PRINCIPAL
   // =========================
   return (
-    <PageContainer title="Registrar Venta">
-      <div className="flex flex-col min-h-[calc(100dvh-230px)] max-h-[calc(100dvh-230px)] justify-between overflow-hidden">
+    <PageContainer title="Registrar Venta" extraHeight>
+      <div className="flex flex-col h-full">
         <div className="flex-1 overflow-y-auto flex flex-col">
           <div className="bg-[#f7fbf8] border border-[#e2ede8] rounded-2xl p-4 mb-4 flex-shrink-0">
             <h2 className="text-[#154734] text-base font-semibold mb-3">
@@ -505,7 +505,7 @@ export default function RegistrarVentas() {
           </h3>
 
           <div className="flex-1 min-h-[150px] rounded-t-xl border-t border-[#e3e9e5]">
-            <DataTable columns={columns} data={ventas} cellClass="px-4 py-2" />
+            <DataTable columns={columns} data={ventas} cellClass="px-4 py-2" wrapperClass="max-h-[420px] overflow-y-auto" />
           </div>
 
           {ventas.length > 0 && (
