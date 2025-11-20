@@ -14,7 +14,7 @@ export default function ProductFormTabs({
     notas: "",
   },
   lockTipo = false,
-  labels = { caja: "Caja", material: "Producto" },
+  labels = { caja: "Caja", material: "Material" },
   onSubmit,
   onCancel,
 }) {
@@ -117,7 +117,7 @@ export default function ProductFormTabs({
     <div className="flex gap-2 mb-6">
       {[
         { key: "Caja", label: labels.caja ?? "Caja" },
-        { key: "Material", label: labels.material ?? "Producto" },
+        { key: "Material", label: labels.material ?? "Material" },
       ].map((t) => {
         const active = form.tipo === t.key;
         return (

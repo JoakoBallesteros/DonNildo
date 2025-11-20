@@ -621,7 +621,7 @@ export default function RegistrarVentas() {
               precio: "",
               notas: "",
             }}
-            labels={{ caja: "Caja", material: "Producto" }}
+            labels={{ caja: "Caja", material: "Material" }}
             onCancel={() => setNewOpen(false)}
             onSubmit={handleNewProductSubmit}
           />

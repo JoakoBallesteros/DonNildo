@@ -30,9 +30,10 @@ router.get("/", async (req, res) => {
         oc.estado,
         -- Clasificación visual del tipo
         CASE
-          WHEN COUNT(DISTINCT tp.nombre) > 1 THEN 'Mixtas'
-          WHEN MAX(tp.nombre) = 'Producto terminado' THEN 'Cajas'
-          ELSE 'Materiales'
+          WHEN COUNT(DISTINCT tp.id_tipo_producto) > 1 THEN 'Mixtas'
+          WHEN MAX(tp.id_tipo_producto) = 1 THEN 'Cajas'
+          WHEN MAX(tp.id_tipo_producto) = 2 THEN 'Materiales'
+          ELSE 'Otros'
         END AS tipo_compra,
         COALESCE(
           json_agg(
@@ -272,7 +273,9 @@ router.put("/:id/anular", async (req, res) => {
   const id = Number(req.params.id);
 
   if (!Number.isInteger(id) || id <= 0) {
-    return res.status(400).json({ ok: false, message: "ID de compra inválido" });
+    return res
+      .status(400)
+      .json({ ok: false, message: "ID de compra inválido" });
   }
 
   try {
@@ -288,7 +291,9 @@ router.put("/:id/anular", async (req, res) => {
     );
 
     if (!rows.length) {
-      return res.status(404).json({ ok: false, message: "Compra no encontrada" });
+      return res
+        .status(404)
+        .json({ ok: false, message: "Compra no encontrada" });
     }
 
     const compra = rows[0];
@@ -303,7 +308,10 @@ router.put("/:id/anular", async (req, res) => {
         `Compra ${compra.id_compra} anulada (estado=${compra.estado})`
       );
     } catch (errAud) {
-      console.error("Error registrando auditoría de anulación:", errAud.message);
+      console.error(
+        "Error registrando auditoría de anulación:",
+        errAud.message
+      );
     }
 
     return res.json({ ok: true, compra });
@@ -325,7 +333,9 @@ router.put("/:id", async (req, res) => {
   const { observaciones, fecha } = req.body; // o lo que quieras permitir modificar
 
   if (!Number.isInteger(id) || id <= 0) {
-    return res.status(400).json({ ok: false, message: "ID de compra inválido" });
+    return res
+      .status(400)
+      .json({ ok: false, message: "ID de compra inválido" });
   }
 
   try {
@@ -342,7 +352,9 @@ router.put("/:id", async (req, res) => {
     );
 
     if (!rows.length) {
-      return res.status(404).json({ ok: false, message: "Compra no encontrada" });
+      return res
+        .status(404)
+        .json({ ok: false, message: "Compra no encontrada" });
     }
 
     const compra = rows[0];
@@ -357,7 +369,10 @@ router.put("/:id", async (req, res) => {
         `Compra ${compra.id_compra} modificada`
       );
     } catch (errAud) {
-      console.error("Error registrando auditoría de modificación:", errAud.message);
+      console.error(
+        "Error registrando auditoría de modificación:",
+        errAud.message
+      );
     }
 
     return res.json({ ok: true, compra });
@@ -370,6 +385,5 @@ router.put("/:id", async (req, res) => {
     });
   }
 });
-
 
 export default router;

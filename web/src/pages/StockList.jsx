@@ -10,6 +10,7 @@ import FilterBar from "../components/forms/FilterBars";
 import DataTable from "../components/tables/DataTable";
 import Modified from "../components/modals/Modified";
 import Modal from "../components/modals/Modals";
+import MessageModal from "../components/modals/MessageModal";
 import ProductFormTabs from "../components/forms/ProductFormTabs";
 
 import { apiFetch } from "../lib/apiClient";
@@ -956,7 +957,7 @@ export default function StockList() {
             precio: "",
             notas: "",
           }}
-          labels={{ caja: "Caja", material: "Producto" }}
+          labels={{ caja: "Caja", material: "Material" }}
           onCancel={() => setNewOpen(false)}
           onSubmit={async (values) => {
             try {
@@ -1086,70 +1087,27 @@ export default function StockList() {
         </Modal>
       )}
 
-      {/* Modal CONFIRMAR ELIMINACIÓN */}
-      <Modal
+      {/* Modal CONFIRMAR ELIMINACIÓN (MessageModal en modo confirm) */}
+      <MessageModal
         isOpen={isDeleteConfirmOpen}
-        onClose={() => setDeleteConfirmOpen(false)}
         title="Confirmar eliminación"
-        size="max-w-md"
-        footer={
-          <div className="flex justify-end gap-3">
-            <button
-              onClick={() => setDeleteConfirmOpen(false)}
-              className="px-4 py-2 rounded-md font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
-            >
-              Volver
-            </button>
-            <button
-              onClick={handleConfirmDelete}
-              className="px-4 py-2 rounded-md font-semibold text-white bg-red-600 hover:bg-red-700 transition"
-            >
-              Sí, eliminar
-            </button>
-          </div>
-        }
-      >
-        <p className="text-sm text-slate-700">
-          ¿Estás seguro de que quieres eliminar el producto{" "}
-          <strong className="text-slate-900">
-            {productToDelete?.referencia || ""}
-          </strong>
-          ? Esta acción no se puede deshacer.
-        </p>
-      </Modal>
+        text={`¿Estás seguro de que quieres eliminar el producto ${productToDelete?.referencia || ""}? Esta acción no se puede deshacer.`}
+        type="warning"
+        confirm
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={handleConfirmDelete}
+        confirmText="Sí, eliminar"
+        cancelText="Volver"
+      />
 
       {/* Modal MENSAJE (success / error) */}
-      <Modal
+      <MessageModal
         isOpen={messageModal.isOpen}
-        onClose={() =>
-          setMessageModal({ isOpen: false, title: "", text: "", type: "" })
-        }
         title={messageModal.title}
-        size="max-w-md"
-        footer={
-          <div className="flex justify-end">
-            <button
-              onClick={() =>
-                setMessageModal({
-                  isOpen: false,
-                  title: "",
-                  text: "",
-                  type: "",
-                })
-              }
-              className={`px-4 py-2 rounded-md font-semibold text-white transition ${
-                messageModal.type === "success"
-                  ? "bg-emerald-700 hover:bg-emerald-800"
-                  : "bg-red-700 hover:bg-red-800"
-              }`}
-            >
-              Aceptar
-            </button>
-          </div>
-        }
-      >
-        <p className="text-sm text-slate-700">{messageModal.text}</p>
-      </Modal>
+        text={messageModal.text}
+        type={messageModal.type}
+        onClose={() => setMessageModal((prev) => ({ ...prev, isOpen: false }))}
+      />
     </PageContainer>
   );
 }

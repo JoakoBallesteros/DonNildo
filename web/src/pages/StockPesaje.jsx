@@ -5,7 +5,7 @@ import PageContainer from "../components/pages/PageContainer";
 import DataTable from "../components/tables/DataTable";
 import Modified from "../components/modals/Modified";
 import PrintButton from "../components/buttons/PrintButton";
-import Modal from "../components/modals/Modals";
+import MessageModal from "../components/modals/MessageModal";
 import { apiFetch } from "../lib/apiClient";
 
 function genId() {
@@ -118,7 +118,7 @@ export default function StockPesaje() {
     setItems((prev) => [
       ...prev,
       {
-        id: genId(), // 👈 acá usamos genId en vez de crypto.randomUUID()
+        id: genId(), // acá usamos genId en vez de crypto.randomUUID()
         id_producto: material.id_producto,
         tipo: material.nombre,
         unidad: material.unidad_stock || "kg",
@@ -129,7 +129,7 @@ export default function StockPesaje() {
       },
     ]);
 
-    limpiarForm(); // 👈 esto queda igual, solo limpia los inputs
+    limpiarForm(); //  esto queda igual, solo limpia los inputs
   };
 
   const onDelete = (row) => {
@@ -554,37 +554,13 @@ export default function StockPesaje() {
       )}
 
       {/* Modal mensajes (éxito / error) */}
-      <Modal
+      <MessageModal
         isOpen={messageModal.isOpen}
-        onClose={() =>
-          setMessageModal({ isOpen: false, title: "", text: "", type: "" })
-        }
         title={messageModal.title}
-        size="max-w-md"
-        footer={
-          <div className="flex justify-end">
-            <button
-              onClick={() =>
-                setMessageModal({
-                  isOpen: false,
-                  title: "",
-                  text: "",
-                  type: "",
-                })
-              }
-              className={`px-4 py-2 rounded-md font-semibold text-white transition ${
-                messageModal.type === "success"
-                  ? "bg-emerald-700 hover:bg-emerald-800"
-                  : "bg-red-700 hover:bg-red-800"
-              }`}
-            >
-              Aceptar
-            </button>
-          </div>
-        }
-      >
-        <p className="text-sm text-slate-700">{messageModal.text}</p>
-      </Modal>
+        text={messageModal.text}
+        type={messageModal.type}
+        onClose={() => setMessageModal((prev) => ({ ...prev, isOpen: false }))}
+      />
     </PageContainer>
   );
 }
