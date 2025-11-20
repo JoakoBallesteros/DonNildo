@@ -344,6 +344,8 @@ export default function Ventas() {
   return (
     <PageContainer
       title="Lista de Ventas"
+      noDivider
+      extraHeight
       actions={
         <button
           onClick={() => navigate("/ventas/nueva")}
@@ -403,6 +405,7 @@ export default function Ventas() {
             zebra={false}
             /* header pegado arriba cuando scrolleás dentro de la card */
             stickyHeader={true}
+            wrapperClass="max-h-[415px] overflow-y-auto shadow-sm"
             tableClass="w-full text-sm text-center border-collapse"
             theadClass="bg-[#e8f4ef] text-[#154734]"
             rowClass={(row) =>
@@ -415,11 +418,9 @@ export default function Ventas() {
             headerClass="px-4 py-3 font-semibold text-center"
             cellClass="px-4 py-2 text-center"
             enableSort={true}
-            /* ✅ paginado dentro de la card */
             enablePagination={true}
             pageSize={8}
-            /* ✅ card más alta, con scroll interno y sombra suave */
-            wrapperClass="max-h-[480px] overflow-y-auto shadow-sm"
+            
           />
         )}
       </div>
