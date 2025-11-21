@@ -14,7 +14,7 @@ import { apiFetch } from "../lib/apiClient";
 
 const TIPO_MAP = {
   Todo: null,
-  Productos: "Producto",
+  Materiales: "Material",
   Cajas: "Caja",
   Mixtas: "Mixta",
 };
@@ -86,7 +86,7 @@ export default function Ventas() {
   // =========================
   const [selectedVenta, setSelectedVenta] = useState(null);
   const [isDetailOpen, setDetailOpen] = useState(false);
-  const [isEditOpen, setEditOpen] = useState(false);
+
 
   const handleVerDetalle = (venta) => {
     setSelectedVenta(venta);
@@ -94,43 +94,7 @@ export default function Ventas() {
   };
 
   const handleModificar = (venta) => {
-    setSelectedVenta(venta);
-    setEditOpen(true);
-  };
-
-  const handleGuardarCambios = async (updated) => {
-    try {
-      if (!updated) return setEditOpen(false);
-
-      const id_venta = updated.id_venta; // 👈 usamos el id real, no "numero"
-      const body = { id_venta, productos: updated.productos };
-
-    
-
-      await apiFetch(`/api/ventas/${id_venta}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      setMessageModal({
-        isOpen: true,
-        title: "✅ Venta Modificada",
-        text: "La venta ha sido modificada correctamente.",
-        type: "success",
-      });
-      setEditOpen(false);
-      setSelectedVenta(null);
-      await loadVentas();
-    } catch (e) {
-     
-      setMessageModal({
-        isOpen: true,
-        title: "❌ Error al Guardar",
-        text: e.message,
-        type: "error",
-      });
-    }
+    navigate(`/ventas/editar/${venta.id_venta}`);
   };
 
   const handleOpenAnularConfirm = (id_venta) => {
@@ -248,20 +212,20 @@ export default function Ventas() {
       accessor: "id_venta",
       align: "center",
       sortable: true,
-    }, // ✅ Ordenable (Texto/Número)
+    },
     {
       id: "tipo",
       header: "Tipo",
       accessor: "tipo",
       align: "center",
       sortable: true,
-    }, // ✅ Ordenable (Texto)
+    }, 
     {
       id: "fecha",
       header: "Fecha",
       align: "center",
       sortable: true,
-      sortAccessor: (row) => row.fecha, // 💡 Usar el campo ISO para ordenar correctamente por fecha (YYYY-MM-DD)
+      sortAccessor: (row) => row.fecha, // Usar el campo ISO para ordenar correctamente por fecha (YYYY-MM-DD)
       render: (row) => {
         const fecha = new Date(row.fecha);
         return fecha
@@ -277,7 +241,7 @@ export default function Ventas() {
       id: "total",
       header: "Total ($)",
       sortable: true,
-      sortAccessor: (row) => Number(row.total || 0), // 💡 Usar el valor numérico puro para ordenar
+      sortAccessor: (row) => Number(row.total || 0), // Usar el valor numérico puro para ordenar
       render: (row) => `$${Number(row.total).toLocaleString("es-AR")}`,
       align: "center",
     },
@@ -296,6 +260,13 @@ export default function Ventas() {
       ),
     },
     {
+      id: "obs",
+      header: "Observaciones",
+      accessor: "observaciones",
+      align: "center",
+      render: row => row.observaciones || "—"
+    },
+    {
       id: "acciones",
       header: "Acciones",
       align: "center",
@@ -311,14 +282,14 @@ export default function Ventas() {
             <div className="flex flex-col items-center gap-1">
               <button
                 onClick={() => handleModificar(row)}
-                // 💡 AJUSTE: py-1.5 (más alto) y px-4 (uniforme)
+                // AJUSTE: py-1.5 (más alto) y px-4 (uniforme)
                 className="bg-[#154734] text-white px-4 py-1.5 text-xs rounded-md hover:bg-[#1E5A3E]"
               >
                 MODIFICAR
               </button>
               <button
                 onClick={() => handleOpenAnularConfirm(row.id_venta)}
-                // 💡 AJUSTE: py-1.5 (más alto) y px-4 (uniforme)
+                // AJUSTE: py-1.5 (más alto) y px-4 (uniforme)
                 className="bg-[#A30000] text-white px-6 py-1.5 text-xs rounded-md hover:bg-[#7A0000]"
               >
                 ANULAR
@@ -435,9 +406,9 @@ export default function Ventas() {
           { key: "tipo", label: "Tipo" },
           { key: "producto", label: "Producto" },
           { key: "cantidad", label: "Cantidad" },
-          { key: "medida", label: "Medida" },
           { key: "precio", label: "Precio Unitario" },
           { key: "subtotal", label: "Subtotal" },
+          { key: "observaciones", label: "Observaciones" },
         ]}
         footerRight={
           selectedVenta
@@ -445,28 +416,6 @@ export default function Ventas() {
             : ""
         }
       />
-
-      {selectedVenta && (
-        <Modified
-          isOpen={isEditOpen}
-          onClose={() => setEditOpen(false)}
-          title={`Modificar productos de Venta ${selectedVenta?.numero || ""}`}
-          data={selectedVenta}
-          itemsKey="productos"
-          columns={[
-            { key: "tipo", label: "Tipo", readOnly: true },
-            { key: "producto", label: "Producto", readOnly: true },
-            { key: "cantidad", label: "Cantidad", type: "number" },
-            { key: "medida", label: "Medida", readOnly: true },
-            { key: "precio", label: "Precio Unitario", type: "number" },
-            { key: "subtotal", label: "Subtotal", readOnly: true },
-          ]}
-          computeTotal={(rows) =>
-            rows.reduce((sum, r) => sum + r.cantidad * r.precio, 0)
-          }
-          onSave={handleGuardarCambios}
-        />
-      )}
 
       <Modal
         isOpen={isAnularConfirmOpen}
