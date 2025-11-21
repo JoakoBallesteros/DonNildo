@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import PageContainer from "../components/pages/PageContainer";
 import FormBuilder from "../components/forms/FormBuilder";
 import DataTable from "../components/tables/DataTable";
@@ -8,10 +8,13 @@ import Modified from "../components/modals/Modified.jsx";
 import Modal from "../components/modals/Modals.jsx";
 import api from "../lib/apiClient";
 import ProductFormTabs from "../components/forms/ProductFormTabs";
+import ProductoSelect from "../components/ui/ProductoSelect";
 
 // ======================================================================
 // HELPERS & PERSISTENCE KEY (Movidos fuera del componente)
 // ======================================================================
+// === STORAGE SOLO PARA NUEVA VENTA ===
+const NEW_SALE_KEY = "dn_new_sale_items";
 const SESSION_KEY = "dn_pending_sale_items";
 
 const calcSubtotal = (cantidad, precio, descuento) => {
@@ -27,16 +30,29 @@ const calcSubtotal = (cantidad, precio, descuento) => {
 // ======================================================================
 
 export default function RegistrarVentas() {
-  // 1. PERSISTENCIA: Inicializar leyendo desde Session Storage
+  const { id } = useParams();
+  const isEditMode = Boolean(id); 
+ // Estado inicial: usar storage SOLO si NO es edición
   const [ventas, setVentas] = useState(() => {
-    const saved = sessionStorage.getItem(SESSION_KEY);
+    if (isEditMode) return []; // evitar cargar borrador al editar
+    const saved = sessionStorage.getItem(NEW_SALE_KEY);
     try {
       return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
     }
   });
-
+  useEffect(() => {
+  if (isEditMode) {
+    sessionStorage.removeItem(NEW_SALE_KEY);
+    setVentas([]); // se llenará luego con fetchVenta()
+  }
+}, [isEditMode]);
+useEffect(() => {
+  if (!isEditMode) {
+    sessionStorage.setItem(NEW_SALE_KEY, JSON.stringify(ventas));
+  }
+}, [ventas, isEditMode]);
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -71,6 +87,42 @@ export default function RegistrarVentas() {
   // EFECTOS
   // =========================
 
+  //para modificar una venta existente
+ useEffect(() => {
+    if (!isEditMode) return;
+
+    const fetchVenta = async () => {
+      try {
+        const res = await api(`/api/ventas/${id}`);
+
+        // res.productos ES EL ARRAY
+        const productosBackend = res.productos || [];
+
+       const productos = productosBackend.map((r) => ({
+          id_producto: r.id_producto,
+          producto: r.producto,
+          tipo: r.tipo_producto === "Caja" ? "Caja" : "Material",
+          cantidad: r.cantidad,
+          precio: r.precio, // El back envía 'precio' y 'precio_unitario'
+          descuento: r.descuento || 0,
+          subtotal: r.subtotal,
+          medida: r.medida || "u",
+        }));
+
+        setVentas(productos);
+      } catch (err) {
+        console.error("Error cargando venta:", err);
+        setMessageModal({
+          isOpen: true,
+          title: "Error",
+          text: "No se pudo obtener la venta.",
+          type: "error",
+        });
+      }
+    };
+
+    fetchVenta();
+  }, [isEditMode, id]);
   // 2. Guardar 'ventas' cada vez que cambian (Efecto de escritura en Session Storage)
   useEffect(() => {
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(ventas));
@@ -83,12 +135,20 @@ export default function RegistrarVentas() {
       try {
         const data = await api("/v1/productos");
         const rawProductos = data.productos || [];
-        const items = rawProductos.map((p) => ({
+
+        // Filtrar solo productos con estado "true" en la tabla
+        const activos = rawProductos.filter((p) =>
+          p?.estado === true || p?.estado === 1 || p?.estado === "1" || p?.estado === "true"
+        );
+
+        const items = activos.map((p) => ({
           id_producto: p.id_producto,
           nombre: p.nombre,
           precio: Number(p.precio_unitario) || 0,
-          tipoVenta: p.id_tipo_producto === 1 ? "Caja" : "Producto",
+          id_tipo_producto: p.id_tipo_producto,
+          tipoVenta: p.id_tipo_producto === 1 ? "Caja" : "Material",
         }));
+
         setProductosDisponibles(items);
       } catch (err) {
         console.error("Error cargando productos desde la API:", err.message);
@@ -114,9 +174,14 @@ export default function RegistrarVentas() {
       setFormData((prev) => ({
         ...prev,
         producto: value,
-        tipo: prod.tipoVenta,
+        tipo: prod.tipoVenta === "Caja" ? "Caja" : "Material",
         precio: prod.precio || "",
         subtotal: calcSubtotal(prev.cantidad, prod.precio, prev.descuento),
+        // Si el producto es tipo 2 / 'Material' (ej. materiales), auto-poner 'KG'
+        observaciones:
+          prod.id_tipo_producto === 2 || prod.tipoVenta === "Material"
+            ? "KG"
+            : prev.observaciones || "",
       }));
       return;
     }
@@ -141,23 +206,57 @@ export default function RegistrarVentas() {
       });
     }
 
-    const item = {
-      tipo: formData.tipo,
-      producto: formData.producto,
-      id_producto:
-        productosDisponibles.find((p) => p.nombre === formData.producto)
-          ?.id_producto || null,
-      cantidad: Number(formData.cantidad),
-      precio: Number(formData.precio),
-      descuento: Number(formData.descuento || 0),
-      subtotal: calcSubtotal(
-        formData.cantidad,
-        formData.precio,
-        formData.descuento
-      ),
-    };
+    // Buscar si ya existe el mismo producto
+    const existingIndex = ventas.findIndex(
+      (v) => v.id_producto === productosDisponibles.find(p => p.nombre === formData.producto)?.id_producto
+    );
 
-    setVentas((prev) => [...prev, item]);
+    const cantidad = Number(formData.cantidad);
+    const precio = Number(formData.precio);
+    const descuento = Number(formData.descuento || 0);
+
+    const nuevoSubtotal = calcSubtotal(cantidad, precio, descuento);
+
+    // Si ya existe → sumar cantidad correctamente
+    if (existingIndex !== -1) {
+      setVentas((prev) =>
+        prev.map((item, i) => {
+          if (i === existingIndex) {
+            const newCantidad = item.cantidad + cantidad; 
+            const newSubtotal = calcSubtotal(
+              newCantidad,
+              precio,
+              item.descuento
+            );
+
+            return {
+              ...item,
+              cantidad: newCantidad,
+              subtotal: newSubtotal,
+            };
+          }
+          return item;
+        })
+      );
+    } else {
+      // Si NO existe → agregar como nuevo
+      const item = {
+        tipo: formData.tipo,
+        producto: formData.producto,
+        id_producto:
+          productosDisponibles.find((p) => p.nombre === formData.producto)
+            ?.id_producto || null,
+        cantidad: cantidad,
+        precio: precio,
+        descuento: descuento,
+        subtotal: nuevoSubtotal,
+        observaciones: formData.observaciones || "",
+      };
+
+      setVentas((prev) => [...prev, item]);
+    }
+
+    // Reset form
     setFormData({
       producto: "",
       tipo: "",
@@ -165,10 +264,36 @@ export default function RegistrarVentas() {
       precio: "",
       descuento: "",
       subtotal: "",
+      observaciones: "",
     });
     setErrors({});
   };
 
+  const handleActualizarVenta = async () => {
+  try {
+    const res = await api(`/api/ventas/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ productos: ventas })
+    });
+
+    setMessageModal({
+      isOpen: true,
+      title: "Venta actualizada",
+      text: res.message || "Cambios guardados correctamente.",
+      type: "success"
+    });
+
+  } catch (err) {
+    console.error(err)
+    setMessageModal({
+      isOpen: true,
+      title: "Error",
+      text: "No se pudo actualizar la venta.",
+      type: "error"
+    });
+  }
+};
   // =========================
   // MODALES Y ACCIONES
   // =========================
@@ -306,18 +431,18 @@ export default function RegistrarVentas() {
     .filter((v) => v.tipo === "Caja")
     .reduce((a, v) => a + Number(v.subtotal), 0);
   const subtotalProductos = ventas
-    .filter((v) => v.tipo === "Producto")
+    .filter((v) => v.tipo === "Material")
     .reduce((a, v) => a + Number(v.subtotal), 0);
   const cantidadCajas = ventas
     .filter((v) => v.tipo === "Caja")
     .reduce((a, v) => a + Number(v.cantidad), 0);
   const cantidadProductos = ventas
-    .filter((v) => v.tipo === "Producto")
+    .filter((v) => v.tipo === "Material")
     .reduce((a, v) => a + Number(v.cantidad), 0);
 
   const columns = [
     { id: "tipo", header: "Tipo", accessor: "tipo", align: "center" },
-    { id: "producto", header: "Producto", accessor: "producto" },
+    { id: "producto", header: "Producto", accessor: "producto", align: "center" },
     {
       id: "cantidad",
       header: "Cantidad",
@@ -327,8 +452,16 @@ export default function RegistrarVentas() {
     {
       id: "subtotal",
       header: "Subtotal",
-      align: "right",
+      align: "center",
       render: (row) => `$${Number(row.subtotal).toLocaleString("es-AR")}`,
+    },
+    {
+    id: "observaciones",
+    header: "Observaciones",
+    accessor: "observaciones",
+    align: "center" ,
+    width: "200px",
+    render: (row) => row.observaciones,
     },
     {
       id: "acciones",
@@ -364,7 +497,7 @@ export default function RegistrarVentas() {
       id_producto: Date.now(), // id temporal (solo frontend)
       nombre: values.referencia,
       precio: Number(values.precio || 0),
-      tipoVenta: values.tipo === "Caja" ? "Caja" : "Producto",
+      tipoVenta: values.tipo === "Caja" ? "Caja" : "Material",
     };
 
     setProductosDisponibles((prev) => [...prev, nuevoProducto]);
@@ -374,7 +507,7 @@ export default function RegistrarVentas() {
       isOpen: true,
       title: "Producto agregado",
       text: "El producto ya está disponible para seleccionarlo en esta venta.",
-      type: "info", // 👈 NO 'success' así no dispara el navigate
+      type: "info", 
     });
 
     setNewOpen(false);
@@ -385,7 +518,7 @@ export default function RegistrarVentas() {
   return (
     <PageContainer title="Registrar Venta" extraHeight>
       <div className="flex flex-col h-full">
-        <div className="flex-1 overflow-y-auto flex flex-col">
+        <div className="flex-1 flex flex-col max-h-[72vh]">
           <div className="bg-[#f7fbf8] border border-[#e2ede8] rounded-2xl p-4 mb-4 flex-shrink-0">
             <h2 className="text-[#154734] text-base font-semibold mb-3">
               Datos de la venta
@@ -393,24 +526,13 @@ export default function RegistrarVentas() {
 
             <div className="grid grid-cols-[0.5fr_0.2fr] gap-4 mb-4 max-w-[700px]">
               <div>
-                <FormBuilder
-                  fields={[
-                    {
-                      label: "Producto",
-                      name: "producto",
-                      type: "select",
-                      options: productosDisponibles.map((p) => ({
-                        label: p.nombre,
-                        value: p.nombre,
-                      })),
-                      required: true,
-                      placeholder: "Seleccionar...",
-                    },
-                  ]}
-                  values={formData}
-                  onChange={handleChange}
-                  errors={errors}
-                  columns={1}
+                <label className="block text-sm text-slate-700 mb-1">Producto</label>
+                <ProductoSelect
+                  productos={productosDisponibles}
+                  value={
+                    productosDisponibles.find((p) => p.nombre === formData.producto) || null
+                  }
+                  onChange={(p) => handleChange("producto", p?.nombre || "")}
                 />
               </div>
 
@@ -482,10 +604,24 @@ export default function RegistrarVentas() {
                 errors={errors}
                 columns={1}
               />
+              <FormBuilder
+                fields={[
+                  {
+                    label: "Observaciones",
+                    name: "observaciones",
+                    type: "text",
+                    placeholder: "Opcional",
+                  },
+                ]}
+                values={formData}
+                onChange={handleChange}
+                errors={errors}
+                columns={1}
+              />
 
               <button
                 onClick={handleAgregarProducto}
-                className="bg-[#154734] text-white px-4 py-2 rounded-md hover:bg-[#103a2b] transition w-full ml-56"
+                className="bg-[#154734] text-white px-4 py-2 rounded-md hover:bg-[#103a2b] transition w-full mb-0.2 ml-1.5"
               >
                 + Añadir
               </button>
@@ -493,7 +629,7 @@ export default function RegistrarVentas() {
               <button
                 type="button"
                 onClick={() => setNewOpen(true)}
-                className=" rounded-md border border-[#154734] text-[#154734] px-4 py-2 hover:bg-[#e8f4ef] transition w-full ml-56"
+                className=" rounded-md border border-[#154734] text-[#154734] px-4 py-2 hover:bg-[#e8f4ef] transition w-full "
               >
                 + Nuevo producto
               </button>
@@ -504,8 +640,8 @@ export default function RegistrarVentas() {
             Productos registrados
           </h3>
 
-          <div className="flex-1 min-h-[150px] rounded-t-xl border-t border-[#e3e9e5]">
-            <DataTable columns={columns} data={ventas} cellClass="px-4 py-2" wrapperClass="max-h-[420px] overflow-y-auto" />
+          <div className="flex-1 min-h-[150px] rounded-t-xl border-t border-[#e3e9e5] overflow-hidden">
+            <DataTable columns={columns} data={ventas} cellClass="px-4 py-2" wrapperClass="h-full overflow-y-auto" />
           </div>
 
           {ventas.length > 0 && (
@@ -536,10 +672,10 @@ export default function RegistrarVentas() {
           </button>
 
           <button
-            onClick={handleGuardarVenta}
+              onClick={isEditMode ? handleActualizarVenta : handleGuardarVenta}
             className="bg-[#154734] text-white px-6 py-2 rounded-lg hover:bg-[#103a2b] transition w-full sm:w-auto"
           >
-            GUARDAR
+            {isEditMode ? "ACTUALIZAR VENTA" : "GUARDAR"}
           </button>
         </div>
 
@@ -619,7 +755,7 @@ export default function RegistrarVentas() {
               unidad: "u",
               cantidad: "",
               precio: "",
-              notas: "",
+              observaciones: "",
             }}
             labels={{ caja: "Caja", material: "Producto" }}
             onCancel={() => setNewOpen(false)}
@@ -681,6 +817,7 @@ export default function RegistrarVentas() {
               { key: "precio", label: "Precio Unitario", readOnly: true },
               { key: "descuento", label: "Descuento (%)", type: "number" },
               { key: "subtotal", label: "Subtotal", readOnly: true },
+              { key: "observaciones", label: "Observacion", type: "text" }
             ]}
             computeTotal={(rows) =>
               rows.reduce(

@@ -54,9 +54,12 @@ export default function App() {
               <Route path="nueva" element={<RegistrarCompra />} />
             </Route>
 
-            <Route path="ventas" element={<Ventas />} />
-            <Route path="ventas/nueva" element={<RegistrarVentas />} />
+          <Route path="ventas" element={<Ventas />} />
+            <Route path="ventas/nueva" element={<RegistrarVentas editMode={false} />} />
+            <Route path="ventas/editar/:id" element={<RegistrarVentas editMode={true} />} />
 
+
+            
             <Route path="stock" element={<Outlet />}>
               <Route index element={<StockList />} />
               <Route path="nuevo-producto" element={<StockNuevoProducto />} />
