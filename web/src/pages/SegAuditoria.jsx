@@ -264,6 +264,7 @@ export default function SegAuditoria() {
             rowClass="hover:bg-[#f6faf7] transition border-t border-[#edf2ef]"
             headerClass="px-4 py-3 font-semibold border-r border-[#e3e9e5] last:border-none select-none"
             cellClass="px-4 py-3 border-r border-[#edf2ef] last:border-none align-top"
+            
           />
 
           {/* paginación */}
