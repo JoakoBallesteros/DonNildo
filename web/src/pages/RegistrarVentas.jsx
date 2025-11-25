@@ -62,7 +62,7 @@ useEffect(() => {
   precio: "",
   descuento: "",
   subtotal: "",
-  observaciones: "", // ← Observación general de la venta
+
 });
 
   const [errors, setErrors] = useState({});
@@ -90,40 +90,46 @@ useEffect(() => {
 
   //para modificar una venta existente
  useEffect(() => {
-    if (!isEditMode) return;
+  if (!isEditMode) return;
 
-    const fetchVenta = async () => {
-      try {
-        const res = await api(`/api/ventas/${id}`);
+  const fetchVenta = async () => {
+    try {
+      const res = await api(`/api/ventas/${id}`);
 
-        // res.productos ES EL ARRAY
-        const productosBackend = res.productos || [];
+      // res.productos ES EL ARRAY
+      const productosBackend = res.productos || [];
+      const productos = productosBackend.map((r) => ({
+        id_producto: r.id_producto,
+        producto: r.producto,
+        tipo: r.tipo_producto === "Caja" ? "Caja" : "Material",
+        cantidad: r.cantidad,
+        precio: r.precio,
+        descuento: r.descuento || 0,
+        subtotal: r.subtotal,
+        medida: r.medida || "u",
+      }));
 
-       const productos = productosBackend.map((r) => ({
-          id_producto: r.id_producto,
-          producto: r.producto,
-          tipo: r.tipo_producto === "Caja" ? "Caja" : "Material",
-          cantidad: r.cantidad,
-          precio: r.precio, // El back envía 'precio' y 'precio_unitario'
-          descuento: r.descuento || 0,
-          subtotal: r.subtotal,
-          medida: r.medida || "u",
-        }));
+      setVentas(productos);
 
-        setVentas(productos);
-      } catch (err) {
-        console.error("Error cargando venta:", err);
-        setMessageModal({
-          isOpen: true,
-          title: "Error",
-          text: "No se pudo obtener la venta.",
-          type: "error",
-        });
-      }
-    };
+      // 💡 Al editar, carga también la observación general de la venta
+      // (res.venta.observaciones) en el formulario
+      setFormData((prev) => ({
+        ...prev,
+        observaciones: res.venta?.observaciones || "",
+      }));
+    } catch (err) {
+      console.error("Error cargando venta:", err);
+      setMessageModal({
+        isOpen: true,
+        title: "Error",
+        text: "No se pudo obtener la venta.",
+        type: "error",
+      });
+    }
+  };
 
-    fetchVenta();
-  }, [isEditMode, id]);
+  fetchVenta();
+}, [isEditMode, id]);
   // 2. Guardar 'ventas' cada vez que cambian (Efecto de escritura en Session Storage)
   useEffect(() => {
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(ventas));
@@ -273,23 +279,25 @@ useEffect(() => {
     const res = await api(`/api/ventas/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ productos: ventas })
+      body: JSON.stringify({
+        productos: ventas,
+        observaciones: formData.observaciones || null,
+      }),
     });
 
     setMessageModal({
       isOpen: true,
       title: "Venta actualizada",
       text: res.message || "Cambios guardados correctamente.",
-      type: "success"
+      type: "success",
     });
-
   } catch (err) {
-    console.error(err)
+    console.error(err);
     setMessageModal({
       isOpen: true,
       title: "Error",
       text: "No se pudo actualizar la venta.",
-      type: "error"
+      type: "error",
     });
   }
 };
@@ -522,7 +530,7 @@ useEffect(() => {
   return (
     <PageContainer title="Registrar Venta" extraHeight>
       <div className="flex flex-col h-full">
-        <div className="flex-1 flex flex-col max-h-[72vh]">
+        <div className="flex-1 flex flex-col max-h-[62vh]">
           <div className="bg-[#f7fbf8] border border-[#e2ede8] rounded-2xl p-4 mb-4 flex-shrink-0">
             <h2 className="text-[#154734] text-base font-semibold mb-3">
               Datos de la venta
@@ -644,8 +652,8 @@ useEffect(() => {
             Productos registrados
           </h3>
 
-          <div className="flex-1 min-h-[150px] rounded-t-xl border-t border-[#e3e9e5] overflow-hidden">
-            <DataTable columns={columns} data={ventasConObservacion} cellClass="px-4 py-2" wrapperClass="h-full overflow-y-auto" />
+         <div className="flex-1 min-h-[150px] rounded-t-xl border-t border-[#e3e9e5] overflow-y-auto">
+           <DataTable columns={columns} data={ventasConObservacion} stickyHeader={true} cellClass="px-4 py-2" wrapperClass="h-full overflow-y-auto"  enablePagination={true}/>
           </div>
 
           {ventas.length > 0 && (
@@ -821,7 +829,7 @@ useEffect(() => {
               { key: "precio", label: "Precio Unitario", readOnly: true },
               { key: "descuento", label: "Descuento (%)", type: "number" },
               { key: "subtotal", label: "Subtotal", readOnly: true },
-              { key: "observaciones", label: "Observacion", type: "text" }
+            
             ]}
             computeTotal={(rows) =>
               rows.reduce(
