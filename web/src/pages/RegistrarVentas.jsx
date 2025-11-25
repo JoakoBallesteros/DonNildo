@@ -652,8 +652,8 @@ useEffect(() => {
             Productos registrados
           </h3>
 
-         <div className="flex-1 min-h-[150px] rounded-t-xl border-t border-[#e3e9e5] overflow-y-auto">
-           <DataTable columns={columns} data={ventasConObservacion} stickyHeader={true} cellClass="px-4 py-2" wrapperClass="h-full overflow-y-auto"  enablePagination={true}/>
+         <div className="flex-1 min-h-[150px] rounded-t-xl border-t border-[#e3e9e5]">
+           <DataTable columns={columns} data={ventasConObservacion} stickyHeader={true} cellClass="px-4 py-2" wrapperClass="h-[220px] "  enablePagination={true}/>
           </div>
 
           {ventas.length > 0 && (
