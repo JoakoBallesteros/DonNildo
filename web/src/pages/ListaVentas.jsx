@@ -12,9 +12,15 @@ import Modal from "../components/modals/Modals.jsx";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../lib/apiClient";
 
+const normalizarTipo = (tipo) => {
+  if (!tipo) return "";
+  if (tipo.toLowerCase() === "producto") return "Materiales";
+  return tipo;
+};
+
 const TIPO_MAP = {
   Todo: null,
-  Materiales: "Material",
+  Materiales: "Materiales",
   Cajas: "Caja",
   Mixtas: "Mixta",
 };
@@ -70,7 +76,6 @@ export default function Ventas() {
       const data = await apiFetch(`/api/ventas${qs}`);
       setVentas(data);
     } catch (e) {
-     
       setErr(e.message);
     } finally {
       setLoading(false);
@@ -94,7 +99,40 @@ export default function Ventas() {
   };
 
   const handleModificar = (venta) => {
-    navigate(`/ventas/editar/${venta.id_venta}`);
+    setSelectedVenta(venta);
+    setEditOpen(true);
+  };
+
+  const handleGuardarCambios = async (updated) => {
+    try {
+      if (!updated) return setEditOpen(false);
+
+      const id_venta = updated.id_venta; // 👈 usamos el id real, no "numero"
+      const body = { id_venta, productos: updated.productos };
+
+      await apiFetch(`/api/ventas/${id_venta}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      setMessageModal({
+        isOpen: true,
+        title: "✅ Venta Modificada",
+        text: "La venta ha sido modificada correctamente.",
+        type: "success",
+      });
+      setEditOpen(false);
+      setSelectedVenta(null);
+      await loadVentas();
+    } catch (e) {
+      setMessageModal({
+        isOpen: true,
+        title: "❌ Error al Guardar",
+        text: e.message,
+        type: "error",
+      });
+    }
   };
 
   const handleOpenAnularConfirm = (id_venta) => {
@@ -119,7 +157,6 @@ export default function Ventas() {
       });
       await loadVentas();
     } catch (e) {
-     
       setMessageModal({
         isOpen: true,
         title: "❌ Error al Anular",
@@ -138,7 +175,6 @@ export default function Ventas() {
     const doc = new jsPDF();
 
     if (!venta || !venta.productos) {
- 
       return;
     }
 
@@ -182,25 +218,31 @@ export default function Ventas() {
   // =========================
 
   const ventasFiltradas = useMemo(() => {
-  const tsel = TIPO_MAP[filtroTipo];
-  return ventas.filter((v) => {
-    if (tsel && v.tipo !== tsel) return false;
-    if (filtros.buscar) {
-      const txt = filtros.buscar.toLowerCase();
-      if (
-        !String(v.id_venta).includes(txt) &&
-        !v.tipo.toLowerCase().includes(txt) &&
-        !(v.observaciones || "").toLowerCase().includes(txt)
-      )
-        return false;
-    }
-    const fecha = new Date(v.fecha);
-    if (filtros.desde && fecha < new Date(filtros.desde)) return false;
-    if (filtros.hasta && fecha > new Date(filtros.hasta)) return false;
-    return true;
-  });
-}, [ventas, filtroTipo, filtros]);
+    const tsel = TIPO_MAP[filtroTipo];
 
+    return ventas.filter((v) => {
+      const tipoNorm = normalizarTipo(v.tipo);
+
+      if (tsel && tipoNorm !== tsel) return false;
+
+      if (filtros.buscar) {
+        const txt = filtros.buscar.toLowerCase();
+        if (
+          !String(v.id_venta).includes(txt) &&
+          !tipoNorm.toLowerCase().includes(txt) &&
+          !(v.observaciones || "").toLowerCase().includes(txt)
+        ) {
+          return false;
+        }
+      }
+
+      const fecha = new Date(v.fecha);
+      if (filtros.desde && fecha < new Date(filtros.desde)) return false;
+      if (filtros.hasta && fecha > new Date(filtros.hasta)) return false;
+
+      return true;
+    });
+  }, [ventas, filtroTipo, filtros]);
 
   // =========================
   // COLUMNAS TABLA
@@ -219,7 +261,8 @@ export default function Ventas() {
       accessor: "tipo",
       align: "center",
       sortable: true,
-    }, 
+      render: (row) => normalizarTipo(row.tipo),
+    }, // ✅ Ordenable (Texto)
     {
       id: "fecha",
       header: "Fecha",
@@ -391,7 +434,6 @@ export default function Ventas() {
             enableSort={true}
             enablePagination={true}
             pageSize={8}
-            
           />
         )}
       </div>

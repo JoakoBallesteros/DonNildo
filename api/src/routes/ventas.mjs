@@ -10,7 +10,7 @@ import { allowRoles } from "../middlewares/allowRoles.mjs";
 
 const router = Router();
 
-// 👇 Todas las rutas de ventas: solo ADMIN o VENTAS
+// Todas las rutas de ventas: solo ADMIN o VENTAS
 router.use(requireAuth, allowRoles(["ADMIN", "VENTAS"]));
 
 // ====================
@@ -29,7 +29,7 @@ router.get("/", async (req, res) => {
       estadoFiltro = estado;
     }
 
-    // 💡 Llama a la función optimizada de PostgreSQL con un solo parámetro
+    // Llama a la función optimizada de PostgreSQL con un solo parámetro
     const query = `SELECT * FROM listar_ventas_optimizada($1);`;
     const { rows: ventas } = await pool.query(query, [estadoFiltro]);
 

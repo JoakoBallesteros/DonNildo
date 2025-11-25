@@ -134,7 +134,7 @@ router.post(
       }
 
       const isCaja = tipo === "Caja";
-      const idTipoProducto = isCaja ? 1 : 2; // 1 = Caja, 2 = Producto (material)
+      const idTipoProducto = isCaja ? 1 : 2; // 1 = Caja, 2 = Material
 
       await client.query("BEGIN");
 
@@ -269,14 +269,15 @@ router.post(
 
       const idProducto = resultProd.rows[0].id_producto;
 
-      // ---------- STOCK INICIAL ----------
-      const cantNum = Number(cantidad || 0) || 0;
+      // ---------- STOCK INICIAL (AJUSTE MANUAL) ----------
+      const cantNum = Number(cantidad ?? 0) || 0;
+
       await client.query(
         `
-        INSERT INTO stock (id_producto, cantidad, fecha_ultima_actualiza)
-        VALUES ($1, $2, now())
+        SELECT id_producto_ret, cantidad_anterior, cantidad_nueva, diferencia, unidad_ret
+        FROM ajustar_stock_manual($1, $2, $3)
         `,
-        [idProducto, cantNum]
+        [idProducto, cantNum, "Stock inicial al crear producto"]
       );
 
       await client.query("COMMIT");
@@ -453,12 +454,13 @@ router.put(
         ]
       );
 
+      //  AJUSTE MANUAL DE STOCK en vez de UPDATE directo
       await client.query(
-        `UPDATE stock
-         SET cantidad = $1,
-             fecha_ultima_actualiza = now()
-         WHERE id_producto = $2`,
-        [cantidad, id]
+        `
+        SELECT id_producto_ret, cantidad_anterior, cantidad_nueva, diferencia, unidad_ret
+        FROM ajustar_stock_manual($1, $2, $3)
+        `,
+        [id, cantidad, "Edición manual desde módulo STOCK"]
       );
 
       await client.query("COMMIT");
@@ -574,8 +576,7 @@ router.post(
         const idProducto = Number(raw.id_producto || raw.idProducto);
         const cantidad = Number(raw.cantidad);
 
-        const precioKgRaw =
-          raw.precio_kg ?? raw.precioKg ?? raw.precio ?? null;
+        const precioKgRaw = raw.precio_kg ?? raw.precioKg ?? raw.precio ?? null;
 
         const precioKg =
           precioKgRaw !== null &&
@@ -674,13 +675,13 @@ router.post(
         const idUsuario = await getUserIdFromToken(req.accessToken);
         const resumen = detalles
           .map((d) => {
-            const base = `${d.nombre} (${d.cantidad.toLocaleString(
-              "es-AR"
-            )} ${d.unidad})`;
+            const base = `${d.nombre} (${d.cantidad.toLocaleString("es-AR")} ${
+              d.unidad
+            })`;
             if (d.precioKg != null) {
-              return `${base} a $${d.precioKg}/kg (subt: $${d.subtotal?.toLocaleString(
-                "es-AR"
-              )})`;
+              return `${base} a $${
+                d.precioKg
+              }/kg (subt: $${d.subtotal?.toLocaleString("es-AR")})`;
             }
             return base;
           })
