@@ -14,7 +14,11 @@ import { apiFetch } from "../lib/apiClient";
 
 const normalizarTipo = (tipo) => {
   if (!tipo) return "";
-  if (tipo.toLowerCase() === "producto") return "Materiales";
+  const t = tipo.toLowerCase();
+
+  // Todo lo que sea "producto" o "material" se muestra y filtra como "Materiales"
+  if (t === "producto" || t === "material") return "Materiales";
+
   return tipo;
 };
 
