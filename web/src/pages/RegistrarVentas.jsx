@@ -146,7 +146,6 @@ useEffect(() => {
           id_producto: p.id_producto,
           nombre: p.nombre,
           precio: Number(p.precio_unitario) || 0,
-          id_tipo_producto: p.id_tipo_producto,
           tipoVenta: p.id_tipo_producto === 1 ? "Caja" : "Material",
         }));
 
