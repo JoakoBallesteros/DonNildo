@@ -27,7 +27,80 @@ router.get("/", async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+// ====================
+// 1️ Obtener ventas por ID para modificar
+// ====================
+router.get("/:id", requireAuth, async (req, res) => { // 💡 Asegurate de usar requireAuth si es necesario
+  const id = Number(req.params.id);
 
+  if (!id) {
+    return res.status(400).json({ error: "ID de venta inválido." });
+  }
+
+  try {
+    // 1. CABECERA DE LA VENTA
+    const ventaQuery = `
+      SELECT 
+        v.id_venta,
+        v.fecha,
+        v.total,
+        v.observaciones
+      FROM venta v
+      WHERE v.id_venta = $1
+      LIMIT 1;
+    `;
+
+    const { rows: ventaRows } = await pool.query(ventaQuery, [id]);
+
+    if (ventaRows.length === 0) {
+      return res.status(404).json({ error: "Venta no encontrada." });
+    }
+
+    // 2. DETALLES DE LA VENTA
+    // Corregido el JOIN a 'medida' (singular) y usando tp.nombre para el tipo
+    const productosQuery = `
+      SELECT 
+        dv.id_producto,
+        p.nombre AS producto,
+        tp.nombre AS tipo_producto, 
+        dv.cantidad,
+        dv.precio_unitario,
+        dv.subtotal,
+        COALESCE(m.simbolo, 'u') AS medida
+      FROM detalle_venta dv
+      JOIN productos p ON p.id_producto = dv.id_producto
+      LEFT JOIN tipo_producto tp ON tp.id_tipo_producto = p.id_tipo_producto
+      LEFT JOIN medida m ON m.id_medida = p.id_medida  -- 💡 CORREGIDO: tabla 'medida' (singular)
+      WHERE dv.id_venta = $1;
+    `;
+
+    const { rows: productosRows } = await pool.query(productosQuery, [id]);
+
+    // 3. FORMATEAR RESPUESTA (Coincide con lo que espera RegistrarVentas.jsx)
+    const productos = productosRows.map((p) => ({
+      id_producto: p.id_producto,
+      producto: p.producto,       // Nombre del producto
+      tipo: p.tipo_producto,      // "Caja" o "Producto terminado"
+      tipo_producto: p.tipo_producto, // Duplicado para asegurar compatibilidad con tu front
+      cantidad: Number(p.cantidad),
+      precio_unitario: Number(p.precio_unitario), // Tu front espera precio_unitario o precio
+      precio: Number(p.precio_unitario),          // Enviamos ambos por seguridad
+      subtotal: Number(p.subtotal),
+      medida: p.medida,
+      descuento: 0,
+    }));
+
+    res.json({
+      venta: ventaRows[0],
+      productos, // Array de items
+      success: true,
+    });
+
+  } catch (error) {
+    console.error("❌ Error cargando venta:", error);
+    res.status(500).json({ error: "Error al obtener la venta." });
+  }
+});
 // ====================
 // 2️⃣ MODIFICAR VENTA (PROTEGIDO)
 // ====================
@@ -54,8 +127,8 @@ router.put("/:id", requireAuth, async (req, res) => {
     const userId = await getUserIdFromToken(req.accessToken);
     registrarAuditoria(
         userId, 
-        'Modificación', 
-        'Ventas', 
+        'MODIFICAR_VENTA', 
+        'VENTAS', 
         `Venta N°${id} modificada. Nuevo Total: ${rows[0].total_ret}`
     );
 
@@ -162,8 +235,8 @@ router.post("/", requireAuth, async (req, res) => {
     
     registrarAuditoria(
         userId, 
-        'Creación', 
-        'Ventas', 
+        'CREAR_VENTA', 
+        'VENTAS', 
         `Nueva Venta N°${idVenta} registrada. Total: ${rows[0].total_ret}.`
     );
 
