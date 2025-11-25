@@ -423,7 +423,7 @@ export default function Ventas() {
             zebra={false}
             /* header pegado arriba cuando scrolleás dentro de la card */
             stickyHeader={true}
-            wrapperClass="max-h-[415px] overflow-y-auto shadow-sm"
+            wrapperClass="max-h-[360px] overflow-y-auto shadow-sm"
             tableClass="w-full text-sm text-center border-collapse"
             theadClass="bg-[#e8f4ef] text-[#154734]"
             rowClass={(row) =>
@@ -454,7 +454,6 @@ export default function Ventas() {
           { key: "cantidad", label: "Cantidad" },
           { key: "precio", label: "Precio Unitario" },
           { key: "subtotal", label: "Subtotal" },
-          { key: "observaciones", label: "Observaciones" },
         ]}
         footerRight={
           selectedVenta

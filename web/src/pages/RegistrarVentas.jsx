@@ -56,13 +56,14 @@ useEffect(() => {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
-    producto: "",
-    tipo: "",
-    cantidad: "",
-    precio: "",
-    descuento: "",
-    subtotal: "",
-  });
+  producto: "",
+  tipo: "",
+  cantidad: "",
+  precio: "",
+  descuento: "",
+  subtotal: "",
+  observaciones: "", // ← Observación general de la venta
+});
 
   const [errors, setErrors] = useState({});
   const [selectedVenta, setSelectedVenta] = useState(null);
@@ -160,113 +161,112 @@ useEffect(() => {
   // HANDLERS DE FORMULARIO
   // =========================
 
-  const handleChange = (name, value) => {
-    if (["cantidad", "precio", "descuento"].includes(name)) {
-      const n = Number(value);
-      if (isNaN(n) || n < 0) return;
-    }
+ const handleChange = (name, value) => {
+  if (["cantidad", "precio", "descuento"].includes(name)) {
+    const n = Number(value);
+    if (isNaN(n) || n < 0) return;
+  }
 
-    if (name === "producto") {
-      const prod = productosDisponibles.find((p) => p.nombre === value);
-      if (!prod) return;
+  if (name === "producto") {
+    const prod = productosDisponibles.find((p) => p.nombre === value);
+    if (!prod) return;
 
-      setFormData((prev) => ({
-        ...prev,
-        producto: value,
-        tipo: prod.tipoVenta === "Caja" ? "Caja" : "Material",
-        precio: prod.precio || "",
-        subtotal: calcSubtotal(prev.cantidad, prod.precio, prev.descuento),
-        // Si el producto es tipo 2 / 'Material' (ej. materiales), auto-poner 'KG'
-        observaciones:
-          prod.id_tipo_producto === 2 || prod.tipoVenta === "Material"
-            ? "KG"
-            : prev.observaciones || "",
-      }));
-      return;
-    }
+    setFormData((prev) => ({
+      ...prev,
+      producto: value,
+      tipo: prod.tipoVenta === "Caja" ? "Caja" : "Material",
+      precio: prod.precio || "",
+      subtotal: calcSubtotal(prev.cantidad, prod.precio, prev.descuento),
+    }));
+    return;
+  }
 
-    if (name === "cantidad" || name === "descuento") {
-      const next = { ...formData, [name]: value };
-      next.subtotal = calcSubtotal(next.cantidad, next.precio, next.descuento);
-      setFormData(next);
-      return;
-    }
+  if (name === "cantidad" || name === "descuento") {
+    const next = { ...formData, [name]: value };
+    next.subtotal = calcSubtotal(next.cantidad, next.precio, next.descuento);
+    setFormData(next);
+    return;
+  }
 
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+  // Si se edita el campo de observación general, solo actualizamos ese valor
+  if (name === "observaciones") {
+    setFormData((prev) => ({ ...prev, observaciones: value }));
+    return;
+  }
 
-  const handleAgregarProducto = () => {
-    if (!formData.producto || !formData.cantidad) {
-      return setMessageModal({
-        isOpen: true,
-        title: "Aviso",
-        text: "Completá producto y cantidad antes de añadir.",
-        type: "error",
-      });
-    }
+  setFormData((prev) => ({ ...prev, [name]: value }));
+};
+ const handleAgregarProducto = () => {
+  if (!formData.producto || !formData.cantidad) {
+    return setMessageModal({
+      isOpen: true,
+      title: "Aviso",
+      text: "Completá producto y cantidad antes de añadir.",
+      type: "error",
+    });
+  }
 
-    // Buscar si ya existe el mismo producto
-    const existingIndex = ventas.findIndex(
-      (v) => v.id_producto === productosDisponibles.find(p => p.nombre === formData.producto)?.id_producto
+  const existingIndex = ventas.findIndex(
+    (v) => v.id_producto ===
+      productosDisponibles.find((p) => p.nombre === formData.producto)?.id_producto
+  );
+
+  const cantidad = Number(formData.cantidad);
+  const precio = Number(formData.precio);
+  const descuento = Number(formData.descuento || 0);
+  const nuevoSubtotal = calcSubtotal(cantidad, precio, descuento);
+
+  if (existingIndex !== -1) {
+    setVentas((prev) =>
+      prev.map((item, i) => {
+        if (i === existingIndex) {
+          const newCantidad = item.cantidad + cantidad;
+          const newSubtotal = calcSubtotal(newCantidad, precio, item.descuento);
+          return {
+            ...item,
+            cantidad: newCantidad,
+            subtotal: newSubtotal,
+          };
+        }
+        return item;
+      })
     );
+  } else {
+    const item = {
+      tipo: formData.tipo,
+      producto: formData.producto,
+      id_producto:
+        productosDisponibles.find((p) => p.nombre === formData.producto)?.id_producto || null,
+      cantidad: cantidad,
+      precio: precio,
+      descuento: descuento,
+      subtotal: nuevoSubtotal,
+      // ← Ya no guardamos observaciones aquí
+    };
 
-    const cantidad = Number(formData.cantidad);
-    const precio = Number(formData.precio);
-    const descuento = Number(formData.descuento || 0);
-
-    const nuevoSubtotal = calcSubtotal(cantidad, precio, descuento);
-
-    // Si ya existe → sumar cantidad correctamente
-    if (existingIndex !== -1) {
-      setVentas((prev) =>
-        prev.map((item, i) => {
-          if (i === existingIndex) {
-            const newCantidad = item.cantidad + cantidad; 
-            const newSubtotal = calcSubtotal(
-              newCantidad,
-              precio,
-              item.descuento
-            );
-
-            return {
-              ...item,
-              cantidad: newCantidad,
-              subtotal: newSubtotal,
-            };
-          }
-          return item;
-        })
-      );
-    } else {
-      // Si NO existe → agregar como nuevo
-      const item = {
-        tipo: formData.tipo,
-        producto: formData.producto,
-        id_producto:
-          productosDisponibles.find((p) => p.nombre === formData.producto)
-            ?.id_producto || null,
-        cantidad: cantidad,
-        precio: precio,
-        descuento: descuento,
-        subtotal: nuevoSubtotal,
-        observaciones: formData.observaciones || "",
-      };
-
-      setVentas((prev) => [...prev, item]);
-    }
+    setVentas((prev) => [...prev, item]);
+  }
 
     // Reset form
     setFormData({
-      producto: "",
-      tipo: "",
-      cantidad: "",
-      precio: "",
-      descuento: "",
-      subtotal: "",
-      observaciones: "",
-    });
-    setErrors({});
-  };
+    producto: "",
+    tipo: "",
+    cantidad: "",
+    precio: "",
+    descuento: "",
+    subtotal: "",
+    observaciones: formData.observaciones, // ← se mantiene
+  });
+  setErrors({});
+};
+
+
+    const ventasConObservacion = ventas.map((item, idx) => ({
+      ...item,
+      observaciones: idx === 0 ? formData.observaciones || "" : "",
+    }));
+
+
 
   const handleActualizarVenta = async () => {
   try {
@@ -353,7 +353,7 @@ useEffect(() => {
   };
 
   // Logica de GUARDAR VENTA (Transaccional)
-  const handleGuardarVenta = async () => {
+ const handleGuardarVenta = async () => {
     try {
       if (ventas.length === 0) {
         return setMessageModal({
@@ -367,7 +367,11 @@ useEffect(() => {
       const response = await api("/api/ventas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ventas }),
+        // 💡 CORRECCIÓN AQUÍ: Enviamos también las observaciones
+        body: JSON.stringify({ 
+            ventas: ventas, 
+            observaciones: formData.observaciones 
+        }),
       });
 
       if (response.success) {
@@ -377,8 +381,9 @@ useEffect(() => {
           text: `La Venta N° ${response.id_venta} ha sido registrada correctamente y el stock actualizado.`,
           type: "success",
         });
-        sessionStorage.removeItem(SESSION_KEY); // <-- Limpiar storage
-        setVentas([]);
+        sessionStorage.removeItem(SESSION_KEY); 
+        setVentas([])
+        setFormData(prev => ({ ...prev, observaciones: "" }))
       }
     } catch (err) {
       console.error("Error al guardar venta:", err.message);
@@ -455,19 +460,19 @@ useEffect(() => {
       render: (row) => `$${Number(row.subtotal).toLocaleString("es-AR")}`,
     },
     {
-    id: "observaciones",
-    header: "Observaciones",
-    accessor: "observaciones",
-    align: "center" ,
-    width: "200px",
-    render: (row) => row.observaciones,
+      id: "observaciones",
+      header: "Observ.Gral", // nuevo título
+      accessor: "observaciones",
+      align: "center",
+      width: "200px",
+      render: (row) => row.observaciones, // se renderiza la observación solo en la primera fila
     },
     {
       id: "acciones",
       header: "Acciones",
       align: "center",
       render: (row) => {
-        const i = ventas.indexOf(row);
+          const i = ventas.findIndex(v => v.id_producto === row.id_producto);
         return (
           <div className="flex justify-center items-start gap-2">
             <div className="flex flex-col gap-1">
@@ -606,7 +611,7 @@ useEffect(() => {
               <FormBuilder
                 fields={[
                   {
-                    label: "Observaciones",
+                    label: "Observaciones generales",
                     name: "observaciones",
                     type: "text",
                     placeholder: "Opcional",
@@ -640,7 +645,7 @@ useEffect(() => {
           </h3>
 
           <div className="flex-1 min-h-[150px] rounded-t-xl border-t border-[#e3e9e5] overflow-hidden">
-            <DataTable columns={columns} data={ventas} cellClass="px-4 py-2" wrapperClass="h-full overflow-y-auto" />
+            <DataTable columns={columns} data={ventasConObservacion} cellClass="px-4 py-2" wrapperClass="h-full overflow-y-auto" />
           </div>
 
           {ventas.length > 0 && (
