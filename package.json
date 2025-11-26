@@ -6,13 +6,26 @@
     "api",
     "web"
   ],
-  "description": "Flujo de trabajo:",
+  "description": "Monorepo del sistema de gestión Don Nildo (API + Web) mantenido por el equipo BCT.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+
+    
     "dev:api": "npm run dev -w api",
     "dev:web": "npm run dev -w web",
-    "dev": "concurrently -n API,WEB -c cyan,green \"npm run dev:api\" \"wait-on http://localhost:4000/v1/health && npm run dev:web\""
+    "dev": "concurrently -n API,WEB -c cyan,green \"npm run dev:api\" \"wait-on http://localhost:4000/v1/health && npm run dev:web\"",
+
+    
+    "build": "npm run build -w web",
+    "start:api": "npm run start -w api"
+  },
+  "dependencies": {
+    "@headlessui/react": "^2.2.9",
+    "@supabase/supabase-js": "^2.76.1",
+    "jose": "^6.1.0",
+    "jspdf": "^3.0.3",
+    "jspdf-autotable": "^5.0.2"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.21",
@@ -27,17 +40,10 @@
     "url": "git+https://github.com/JoakoBallesteros/DonNildo.git"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Equipo BCT",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/JoakoBallesteros/DonNildo/issues"
   },
-  "homepage": "https://github.com/JoakoBallesteros/DonNildo#readme",
-  "dependencies": {
-    "@headlessui/react": "^2.2.9",
-    "@supabase/supabase-js": "^2.76.1",
-    "jose": "^6.1.0",
-    "jspdf": "^3.0.3",
-    "jspdf-autotable": "^5.0.2"
-  }
+  "homepage": "https://github.com/JoakoBallesteros/DonNildo#readme"
 }

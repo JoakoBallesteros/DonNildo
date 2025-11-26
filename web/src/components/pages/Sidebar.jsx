@@ -4,6 +4,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import HamburgerButton from "../buttons/HamburgerButton.jsx";
 import AccountBadge from "../buttons/AccountBadge.jsx";
+import { signOut } from "../../services/authService.mjs";
 
 const linkBase =
   "block w-full rounded-xl px-4 py-3 text-base font-semibold tracking-[0.2px] transition-colors";
@@ -36,6 +37,17 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
   const [securityOpen, setSecurityOpen] = useState(() =>
     isSectionActive(pathname, "/seguridad")
   );
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+    } catch (e) {
+      console.error("[Sidebar] Error al cerrar sesión:", e);
+    } finally {
+      // Navegamos al login (o podrías usar window.location.replace si querés hard refresh)
+      navigate("/login", { replace: true });
+    }
+  };
 
   const openOnly = (key) => {
     setComprasOpen(key === "compras");
@@ -390,15 +402,7 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
 
               {/* Salir */}
               <button
-                onClick={() => {
-                  localStorage.removeItem("dn_token");
-                  localStorage.removeItem("dn_user");
-                  localStorage.removeItem("dn_refresh");
-                  localStorage.removeItem("dn_user_name");
-                  localStorage.removeItem("dn_role");
-                  sessionStorage.clear();
-                  window.location.replace("/login");
-                }}
+                onClick={handleLogout}
                 className={`mx-1 w-full text-left ${linkBase} ${inactive}`}
               >
                 Salir

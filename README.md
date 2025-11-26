@@ -1,227 +1,199 @@
-# DonNildo Monorepo
+# Don Nildo
 
-Monorepo con **API (Node + Express + Postgres)**, **Web (React + Vite)** y **Docker** para levantar la base de datos y pgAdmin.
+Sistema de gestión de **stock, compras, ventas y pesajes** pensado para empresas de reciclado / logística.  
+El repo está armado como **monorepo** con dos paquetes:
 
-## Requisitos
-
-- **Node.js 22.x** (recomendado).  
-
-- **Docker + Docker Compose**
-- Git
-
-> Si usás Windows, normalizá fin de línea a **LF**:
-> crea `.gitattributes` con `* text=auto eol=lf` y ejecutá `git add --renormalize .`.
+- `api/` → Backend en **Node + Express**, usando **PostgreSQL en Supabase**.
+- `web/` → Frontend en **React + Vite + Tailwind CSS v4**, autenticado contra **Supabase Auth** y hablando con la API.
 
 ---
 
-## Estructura
+## 🔧 Stack Tecnológico
 
-```
-infra/
-  docker-compose.yml     # DB + pgAdmin
-api/
-  index.js               # API ESM (Express)
-  package.json
-  .env.example
-  sql/
-    001_init.sql
-    002_seed.sql
-web/
-  package.json           # React + Vite
-  src/
-package.json             # raíz (workspaces + scripts)
-```
+### Monorepo (raíz)
 
----
+- `npm workspaces` (`api`, `web`)
+- Scripts para levantar API y Web en paralelo con `concurrently` y `wait-on`.
 
-## Variables de entorno
+### Backend – `/api`
 
-- Los archivos `.env` **no** se versionan. Usá las plantillas `*.env.example`.
+- Node.js + **Express**
+- **Supabase Postgres** como única base de datos
+- Cliente `pg` para acceder a la DB
+- Integración con **Supabase**:
+  - URL del proyecto
+  - claves `anon`, `service_role`
+  - verificación de JWT emitidos por Supabase (`SUPABASE_JWT_SECRET`)
+- Módulos principales:
+  - Ventas (alta, modificación, anulación, movimientos de stock)
+  - Compras
+  - Stock (productos, materiales, pesajes)
+  - Auditoría de acciones (usuarios, operaciones, módulo afectado, descripción)
 
-# --- Servidor API ---
-PORT=5000
-NODE_ENV=development
+### Frontend – `/web`
 
-# --- Postgres (solo desarrollo local) ---
-PGHOST=localhost
-PGPORT=5432
-PGDATABASE=reciclados
-PGUSER=reciclados
-PGPASSWORD=<CAMBIAR_POR_TU_PASSWORD_LOCAL>
-
-# Alternativa para despliegues (Railway/Render): usar UNA sola URL
-# DATABASE_URL=postgres://<USER>:<PASSWORD>@<HOST>:<PORT>/<DBNAME>
-# En producción, habilitar SSL y NO poner credenciales reales en el repo.
-```
-
-### Web (`web/.env`)
-Agregá lo que necesite tu front (por ejemplo, URL de la API):
-```ini
-VITE_API_URL=http://localhost:5000
-```
-
-
-
-## Instalación (una vez)
-
-En la **raíz** del repo:
-
-```bash
-npm i
-```
-
-Esto instala `concurrently` en la raíz y respeta los **workspaces** (`api` y `web`).
+- **React 19**, **React Router 7**
+- **Vite** + **Tailwind CSS v4**
+- Íconos: `lucide-react`
+- Cliente HTTP: `axios`
+- Cliente **Supabase JS v2** para:
+  - Autenticación de usuarios (login, logout, recovery)
+  - Obtención del JWT para llamar a la API
+- Proxy de desarrollo Vite:
+  - `/api` → `http://localhost:4000`
+  - `/v1`  → `http://localhost:4000`
 
 ---
 
-## Base de Datos con Docker
+## 📁 Estructura de Carpetas (resumen)
 
-Compose en `infra/docker-compose.yml`:
-
-- **Postgres 16** (DB: `reciclados` / user: `reciclados` / pass: `reciclados`)
-- **pgAdmin** en `http://localhost:5050` (user: `admin@local.com` / pass: `admin`)
-- Ejecuta automáticamente **`api/sql/*.sql`** la **primera vez** que se crea el volumen.
-
-Comandos desde la **raíz**:
-
-```bash
-# Levantar DB + pgAdmin (en segundo plano)
-npm run up
-
-# Ver logs
-docker compose -f infra/docker-compose.yml logs -f db
-
-# Bajar contenedores
-npm run down
-
-# Recrear DB desde cero (vuelve a correr todos los .sql)
-npm run reseed
-```
-
-**pgAdmin → Add New Server**
-- Host: `db`
-- User: `reciclados`
-- Password: `reciclados`
-- Database: `reciclados`
-
-**Ejecutar un .sql puntual (sin borrar datos)**
-```bash
-docker exec -i dn_db psql -U reciclados -d reciclados -f /docker-entrypoint-initdb.d/002_seed.sql
+```txt
+DonNildo/
+├─ api/                # Backend Express
+│  ├─ src/
+│  │  ├─ routes/       # Rutas /v1, /api/stock, /api/ventas, etc.
+│  │  ├─ middlewares/  # requireAuth, allowRoles, etc.
+│  │  ├─ utils/        # auditoría, helpers Supabase, etc.
+│  │  └─ server.mjs    # Punto de entrada de la API
+│  ├─ package.json
+│  └─ .env.example
+│
+├─ web/                # Frontend React
+│  ├─ src/
+│  │  ├─ components/
+│  │  ├─ pages/
+│  │  └─ lib/          # apiClient, supabaseClient, helpers
+│  ├─ vite.config.mts  # Config Vite + proxy /api y /v1
+│  ├─ package.json
+│  └─ .env.example
+│
+├─ package.json        # Workspaces, scripts raíz
+└─ README.md
 ```
 
 ---
 
-## Correr en desarrollo
+## 🧩 Variables de Entorno
 
-Desde la **raíz**:
+El proyecto usa **dos archivos `.env`** (uno en `api/` y otro en `web/`).  
+La idea es copiar los `.env.example` y completarlos.
+
+### 1️⃣ Backend – `api/.env`
+
+Ejemplo:
+
+```env
+# Servidor API
+PORT=4000
+JWT_SECRET=super-secreto
+CORS_ORIGIN=http://localhost:5173
+
+# DB (Supabase - pooler 5432/6543)
+DATABASE_URL=postgresql://usuario:password@host:puerto/dbname
+
+# Supabase (RLS real por usuario)
+SUPABASE_URL=https://xxxxxxxxxxxx.supabase.co
+SUPABASE_KEY=sb_publishable_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# Solo servidor (no exponer en el front)
+SUPABASE_SERVICE_ROLE=sb_secret_xxxxxxxxxxxxxxxxxxxxxxxxx
+SUPABASE_JWT_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# URL a donde vuelve el usuario cuando hace "reset password"
+RESET_REDIRECT_URL=http://localhost:5173/auth/reset
+```
+
+**Notas:**
+
+- `DATABASE_URL` debe apuntar al **Postgres de Supabase** (podés usar el pooler).
+- `SUPABASE_JWT_SECRET` es el secret que usa Supabase para firmar los tokens JWT.
+- `CORS_ORIGIN` debe coincidir con la URL del front en dev (`http://localhost:5173`).
+
+---
+
+### 2️⃣ Frontend – `web/.env`
+
+```env
+# Modo de autenticación del front
+VITE_AUTH_MODE=supabase
+
+# Proyecto Supabase (mismo que usa la API)
+VITE_SUPABASE_URL=https://xxxxxxxxxxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=sb_publishable_xxxxxxxxxxxxxxxxxxxxxxxx
+
+# URL base de la API vista desde el navegador
+# En desarrollo se usa el proxy de Vite, por eso va "/api"
+VITE_API_URL=/api
+```
+
+**Notas:**
+
+- Estas variables deben empezar con `VITE_` para que Vite las exponga al código.
+- En producción `VITE_API_URL` se cambiará a la URL pública donde viva la API  
+  (por ejemplo `https://api.midominio.com`).
+
+---
+
+## 💻 Desarrollo local
+
+### 0. Requisitos
+
+- Node.js **20+** (recomendado)
+- Cuenta Supabase con un proyecto creado y la base importada
+- Tener configuradas las variables de entorno anteriores
+
+---
+
+### 1. Clonar e instalar dependencias
 
 ```bash
-# 1) DB arriba
-npm run up
+git clone https://github.com/JoakoBallesteros/DonNildo.git
+cd DonNildo
 
-# 2) API + Web en paralelo
+# Instala dependencias de raíz + workspaces (api y web)
+npm install
+```
+
+> Si por alguna razón no se instalan los workspaces, también se puede correr:
+> `npm install` dentro de `api/` y dentro de `web/`.
+
+---
+
+### 2. Configurar `.env`
+
+- Copiar `api/.env.example` → `api/.env` y completar con datos reales de Supabase.
+- Copiar `web/.env.example` → `web/.env` y completar con:
+  - URL del proyecto Supabase
+  - `anon key`
+  - `VITE_API_URL=/api` (en dev).
+
+---
+
+### 3. Levantar backend y frontend juntos
+
+Desde la raíz del repo:
+
+```bash
+# Levanta API en 4000 y, cuando responde /v1/health, levanta el front
 npm run dev
 ```
 
-- **API**: `http://localhost:5000`
-  - Health: `GET /health`
-  - Ping DB: `GET /api/ping-db`
-- **Web** (Vite): `http://localhost:5173`
+Scripts disponibles:
 
-Comandos separados:
-```bash
-npm run dev:api
-npm run dev:web
-```
+- `npm run dev:api` → sólo API (`api/` en modo dev)
+- `npm run dev:web` → sólo web (`web/` en modo dev)
+- `npm run dev` → ambos en paralelo (modo recomendado)
 
----
+URLs por defecto:
 
-## Scripts (raíz)
-
-```json
-{
-  "scripts": {
-    "up": "docker compose -f infra/docker-compose.yml up -d",
-    "down": "docker compose -f infra/docker-compose.yml down",
-    "reseed": "docker compose -f infra/docker-compose.yml down -v && docker compose -f infra/docker-compose.yml up -d",
-    "dev:api": "npm run dev -w api",
-    "dev:web": "npm run dev -w web",
-    "dev": "concurrently -n API,WEB \"npm run dev:api\" \"npm run dev:web\""
-  }
-}
-```
+- Frontend → http://localhost:5173
+- API      → http://localhost:4000
 
 ---
 
-## Estilo de código
+## 🧑‍💻 Equipo y Licencia
 
-- **API** en **ESM** (`"type": "module"`).
-- Front con **Vite + React**.
-- (Opcional) Agregar ESLint/Prettier/Husky.
-
----
-
-## Flujo de trabajo con Git (resumen)
-
-Configuración recomendable (una sola vez):
-```bash
-git config --global pull.rebase true
-git config --global rebase.autoStash true
-git config --global init.defaultBranch main
-```
-
-Día a día:
-```bash
-# actualizar y crear rama
-git fetch origin
-git switch main
-git pull
-git switch -c feat/mi-feature
-
-# trabajar, commitear en pasos chicos
-git add -A
-git commit -m "feat: algo"
-
-# sincronizar con main
-git fetch origin
-git rebase origin/main   # (o git pull --rebase)
-
-# publicar y PR
-git push -u origin feat/mi-feature
-```
-
-Cerrar PR:
-```bash
-git switch main
-git pull
-git branch -d feat/mi-feature
-git push origin --delete feat/mi-feature   # opcional
-```
-
----
-
-## Troubleshooting
-
-- **Puerto 5432 ocupado** → cambia a `5433:5432` en `infra/docker-compose.yml` y:
-  ```bash
-  npm run down
-  npm run up
-  ```
-- **Web no encuentra API** → verificá `VITE_API_URL`.
-- **DB no toma los .sql** → los scripts de `api/sql` solo corren **la primera vez** (cuando el volumen es nuevo). Para forzar:
-  ```bash
-  npm run reseed
-  ```
-
----
-
-## Deploy (pista rápida)
-
-- **API**: soporta `DATABASE_URL` (Railway/Render). Habilitar SSL en prod.
-- **Web**: `npm run build` en `web/` y servís `dist/` (Netlify/Vercel/Cloudflare Pages).
-
----
-
-## Licencia
-
-Privado / uso interno del equipo.
+- **Equipo:** Equipo BCT  
+- **Autoría:** Desarrollo conjunto para fines académicos / internos.  
+- **Licencia:** Uso restringido; no se concede una licencia open-source explícita.  
+  Para usos externos o comerciales, coordinar previamente con el **Equipo BCT**.
