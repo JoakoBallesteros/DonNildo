@@ -15,7 +15,7 @@ import LoginPage from "./pages/LoginPage.jsx";
 import AuthReset from "./pages/AuthReset.jsx";
 import AccountProfile from "./pages/AccountProfile.jsx";
 import ForgotPassword from "./components/pages/ForgotPassword.jsx";
-
+import ResetPassword from "./components/pages/ResetPassword.jsx";
 /* Compras */
 import Compras from "./pages/Compras.jsx";
 import Proveedores from "./pages/Proveedores.jsx";   
@@ -49,6 +49,7 @@ export default function App() {
         <Route path="/auth/reset" element={<AuthReset />} />
         <Route path="/account" element={<AccountProfile />} />
         <Route path="/forgot" element={<ForgotPassword />} />
+        <Route path="/reset"  element={<ResetPassword />} />
 
         {/* RUTAS PROTEGIDAS */}
         <Route element={<ProtectedRoute />}>

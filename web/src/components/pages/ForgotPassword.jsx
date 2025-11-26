@@ -1,4 +1,5 @@
-import { useState } from "react";
+// src/components/pages/ForgotPassword.jsx
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 
 function getApiBaseUrl() {
@@ -12,11 +13,20 @@ export default function ForgotPassword() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [resendIn, setResendIn] = useState(0); // segundos
   const navigate = useNavigate();
   const baseUrl = getApiBaseUrl();
 
+  useEffect(() => {
+    if (!resendIn) return;
+    const id = setInterval(() => setResendIn((s) => (s > 0 ? s - 1 : 0)), 1000);
+    return () => clearInterval(id);
+  }, [resendIn]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (resendIn > 0 || loading) return;
+
     setError(null);
     setSuccess(null);
 
@@ -39,17 +49,19 @@ export default function ForgotPassword() {
 
       if (!resp.ok) {
         const msg =
-          data?.error?.message ||
           data?.message ||
-          (resp.status === 404
-            ? `Endpoint no encontrado: ${baseUrl}/v1/auth/password/reset`
-            : `Error ${resp.status} al enviar el correo`);
+          (resp.status === 429
+            ? "Demasiados intentos. Probá nuevamente en un minuto."
+            : "No se pudo enviar el correo.");
+        // si es rate limit, activamos el cooldown también
+        if ((msg || "").toLowerCase().includes("limit")) setResendIn(60);
         throw new Error(msg);
       }
 
       setSuccess(
         "Si la cuenta existe, te enviamos un correo con el enlace para restablecer tu contraseña."
       );
+      setResendIn(60); // cooldown tras un envío correcto
     } catch (e) {
       setError(e?.message || "No se pudo enviar el correo.");
     } finally {
@@ -60,7 +72,6 @@ export default function ForgotPassword() {
   return (
     <div className="min-h-screen bg-emerald-50 flex items-center justify-center px-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-emerald-100 p-6">
-        {/* Brand */}
         <div className="mb-6 select-none">
           <div className="text-3xl leading-7 font-extrabold text-emerald-900">
             DON<br/>NILDO
@@ -88,12 +99,18 @@ export default function ForgotPassword() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || resendIn > 0}
             className={`bg-[#154734] text-white font-semibold py-2 rounded-md transition w-full ${
-              loading ? "opacity-75 cursor-not-allowed" : "hover:bg-[#2c865c]"
+              loading || resendIn > 0
+                ? "opacity-75 cursor-not-allowed"
+                : "hover:bg-[#2c865c]"
             }`}
           >
-            {loading ? "Enviando..." : "Enviar enlace de recuperación"}
+            {loading
+              ? "Enviando…"
+              : resendIn > 0
+              ? `Reenviar en ${resendIn}s`
+              : "Enviar enlace de recuperación"}
           </button>
 
           <div className="mt-4 flex items-center justify-between text-sm">
