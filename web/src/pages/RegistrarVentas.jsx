@@ -503,26 +503,41 @@ useEffect(() => {
     },
   ];
 
-  const handleNewProductSubmit = (values) => {
-    // armamos un objeto compatible con productosDisponibles
+  const handleNewProductSubmit = async (values) => {
+     try {
+    // Llamada al backend (crea el producto en la BD).
+    const row = await api("/api/stock/productos", {
+      method: "POST",
+      body: values,
+    });
+
+    // Armamos un objeto compatible con productosDisponibles a partir del registro devuelto.
     const nuevoProducto = {
-      id_producto: Date.now(), // id temporal (solo frontend)
-      nombre: values.referencia,
-      precio: Number(values.precio || 0),
-      tipoVenta: values.tipo === "Caja" ? "Caja" : "Material",
+      id_producto: row.id_producto,
+      nombre: row.referencia,
+      precio: Number(row.precio) || 0,
+      tipoVenta: row.tipo === "Caja" ? "Caja" : "Material",
     };
 
     setProductosDisponibles((prev) => [...prev, nuevoProducto]);
+    setNewOpen(false);
 
-    // feedback suave, sin navegar
+    // Mensaje de éxito
     setMessageModal({
       isOpen: true,
-      title: "Producto agregado",
-      text: "El producto ya está disponible para seleccionarlo en esta venta.",
-      type: "info", 
+      title: "✅ Producto creado",
+      text: `El producto "${nuevoProducto.nombre}" fue creado correctamente.`,
+      type: "success",
     });
-
-    setNewOpen(false);
+  } catch (e) {
+    console.error("Error al crear producto:", e);
+    setMessageModal({
+      isOpen: true,
+      title: "❌ Error al crear producto",
+      text: e.message || "Error al crear producto",
+      type: "error",
+    });
+  }
   };
   // =========================
   // RENDER PRINCIPAL
@@ -767,7 +782,7 @@ useEffect(() => {
               unidad: "u",
               cantidad: "",
               precio: "",
-              observaciones: "",
+              notas: "",   // usa “notas” en lugar de “observaciones” para coincidir con la API
             }}
             labels={{ caja: "Caja", material: "Material" }}
             onCancel={() => setNewOpen(false)}
