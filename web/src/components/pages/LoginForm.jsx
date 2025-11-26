@@ -1,14 +1,8 @@
 // src/components/pages/LoginForm.jsx
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { signIn } from "../../services/authService"; // 👈 NUEVO: login por SDK Supabase
-import { supa } from "../../lib/supabaseClient"; // asegúrate de importar supa
-
-function getApiBaseUrl() {
-  const raw = import.meta.env.VITE_API_URL || "http://localhost:4000";
-  const withScheme = /^https?:\/\//i.test(raw) ? raw : `http://${raw}`;
-  return withScheme.replace(/\/$/, "");
-}
+import { useNavigate, Link } from "react-router-dom";
+import { signIn } from "../../services/authService"; // login por SDK Supabase
+import { supa } from "../../lib/supabaseClient";
 
 export default function LoginForm() {
   const [mail, setMail] = useState(() => localStorage.getItem("dn_mail_recordado") || "");
@@ -19,22 +13,20 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const baseUrl = getApiBaseUrl();
-
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setError(null);
-  setSuccess(null);
-  setLoading(true);
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    setLoading(true);
 
-  try {
-      await signIn(mail, password); // te logueas
+    try {
+      await signIn(mail, password);
 
       // Recuperar el usuario logueado desde supabase
       const { data: { user }, error: userError } = await supa.auth.getUser();
       if (userError) throw userError;
 
-      // Ahora puedes buscar su rol
+      // Buscar su rol
       const { data: rolData } = await supa
         .from("usuarios")
         .select("id_rol, roles(nombre)")
@@ -52,42 +44,6 @@ export default function LoginForm() {
       setError(err?.message || "Usuario o contraseña inválidos");
     } finally {
       setLoading(false);
-    }
-  };
-  const handleForgotPassword = async () => {
-    setError(null);
-    setSuccess(null);
-
-    if (!mail) {
-      setError("Ingrese su correo para recuperar la contraseña");
-      return;
-    }
-
-    try {
-      // 👇 Seguimos usando tu backend para el reset (está perfecto)
-      const resp = await fetch(`${baseUrl}/v1/auth/password/reset`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: mail }),
-      });
-
-      const contentType = resp.headers.get("content-type") || "";
-      const tryJson = contentType.includes("application/json");
-      const data = tryJson ? await resp.json().catch(() => ({})) : {};
-
-      if (!resp.ok) {
-        const msg =
-          data?.error?.message ||
-          data?.message ||
-          (resp.status === 404
-            ? `Endpoint no encontrado: ${baseUrl}/v1/auth/password/reset`
-            : `Error ${resp.status} al enviar el correo`);
-        throw new Error(msg);
-      }
-
-      setSuccess("Si la cuenta existe, te enviamos un correo para restablecer la contraseña.");
-    } catch (e) {
-      setError(e?.message || "No se pudo enviar el correo");
     }
   };
 
@@ -123,13 +79,14 @@ export default function LoginForm() {
           />
           Recordarme
         </label>
-        <button
-          type="button"
+
+        {/* 👉 Link directo a la vista de recuperación */}
+        <Link
+          to="/forgot"
           className="text-[#154734] hover:underline focus:outline-none"
-          onClick={handleForgotPassword}
         >
           Olvidé mi contraseña
-        </button>
+        </Link>
       </div>
 
       {error && <p className="text-red-600 text-sm mb-4">{error}</p>}

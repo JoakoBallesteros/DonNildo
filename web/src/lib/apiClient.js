@@ -36,9 +36,15 @@ export async function api(path, opts = {}) {
     ...(opts.headers || {}),
   };
 
+  // 🔑 Normalizar el body: si es objeto y no es FormData → JSON.stringify
+  let body = opts.body;
+  if (!isFormData && body != null && typeof body === "object") {
+    body = JSON.stringify(body);
+  }
+
   let resp;
   try {
-    resp = await fetch(url, { ...opts, method, headers });
+    resp = await fetch(url, { ...opts, method, headers, body });
   } catch (e) {
     console.error("❌ Error de Conexión de Red (fetch falló):", e);
     throw new Error(
@@ -69,7 +75,6 @@ export async function api(path, opts = {}) {
 
   return data ?? {};
 }
-
 
 export const apiFetch = api;
 export default api;

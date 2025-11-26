@@ -9,12 +9,17 @@ import {
 
 import Layout from "./components/pages/Layout.jsx";
 import Home from "./pages/Home.jsx";
-import Compras from "./pages/Compras.jsx";
+
 
 import LoginPage from "./pages/LoginPage.jsx";
-import RegistrarCompra from "./pages/RegistrarCompra.jsx";
 import AuthReset from "./pages/AuthReset.jsx";
 import AccountProfile from "./pages/AccountProfile.jsx";
+import ForgotPassword from "./components/pages/ForgotPassword.jsx";
+
+/* Compras */
+import Compras from "./pages/Compras.jsx";
+import Proveedores from "./pages/Proveedores.jsx";   
+import RegistrarCompra from "./pages/RegistrarCompra.jsx";
 
 /* Stock */
 import StockList from "./pages/StockList.jsx";
@@ -43,23 +48,32 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/auth/reset" element={<AuthReset />} />
         <Route path="/account" element={<AccountProfile />} />
-        
+        <Route path="/forgot" element={<ForgotPassword />} />
 
         {/* RUTAS PROTEGIDAS */}
         <Route element={<ProtectedRoute />}>
           <Route path="/" element={<Layout />}>
             <Route index element={<Home />} />
+
+            {/* COMPRAS */}
             <Route path="compras" element={<Outlet />}>
               <Route index element={<Compras />} />
               <Route path="nueva" element={<RegistrarCompra />} />
+              <Route path="proveedores" element={<Proveedores />} /> {/* 👈 NUEVO */}
             </Route>
 
-          <Route path="ventas" element={<Ventas />} />
-            <Route path="ventas/nueva" element={<RegistrarVentas editMode={false} />} />
-            <Route path="ventas/editar/:id" element={<RegistrarVentas editMode={true} />} />
+            {/* VENTAS */}
+            <Route path="ventas" element={<Ventas />} />
+            <Route
+              path="ventas/nueva"
+              element={<RegistrarVentas editMode={false} />}
+            />
+            <Route
+              path="ventas/editar/:id"
+              element={<RegistrarVentas editMode={true} />}
+            />
 
-
-            
+            {/* STOCK */}
             <Route path="stock" element={<Outlet />}>
               <Route index element={<StockList />} />
               <Route path="nuevo-producto" element={<StockNuevoProducto />} />
@@ -67,9 +81,10 @@ export default function App() {
               <Route path="pesajes" element={<StockPesajesLista />} />
             </Route>
 
+            {/* REPORTES */}
             <Route path="reportes" element={<Reportes />} />
-           
 
+            {/* SEGURIDAD */}
             <Route path="seguridad" element={<SegUsuarios />} />
             <Route path="seguridad/auditoria" element={<SegAuditoria />} />
             <Route path="seguridad/roles" element={<SegRoles />} />

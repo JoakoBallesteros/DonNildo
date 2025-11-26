@@ -21,6 +21,9 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
   const [role, setRole] = useState(getRole());
 
   // acordeones
+  const [comprasOpen, setComprasOpen] = useState(() =>
+    isSectionActive(pathname, "/compras")
+  );
   const [ventasOpen, setVentasOpen] = useState(() =>
     isSectionActive(pathname, "/ventas")
   );
@@ -35,6 +38,7 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
   );
 
   const openOnly = (key) => {
+    setComprasOpen(key === "compras");
     setVentasOpen(key === "ventas");
     setStockOpen(key === "stock");
     setReportesOpen(key === "reportes");
@@ -43,6 +47,7 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
 
   const toggleSection = (key) => {
     if (!ACCORDION) {
+      if (key === "compras") setComprasOpen((v) => !v);
       if (key === "ventas") setVentasOpen((v) => !v);
       if (key === "stock") setStockOpen((v) => !v);
       if (key === "reportes") setReportesOpen((v) => !v);
@@ -50,6 +55,7 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
       return;
     }
     const isOpen = {
+      compras: comprasOpen,
       ventas: ventasOpen,
       stock: stockOpen,
       reportes: reportesOpen,
@@ -62,7 +68,8 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
   // sincroniza acordeón con la ruta
   useEffect(() => {
     if (!ACCORDION) return;
-    if (isSectionActive(pathname, "/ventas")) openOnly("ventas");
+    if (isSectionActive(pathname, "/compras")) openOnly("compras");
+    else if (isSectionActive(pathname, "/ventas")) openOnly("ventas");
     else if (isSectionActive(pathname, "/stock")) openOnly("stock");
     else if (isSectionActive(pathname, "/reportes")) openOnly("reportes");
     else if (isSectionActive(pathname, "/seguridad")) openOnly("security");
@@ -146,15 +153,59 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
 
               {/* Compras */}
               {perms.canCompras && (
-                <NavLink
-                  to="/compras"
-                  onClick={onCloseMobile}
-                  className={({ isActive }) =>
-                    `mx-1 ${linkBase} ${isActive ? active : inactive}`
-                  }
-                >
-                  Compras
-                </NavLink>
+                <>
+                  <div className="relative mx-1">
+                    <NavLink
+                      to="/compras"
+                      end
+                      onClick={onCloseMobile}
+                      className={({ isActive }) =>
+                        `pr-10 ${linkBase} ${isActive ? active : inactive}`
+                      }
+                    >
+                      Compras
+                    </NavLink>
+                    <button
+                      type="button"
+                      aria-expanded={comprasOpen}
+                      aria-label={
+                        comprasOpen
+                          ? "Ocultar opciones de compras"
+                          : "Mostrar opciones de compras"
+                      }
+                      onClick={() => toggleSection("compras")}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 grid place-items-center rounded-lg hover:bg-emerald-100"
+                    >
+                      <ChevronRight
+                        className={`w-4 h-4 transition-transform ${
+                          comprasOpen ? "rotate-90" : ""
+                        }`}
+                      />
+                    </button>
+                  </div>
+                  {comprasOpen && (
+                    <div className="pl-5 space-y-1">
+                      <NavLink
+                        to="/compras/nueva"
+                        onClick={onCloseMobile}
+                        className={({ isActive }) =>
+                          `mx-1 ${linkBase} ${isActive ? active : inactive}`
+                        }
+                      >
+                        Registrar nueva compra
+                      </NavLink>
+                      <NavLink
+                        to="/compras/proveedores"
+                        onClick={onCloseMobile}
+                        className={({ isActive }) =>
+                          `mx-1 ${linkBase} ${isActive ? active : inactive}`
+                        }
+                      >
+                        Proveedores
+                      </NavLink>
+                    </div>
+                  )}
+                </>
               )}
 
               {/* Ventas */}
@@ -282,9 +333,8 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
                   }
                 >
                   Reportes
-                  </NavLink>
+                </NavLink>
               </div>
-              
 
               {/* Seguridad (solo ADMIN) */}
               {perms.isAdmin && (

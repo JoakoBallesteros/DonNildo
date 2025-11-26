@@ -8,9 +8,6 @@ import api from "../lib/apiClient";
 /* Layout */
 import PageContainer from "../components/pages/PageContainer.jsx";
 
-/* Componentes reutilizables */
-import PrimaryButton from "../components/buttons/PrimaryButton.jsx";
-
 /* Barra de filtros */
 import FilterBar from "../components/forms/FilterBars.jsx";
 
@@ -117,7 +114,10 @@ function mapCompraFromApi(c) {
   const tipo = c.tipo ?? c.tipo_compra ?? c.clase ?? "Mixtas";
 
   const fecha =
-    c.fecha ?? c.fecha_compra ?? c.fecha_emision ?? new Date().toISOString().slice(0, 10);
+    c.fecha ??
+    c.fecha_compra ??
+    c.fecha_emision ??
+    new Date().toISOString().slice(0, 10);
 
   const total = Number(c.total ?? 0);
   const obs = c.observaciones ?? c.obs ?? "—";
@@ -240,7 +240,7 @@ export default function Compras() {
     setEditOpen(true);
   }
 
-  // ===> AHORA ANULA EN BACKEND Y DESPUÉS ACTUALIZA EL FRONT
+  // ===> ANULA EN BACKEND Y DESPUÉS ACTUALIZA EL FRONT
   async function onAnular(row) {
     const compraId =
       row.dbId ?? row.id_compra ?? getNumericIdFromDisplay(row.id);
@@ -275,8 +275,6 @@ export default function Compras() {
         return;
       }
 
-      // Podés elegir: o la sacás de la lista, o la marcás como ANULADA.
-      // Acá la saco (comportamiento original):
       setRows((prev) => prev.filter((r) => r.id !== row.id));
     } catch (err) {
       console.error("Error de red anulando compra:", err);
@@ -319,7 +317,12 @@ export default function Compras() {
       id: "fecha",
       header: "Fecha",
       accessor: (r) => r.fecha,
-      render: (r) => new Date(r.fecha).toLocaleDateString(),
+      render: (r) =>
+        new Date(r.fecha).toLocaleDateString("es-AR", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }),
       align: "center",
       width: "120px",
       sortable: true,
@@ -344,7 +347,7 @@ export default function Compras() {
           onClick={() => onViewDetail(row)}
           className="border border-[#d8e4df] rounded-md px-4 py-1.5 text-[#154734] hover:bg-[#e8f4ef] transition"
         >
-          Ver Detalle
+          Ver detalle
         </button>
       ),
       width: "140px",
@@ -364,13 +367,13 @@ export default function Compras() {
           <div className="flex flex-col items-center gap-1">
             <button
               onClick={() => onEdit(row)}
-              className="bg-[#154734] text-white px-3 py-1 text-xs rounded-md hover:bg-[#1E5A3E]"
+              className="bg-[#154734] text-white px-4 py-1.5 text-xs rounded-md hover:bg-[#1E5A3E]"
             >
               MODIFICAR
             </button>
             <button
               onClick={() => onAnular(row)}
-              className="bg-[#A30000] text-white px-5 py-1 text-xs rounded-md hover:bg-[#7A0000]"
+              className="bg-[#A30000] text-white px-6 py-1.5 text-xs rounded-md hover:bg-[#7A0000]"
             >
               ANULAR
             </button>
@@ -404,11 +407,9 @@ export default function Compras() {
   ];
 
   const computeTotal = (list) =>
-    list
-      .reduce((sum, it) => sum + Number(it.subtotal || 0), 0)
-      .toFixed(2);
+    list.reduce((sum, it) => sum + Number(it.subtotal || 0), 0).toFixed(2);
 
-  // ===> AHORA GUARDA EN BACKEND Y LUEGO ACTUALIZA LA FILA
+  // ===> GUARDA EN BACKEND Y LUEGO ACTUALIZA LA FILA
   async function onSaveEdit(updated) {
     const compraId =
       updated.dbId ??
@@ -450,7 +451,6 @@ export default function Compras() {
         return;
       }
 
-      // Si el backend devuelve la compra actualizada, podés re-mapearla:
       if (resp.compra) {
         const mapped = mapCompraFromApi(resp.compra);
         setRows((prev) =>
@@ -469,17 +469,22 @@ export default function Compras() {
     <PageContainer
       title="Lista de Compras"
       actions={
-        <PrimaryButton
+        <button
           onClick={() => navigate("/compras/nueva")}
-          text={
-            <span className="inline-flex items-center gap-2">
-              <Plus className="h-4 w-4" /> Añadir nueva compra
-            </span>
-          }
-        />
+          className="flex items-center gap-2 bg-[#154734] text-white px-4 py-2 rounded-md hover:bg-[#103a2b] transition"
+        >
+          <Plus size={16} /> Añadir nueva compra
+        </button>
       }
     >
-      {/* Filtros */}
+      {/* Mensajes de error, mismo estilo que Ventas */}
+      {errorMsg && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-5">
+          {errorMsg}
+        </div>
+      )}
+
+      {/* Filtros - mismos estilos que Ventas */}
       <FilterBar
         filters={TABS}
         selectedFilter={tab}
@@ -487,11 +492,6 @@ export default function Compras() {
         resetSignal={resetSignal}
         onApply={onApplyFilters}
         onReset={onResetFilters}
-        applyLabel={
-          <span className="inline-flex items-center gap-2">
-            <Filter className="h-4 w-4" /> Aplicar Filtros
-          </span>
-        }
         fields={[
           {
             name: "buscar",
@@ -502,14 +502,19 @@ export default function Compras() {
           { name: "fechaDesde", label: "Fecha desde", type: "date" },
           { name: "fechaHasta", label: "Fecha hasta", type: "date" },
         ]}
+        applyButton={(props) => (
+          <button
+            {...props}
+            className="flex items-center gap-2 bg-[#154734] text-white px-4 py-2 rounded-md hover:bg-[#103a2b] transition"
+          >
+            <Filter size={16} /> Aplicar Filtros
+          </button>
+        )}
       />
 
-      {/* Mensajes de estado */}
+      {/* Mensaje de carga */}
       {loading && (
-        <p className="mt-4 text-sm text-gray-500">Cargando compras…</p>
-      )}
-      {errorMsg && !loading && (
-        <p className="mt-4 text-sm text-red-600">{errorMsg}</p>
+        <p className="mt-4 text-sm text-slate-600">Cargando compras…</p>
       )}
 
       {/* Tabla */}
@@ -519,12 +524,21 @@ export default function Compras() {
           data={filtered}
           zebra={false}
           stickyHeader={true}
+          wrapperClass="max-h-[415px] overflow-y-auto shadow-sm"
           tableClass="w-full text-sm text-center border-collapse"
           theadClass="bg-[#e8f4ef] text-[#154734]"
-          rowClass="hover:bg-[#f6faf7] border-t border-[#edf2ef]"
+          rowClass={(row) =>
+            `border-t border-[#edf2ef] ${
+              row.estado === "ANULADO"
+                ? "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                : "bg-white hover:bg-[#f6faf7]"
+            }`
+          }
           headerClass="px-4 py-3 font-semibold text-center"
-          cellClass="px-4 py-4 text-center"
-          enableSort
+          cellClass="px-4 py-2 text-center"
+          enableSort={true}
+          enablePagination={true}
+          pageSize={8}
         />
       </div>
 

@@ -201,6 +201,8 @@ VALUES
   ('EcoStore', '3814444444', 'info@ecostore.com', 'Calle Reciclaje 456')
 ON CONFLICT (mail) DO NOTHING;
 
+
+
 -- ==============================
 -- 11. VENTAS DE PRUEBA
 -- ==============================
@@ -313,6 +315,8 @@ WHERE p.nombre = 'Plásticos del Sur' AND oc.total = 36000.00
     SELECT 1 FROM detalle_compra dc
     WHERE dc.id_compra = oc.id_compra AND dc.subtotal = 36000.00
   );
+
+
 
 INSERT INTO remitos (id_compra, fecha, proveedor, tipo_compra, producto, cantidad, importe, observaciones)
 SELECT
