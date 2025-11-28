@@ -23,39 +23,43 @@ router.get("/", async (req, res) => {
     const sql = `
       SELECT
         oc.id_compra,
-        COALESCE(p.nombre, '—') AS proveedor_nombre,
+        p.nombre AS proveedor_nombre,
         oc.total,
         oc.fecha,
         oc.observaciones,
         oc.estado,
-        -- Clasificación visual del tipo
+
+        -- tipo_compra optimizado sin COUNT(DISTINCT)
         CASE
-          WHEN COUNT(DISTINCT tp.id_tipo_producto) > 1 THEN 'Mixtas'
-          WHEN MAX(tp.id_tipo_producto) = 1 THEN 'Cajas'
-          WHEN MAX(tp.id_tipo_producto) = 2 THEN 'Materiales'
-          ELSE 'Otros'
+          WHEN MIN(tp.id_tipo_producto) = MAX(tp.id_tipo_producto)
+            THEN CASE
+                   WHEN MIN(tp.id_tipo_producto) = 1 THEN 'Cajas'
+                   WHEN MIN(tp.id_tipo_producto) = 2 THEN 'Materiales'
+                   ELSE 'Otros'
+                 END
+          ELSE 'Mixtas'
         END AS tipo_compra,
-        COALESCE(
-          json_agg(
-            json_build_object(
-              'producto', prod.nombre,
-              'medida', m.simbolo,
-              'cantidad', dc.cantidad,
-              'precio', dc.precio_unitario,
-              'descuento', 0,
-              'subtotal', dc.subtotal
-            )
-            ORDER BY dc.id_detalle
-          ) FILTER (WHERE dc.id_detalle IS NOT NULL),
-          '[]'::json
-        ) AS items
+
+        json_agg(
+          json_build_object(
+            'producto', prod.nombre,
+            'medida', m.simbolo,
+            'cantidad', dc.cantidad,
+            'precio', dc.precio_unitario,
+            'subtotal', dc.subtotal
+          )
+          ORDER BY dc.id_detalle
+        ) FILTER (WHERE dc.id_detalle IS NOT NULL) AS items
+
       FROM orden_compra oc
-      LEFT JOIN proveedores p   ON p.id_proveedor     = oc.id_proveedor
-      LEFT JOIN detalle_compra dc ON dc.id_compra     = oc.id_compra
-      LEFT JOIN productos prod  ON prod.id_producto   = dc.id_producto
+      LEFT JOIN proveedores p ON p.id_proveedor = oc.id_proveedor
+      LEFT JOIN detalle_compra dc ON dc.id_compra = oc.id_compra
+      LEFT JOIN productos prod ON prod.id_producto = dc.id_producto
       LEFT JOIN tipo_producto tp ON tp.id_tipo_producto = prod.id_tipo_producto
-      LEFT JOIN medida m        ON m.id_medida        = prod.id_medida
+      LEFT JOIN medida m ON m.id_medida = prod.id_medida
+
       GROUP BY oc.id_compra, p.nombre, oc.total, oc.fecha, oc.observaciones, oc.estado
+
       ORDER BY oc.fecha DESC, oc.id_compra DESC;
     `;
 
@@ -148,7 +152,95 @@ router.get("/proveedores", async (req, res) => {
     });
   }
 });
+/* =====================================================
+ * GET /api/compras/:id → obtener compra para editar
+ * ===================================================== */
+router.get("/:id", async (req, res) => {
+  const id = Number(req.params.id);
 
+  if (!id) {
+    return res.status(400).json({
+      ok: false,
+      message: "ID de compra inválido.",
+    });
+  }
+
+  try {
+    // 1️⃣ CABECERA (orden_compra)
+    const cabeceraSql = `
+      SELECT
+        oc.id_compra,
+        oc.id_proveedor,
+        p.nombre AS proveedor_nombre,
+        oc.total,
+        oc.fecha,
+        oc.observaciones,
+        oc.estado
+      FROM orden_compra oc
+      LEFT JOIN proveedores p ON p.id_proveedor = oc.id_proveedor
+      WHERE oc.id_compra = $1
+      LIMIT 1;
+    `;
+
+    const { rows: compraRows } = await pool.query(cabeceraSql, [id]);
+
+    if (compraRows.length === 0) {
+      return res.status(404).json({
+        ok: false,
+        message: "Compra no encontrada.",
+      });
+    }
+
+    const compra = compraRows[0];
+
+    // 2️⃣ DETALLES (detalle_compra)
+    const detallesSql = `
+      SELECT
+        dc.id_producto,
+        prod.nombre AS producto,
+        tp.nombre AS tipo_producto,
+        dc.cantidad,
+        dc.precio_unitario,
+        dc.subtotal,
+        COALESCE(m.simbolo, 'u') AS medida
+      FROM detalle_compra dc
+      JOIN productos prod ON prod.id_producto = dc.id_producto
+      LEFT JOIN tipo_producto tp ON tp.id_tipo_producto = prod.id_tipo_producto
+      LEFT JOIN medida m ON m.id_medida = prod.id_medida
+      WHERE dc.id_compra = $1
+      ORDER BY dc.id_detalle;
+    `;
+
+    const { rows: itemsRows } = await pool.query(detallesSql, [id]);
+
+    // 3️⃣ Formateo final para front (igual a ventas)
+    const items = itemsRows.map((r) => ({
+      id_producto: r.id_producto,
+      producto: r.producto,
+      tipo: r.tipo_producto,
+      cantidad: Number(r.cantidad),
+      precio_unitario: Number(r.precio_unitario),
+      precio: Number(r.precio_unitario),
+      subtotal: Number(r.subtotal),
+      medida: r.medida,
+      descuento: 0, // compras no usan descuento
+    }));
+
+    return res.json({
+      ok: true,
+      compra,
+      items,
+    });
+
+  } catch (err) {
+    console.error("❌ Error en GET /api/compras/:id:", err);
+    return res.status(500).json({
+      ok: false,
+      message: "Error al obtener la compra.",
+      detail: err.message,
+    });
+  }
+});
 /* ============================================
  * POST /api/compras  → registrar compra
  * ============================================ */
@@ -330,34 +422,42 @@ router.put("/:id/anular", async (req, res) => {
  * ============================================ */
 router.put("/:id", async (req, res) => {
   const id = Number(req.params.id);
-  const { observaciones, fecha } = req.body; // o lo que quieras permitir modificar
+  const { items, observaciones } = req.body;
 
+  // Validaciones básicas
   if (!Number.isInteger(id) || id <= 0) {
-    return res
-      .status(400)
-      .json({ ok: false, message: "ID de compra inválido" });
+    return res.status(400).json({ ok: false, message: "ID de compra inválido" });
+  }
+
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({
+      ok: false,
+      message: "Debe enviar al menos un producto para modificar la compra",
+    });
   }
 
   try {
-    const { rows } = await pool.query(
-      `
-      UPDATE orden_compra
-      SET
-        observaciones = COALESCE($2, observaciones),
-        fecha         = COALESCE($3, fecha)
-      WHERE id_compra = $1
-      RETURNING id_compra, total, estado;
-      `,
-      [id, observaciones ?? null, fecha ?? null]
-    );
+    const itemsJson = JSON.stringify(items);
 
-    if (!rows.length) {
-      return res
-        .status(404)
-        .json({ ok: false, message: "Compra no encontrada" });
+    const sql = `
+      SELECT id_compra_ret, total_ret, estado_ret
+      FROM modificar_compra_transaccional($1, $2, $3)
+    `;
+
+    const { rows } = await pool.query(sql, [
+      id,
+      observaciones ?? null,
+      itemsJson,
+    ]);
+
+    if (!rows || rows.length === 0) {
+      return res.status(500).json({
+        ok: false,
+        message: "La función no devolvió resultados",
+      });
     }
 
-    const compra = rows[0];
+    const result = rows[0];
 
     // Auditoría
     try {
@@ -366,16 +466,21 @@ router.put("/:id", async (req, res) => {
         userId,
         "MODIFICAR_COMPRA",
         "COMPRAS",
-        `Compra ${compra.id_compra} modificada`
+        `Compra ${result.id_compra_ret} modificada. Nuevo total: ${result.total_ret}`
       );
     } catch (errAud) {
-      console.error(
-        "Error registrando auditoría de modificación:",
-        errAud.message
-      );
+      console.error("Error registrando auditoría de modificación:", errAud.message);
     }
 
-    return res.json({ ok: true, compra });
+    // Respuesta al front
+    return res.json({
+      ok: true,
+      message: `Compra ${result.id_compra_ret} modificada correctamente.`,
+      id_compra: result.id_compra_ret,
+      total: result.total_ret,
+      estado: result.estado_ret,
+    });
+
   } catch (err) {
     console.error("❌ Error en PUT /api/compras/:id:", err);
     return res.status(500).json({
@@ -385,5 +490,6 @@ router.put("/:id", async (req, res) => {
     });
   }
 });
+
 
 export default router;

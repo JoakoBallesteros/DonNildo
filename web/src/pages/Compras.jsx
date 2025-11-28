@@ -17,64 +17,8 @@ import DataTable from "../components/tables/DataTable.jsx";
 /* Modales reutilizables */
 import Details from "../components/modals/Details.jsx";
 import Modified from "../components/modals/Modified.jsx";
+import Modals from "../components/modals/Modals.jsx";
 
-/* ===== Datos mock (fallback si la API falla) ===== */
-const INITIAL = [
-  {
-    id: "OC-0003",
-    proveedor: "Vidrios Industriales",
-    tipo: "Mixtas",
-    total: 900,
-    fecha: "2024-09-30",
-    obs: "—",
-    items: [
-      {
-        producto: "PRITTY20X20",
-        medida: "20x20",
-        cantidad: 1,
-        precio: 900,
-        descuento: 0,
-        subtotal: 900,
-      },
-    ],
-  },
-  {
-    id: "OC-0002",
-    proveedor: "Plásticos del Sur",
-    tipo: "Cajas",
-    total: 1800,
-    fecha: "2024-10-02",
-    obs: "—",
-    items: [
-      {
-        producto: "Caja 40x30",
-        medida: "40x30",
-        cantidad: 1,
-        precio: 1800,
-        descuento: 0,
-        subtotal: 1800,
-      },
-    ],
-  },
-  {
-    id: "OC-0001",
-    proveedor: "Reciclados Norte S.A.",
-    tipo: "Materiales",
-    total: 2500,
-    fecha: "2024-10-04",
-    obs: "—",
-    items: [
-      {
-        producto: "Papel blanco",
-        medida: "kg",
-        cantidad: 5,
-        precio: 500,
-        descuento: 0,
-        subtotal: 2500,
-      },
-    ],
-  },
-];
 
 const TABS = ["Todo", "Materiales", "Cajas", "Mixtas"];
 const fmtARS = new Intl.NumberFormat("es-AR", {
@@ -110,7 +54,7 @@ function mapCompraFromApi(c) {
 
   const proveedor =
     c.proveedor ?? c.proveedor_nombre ?? c.proveedorNombre ?? "—";
-
+  const estado = c.estado ?? c.estado_compra ?? "ACTIVO";
   const tipo = c.tipo ?? c.tipo_compra ?? c.clase ?? "Mixtas";
 
   const fecha =
@@ -126,6 +70,8 @@ function mapCompraFromApi(c) {
   const rawItems = c.items ?? c.detalles ?? c.detalle_compra ?? [];
 
   const items = rawItems.map((it, idx) => ({
+    tipo: c.tipo_compra || "—",
+    proveedor: c.proveedor || c.proveedor_nombre || "—",
     producto:
       it.producto ?? it.nombre_producto ?? it.nombre ?? `Item ${idx + 1}`,
     medida: it.medida ?? it.unidad ?? it.unidad_stock ?? "u",
@@ -135,7 +81,7 @@ function mapCompraFromApi(c) {
     subtotal: Number(it.subtotal ?? 0),
   }));
 
-  return { id, dbId, proveedor, tipo, total, fecha, obs, items };
+  return { id, dbId, proveedor, tipo, total, fecha, obs, items, estado };
 }
 
 export default function Compras() {
@@ -158,58 +104,68 @@ export default function Compras() {
   const [detailRow, setDetailRow] = useState(null);
   const [editOpen, setEditOpen] = useState(false);
   const [editRow, setEditRow] = useState(null);
-
+  //Anuladas
+  const [mostrarAnuladas, setMostrarAnuladas] = useState(false);
+  const [compraIdToAnular, setCompraIdToAnular] = useState(null)
+  const [isAnularConfirmOpen, setAnularConfirmOpen] = useState(false);
+  const [messageModal, setMessageModal] = useState({
+  isOpen: false,
+  title: "",
+  text: "",
+  type: "",
+});
   /* ======================
    * Cargar compras de la API
    * ====================== */
-  useEffect(() => {
-    async function fetchCompras() {
-      try {
-        setLoading(true);
-        setErrorMsg("");
+ useEffect(() => {
+  async function fetchCompras() {
+    try {
+      setLoading(true);
+      setErrorMsg("");
 
-        const resp = await api("/api/compras"); // GET /api/compras
-        if (!resp?.ok || !Array.isArray(resp.compras)) {
-          console.warn("Respuesta inesperada en GET /api/compras:", resp);
-          // fallback al mock si algo viene raro
-          setRows(INITIAL);
-          return;
-        }
+      const qs = mostrarAnuladas ? "?only=anuladas" : "?only=activas";
+      const resp = await api(`/api/compras${qs}`);
 
-        const mapped = resp.compras.map(mapCompraFromApi);
-        setRows(mapped);
-      } catch (err) {
-        console.error("Error cargando compras:", err);
-        setErrorMsg(
-          "No se pudieron cargar las compras desde el servidor."
-        );
-        // fallback al mock
-        setRows(INITIAL);
-      } finally {
-        setLoading(false);
+      if (!resp?.ok || !Array.isArray(resp.compras)) {
+        console.warn("Respuesta inesperada en GET /api/compras:", resp);
+        return;
       }
-    }
 
-    fetchCompras();
-  }, []);
+      const mapped = resp.compras.map(mapCompraFromApi);
+      setRows(mapped);
+    } catch (err) {
+      console.error("Error cargando compras:", err);
+      setErrorMsg("No se pudieron cargar las compras desde el servidor.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  fetchCompras();
+}, [mostrarAnuladas]);
 
   /* Filtrado */
   const filtered = useMemo(() => {
-    return rows
-      .filter((r) => (tab === "Todo" ? true : r.tipo === tab))
-      .filter((r) =>
-        q
-          ? r.id.toLowerCase().includes(q.toLowerCase()) ||
-            r.proveedor.toLowerCase().includes(q.toLowerCase())
-          : true
-      )
-      .filter((r) => {
-        const d = new Date(r.fecha);
-        const okFrom = desde ? d >= new Date(desde) : true;
-        const okTo = hasta ? d <= new Date(hasta) : true;
-        return okFrom && okTo;
-      });
-  }, [rows, tab, q, desde, hasta]);
+  return rows
+    .filter((r) => {
+      // 1️⃣ Filtrar anuladas o no
+      if (mostrarAnuladas) return r.estado === "ANULADO";
+      else return r.estado !== "ANULADO";
+    })
+    .filter((r) => (tab === "Todo" ? true : r.tipo === tab))
+    .filter((r) =>
+      q
+        ? r.id.toLowerCase().includes(q.toLowerCase()) ||
+          r.proveedor.toLowerCase().includes(q.toLowerCase())
+        : true
+    )
+    .filter((r) => {
+      const d = new Date(r.fecha);
+      const okFrom = desde ? d >= new Date(desde) : true;
+      const okTo = hasta ? d <= new Date(hasta) : true;
+      return okFrom && okTo;
+    });
+}, [rows, tab, q, desde, hasta, mostrarAnuladas]);
 
   /* Handlers filtros */
   function onApplyFilters(form) {
@@ -233,54 +189,52 @@ export default function Compras() {
     setDetailOpen(true);
   }
 
-  function onEdit(row) {
-    setDetailOpen(false);
-    setDetailRow(null);
-    setEditRow(row);
-    setEditOpen(true);
-  }
-
   // ===> ANULA EN BACKEND Y DESPUÉS ACTUALIZA EL FRONT
-  async function onAnular(row) {
-    const compraId =
-      row.dbId ?? row.id_compra ?? getNumericIdFromDisplay(row.id);
+  async function confirmarAnulacion() {
+  if (!compraIdToAnular) return;
 
-    if (!compraId) {
-      // Sin ID numérico: sólo afectamos el front y listo
-      if (window.confirm(`¿Anular sólo visualmente la compra ${row.id}?`)) {
-        setRows((prev) => prev.filter((r) => r.id !== row.id));
-      }
-      return;
-    }
+  try {
+    setAnularConfirmOpen(false);
 
-    if (
-      !window.confirm(
-        `¿Seguro que querés anular la compra ${row.id}? Esta acción no se puede deshacer.`
-      )
-    ) {
-      return;
-    }
+    const resp = await api(`/api/compras/${compraIdToAnular}/anular`, {
+      method: "PUT",
+    });
 
-    try {
-      const resp = await api(`/api/compras/${compraId}/anular`, {
-        method: "PUT",
+    if (!resp?.ok) {
+      setMessageModal({
+        isOpen: true,
+        title: "❌ Error al anular",
+        text: resp?.message || "No se pudo anular la compra.",
+        type: "error",
       });
-
-      if (!resp?.ok) {
-        console.error("Error anulando compra:", resp);
-        alert(
-          resp?.message ||
-            "No se pudo anular la compra. Revisá el servidor."
-        );
-        return;
-      }
-
-      setRows((prev) => prev.filter((r) => r.id !== row.id));
-    } catch (err) {
-      console.error("Error de red anulando compra:", err);
-      alert("Error de red al anular la compra.");
+      return;
     }
+
+    setMessageModal({
+      isOpen: true,
+      title: "✅ Compra anulada",
+      text: `La compra ${compraIdToAnular} fue anulada correctamente.`,
+      type: "success",
+    });
+
+    // Actualizar la grilla
+    setRows((prev) =>
+      prev.map((r) =>
+        r.dbId === compraIdToAnular ? { ...r, estado: "ANULADA" } : r
+      )
+    );
+
+  } catch (e) {
+    setMessageModal({
+      isOpen: true,
+      title: "❌ Error de red",
+      text: e.message,
+      type: "error",
+    });
+  } finally {
+    setCompraIdToAnular(null);
   }
+}
 
   function onDownload(row) {
     console.log("Descargar compra:", row.id);
@@ -366,17 +320,21 @@ export default function Compras() {
         <div className="flex justify-center items-center gap-2">
           <div className="flex flex-col items-center gap-1">
             <button
-              onClick={() => onEdit(row)}
+              onClick={() => navigate(`/compras/editar/${row.dbId}`)}
               className="bg-[#154734] text-white px-4 py-1.5 text-xs rounded-md hover:bg-[#1E5A3E]"
             >
               MODIFICAR
             </button>
-            <button
-              onClick={() => onAnular(row)}
+           <button
+              onClick={() => {
+                const id = row.dbId ?? row.id_compra ?? getNumericIdFromDisplay(row.id);
+                setCompraIdToAnular(id);
+                setAnularConfirmOpen(true);
+              }}
               className="bg-[#A30000] text-white px-6 py-1.5 text-xs rounded-md hover:bg-[#7A0000]"
             >
               ANULAR
-            </button>
+          </button>
           </div>
           <button
             onClick={() => onDownload(row)}
@@ -512,35 +470,44 @@ export default function Compras() {
         )}
       />
 
-      {/* Mensaje de carga */}
-      {loading && (
-        <p className="mt-4 text-sm text-slate-600">Cargando compras…</p>
-      )}
-
-      {/* Tabla */}
-      <div className="mt-6">
-        <DataTable
-          columns={columns}
-          data={filtered}
-          zebra={false}
-          stickyHeader={true}
-          wrapperClass="max-h-[415px] overflow-y-auto shadow-sm"
-          tableClass="w-full text-sm text-center border-collapse"
-          theadClass="bg-[#e8f4ef] text-[#154734]"
-          rowClass={(row) =>
-            `border-t border-[#edf2ef] ${
-              row.estado === "ANULADO"
-                ? "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                : "bg-white hover:bg-[#f6faf7]"
-            }`
-          }
-          headerClass="px-4 py-3 font-semibold text-center"
-          cellClass="px-4 py-2 text-center"
-          enableSort={true}
-          enablePagination={true}
-          pageSize={8}
-        />
-      </div>
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={() => setMostrarAnuladas((prev) => !prev)}
+            className="border border-[#154734] text-[#154734] px-3 py-1 rounded-md hover:bg-[#e8f4ef] transition"
+          >
+            {mostrarAnuladas ? "Ocultar anuladas" : "Ver anuladas"}
+          </button>
+        </div>
+  
+   <div className="mt-6">
+           {loading ? (
+             <p className="text-sm text-slate-600">Cargando…</p>
+           ) : (
+             <DataTable
+               columns={columns}
+               data={filtered}
+               zebra={false}
+               /* header pegado arriba cuando scrolleás dentro de la card */
+               stickyHeader={true}
+               wrapperClass="max-h-[355px] overflow-y-auto shadow-sm"
+               tableClass="w-full text-sm text-center border-collapse"
+               theadClass="bg-[#e8f4ef] text-[#154734]"
+               rowClass={(row) =>
+                 `border-t border-[#edf2ef] ${
+                   row.estado === "ANULADO"
+                     ? "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                     : "bg-white hover:bg-[#f6faf7]"
+                 }`
+               }
+               headerClass="px-4 py-3 font-semibold text-center"
+               cellClass="px-4 py-2 text-center"
+               enableSort={true}
+               enablePagination={true}
+               pageSize={8}
+               
+             />
+           )}
+         </div>
 
       {/* Detalle */}
       <Details
@@ -554,11 +521,11 @@ export default function Compras() {
         data={detailRow}
         itemsKey="items"
         columns={[
-          { key: "producto", label: "Producto / Material" },
-          { key: "medida", label: "Medida/Estado" },
+          { key: "tipo", label: "Tipo" },
+          { key: "proveedor", label: "Proveedor" },
+          { key: "producto", label: "Producto" },
           { key: "cantidad", label: "Cantidad" },
           { key: "precio", label: "Precio Unitario" },
-          { key: "descuento", label: "Desc. %" },
           { key: "subtotal", label: "Subtotal" },
         ]}
       />
@@ -595,6 +562,68 @@ export default function Compras() {
           size="max-w-5xl"
         />
       )}
+      <Modals
+          isOpen={isAnularConfirmOpen}
+          onClose={() => setAnularConfirmOpen(false)}
+          title="Confirmar Anulación"
+          size="max-w-md"
+          footer={
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setAnularConfirmOpen(false)}
+                className="px-4 py-2 rounded-md font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
+              >
+                Volver
+              </button>
+
+              <button
+                onClick={confirmarAnulacion}
+                className="px-4 py-2 rounded-md font-semibold text-white bg-red-600 hover:bg-red-700 transition"
+              >
+                Sí, Anular
+              </button>
+            </div>
+          }
+        >
+          <p className="text-sm text-slate-700">
+            ¿Seguro que querés anular la compra{" "}
+            <strong className="text-slate-900">N° {compraIdToAnular}</strong>?<br />
+            Esta acción no se puede deshacer.
+          </p>
+        </Modals>
+
+        <Modals
+          isOpen={messageModal.isOpen}
+          onClose={() =>
+            setMessageModal({ isOpen: false, title: "", text: "", type: "" })
+          }
+          title={messageModal.title}
+          size="max-w-md"
+          footer={
+            <div className="flex justify-end">
+              <button
+                onClick={() =>
+                  setMessageModal({
+                    isOpen: false,
+                    title: "",
+                    text: "",
+                    type: "",
+                  })
+                }
+                className={`px-4 py-2 rounded-md font-semibold text-white transition ${
+                  messageModal.type === "success"
+                    ? "bg-emerald-700 hover:bg-emerald-800"
+                    : "bg-red-700 hover:bg-red-800"
+                }`}
+              >
+                Aceptar
+              </button>
+            </div>
+          }
+        >
+          <p className="text-sm text-slate-700">{messageModal.text}</p>
+        </Modals>
+
     </PageContainer>
   );
 }

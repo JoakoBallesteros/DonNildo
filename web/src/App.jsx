@@ -60,7 +60,8 @@ export default function App() {
             <Route path="compras" element={<Outlet />}>
               <Route index element={<Compras />} />
               <Route path="nueva" element={<RegistrarCompra />} />
-              <Route path="proveedores" element={<Proveedores />} /> {/* 👈 NUEVO */}
+              <Route path="proveedores" element={<Proveedores />} />
+              <Route path="/compras/editar/:id" element={<RegistrarCompra />} />
             </Route>
 
             {/* VENTAS */}
