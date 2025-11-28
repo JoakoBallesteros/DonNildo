@@ -22,6 +22,7 @@ import adminUsers from "./routes/adminUsers.mjs";
 import accountRouter from "./routes/account.mjs";
 import auditoriaRoutes from "./routes/auditoria.mjs";
 import reportesRoutes from "./routes/reportes.mjs";
+import dashboardRoutes from "./routes/dashboard.mjs";
 
 if (!globalThis.crypto) globalThis.crypto = webcrypto
 
@@ -64,6 +65,7 @@ app.use(
 // -------- Rutas --------
 
 // versión nueva con /api/v1 (lo que usa el front)
+
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/usuarios", usuariosRoutes);
 app.use("/api/v1/roles", rolesRoutes);
@@ -81,6 +83,8 @@ app.use("/v1/usuarios", usuariosRoutes);
 app.use("/v1/roles", rolesRoutes);
 app.use("/v1/admin/users", adminUsers);
 app.use("/v1/account", accountRouter);
+
+app.use("/api/dashboard", dashboardRoutes);
 
 app.use("/api/compras", comprasRoutes);
 app.use("/api/ventas", ventasRoutes);
