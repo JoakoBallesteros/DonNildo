@@ -1,6 +1,6 @@
 // src/components/Sidebar.jsx
 import { useState, useEffect, useMemo } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate, Link } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import HamburgerButton from "../buttons/HamburgerButton.jsx";
 import AccountBadge from "../buttons/AccountBadge.jsx";
@@ -20,6 +20,7 @@ const isSectionActive = (pathname, base) =>
 export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
   const { pathname } = useLocation();
   const [role, setRole] = useState(getRole());
+  const navigate = useNavigate();
 
   // acordeones
   const [comprasOpen, setComprasOpen] = useState(() =>
@@ -137,11 +138,18 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
           <div className="w-72 h-full flex flex-col">
             {/* Header brand + toggle */}
             <div className="flex items-center justify-between px-4 pt-5 pb-4">
-              <div className="text-3xl leading-7 font-extrabold text-emerald-900 select-none">
+              <Link
+                to="/"
+                onClick={onCloseMobile}
+                className="text-3xl leading-7 font-extrabold text-emerald-900 select-none
+               rounded-md focus:outline-none focus-visible:ring-2
+               focus-visible:ring-emerald-500"
+              >
                 DON
                 <br />
                 NILDO
-              </div>
+              </Link>
+
               <HamburgerButton
                 onClick={onToggle}
                 className="hidden md:inline-flex"
