@@ -27,7 +27,7 @@ router.get("/", async (req, res) => {
         oc.total,
         oc.fecha,
         oc.observaciones,
-        oc.estado,
+        e.nombre AS estado,
 
         -- tipo_compra optimizado sin COUNT(DISTINCT)
         CASE
@@ -57,8 +57,10 @@ router.get("/", async (req, res) => {
       LEFT JOIN productos prod ON prod.id_producto = dc.id_producto
       LEFT JOIN tipo_producto tp ON tp.id_tipo_producto = prod.id_tipo_producto
       LEFT JOIN medida m ON m.id_medida = prod.id_medida
+      LEFT JOIN estado e ON e.id_estado = oc.id_estado
 
-      GROUP BY oc.id_compra, p.nombre, oc.total, oc.fecha, oc.observaciones, oc.estado
+
+      GROUP BY oc.id_compra, p.nombre, oc.total, oc.fecha, oc.observaciones, e.nombre
 
       ORDER BY oc.fecha DESC, oc.id_compra DESC;
     `;
@@ -175,9 +177,10 @@ router.get("/:id", async (req, res) => {
         oc.total,
         oc.fecha,
         oc.observaciones,
-        oc.estado
+        
       FROM orden_compra oc
       LEFT JOIN proveedores p ON p.id_proveedor = oc.id_proveedor
+      
       WHERE oc.id_compra = $1
       LIMIT 1;
     `;
@@ -364,22 +367,23 @@ router.post("/", async (req, res) => {
 router.put("/:id/anular", async (req, res) => {
   const id = Number(req.params.id);
 
-  if (!Number.isInteger(id) || id <= 0) {
-    return res
-      .status(400)
-      .json({ ok: false, message: "ID de compra inválido" });
-  }
-
   try {
+    const { rows: est } = await pool.query(`
+      SELECT id_estado FROM estado WHERE nombre = 'ANULADO' LIMIT 1
+    `);
+
+    if (!est.length) {
+      return res.status(500).json({ ok: false, message: "Estado ANULADO no existe" });
+    }
+
+    const idEstadoAnulado = est[0].id_estado;
     // 1) Actualizar la compra en la DB (ajustá el estado según tu modelo)
-    const { rows } = await pool.query(
-      `
-      UPDATE orden_compra
-      SET estado = 'ANULADA'
-      WHERE id_compra = $1
-      RETURNING id_compra, total, estado;
-      `,
-      [id]
+      const { rows } = await pool.query(
+      `UPDATE orden_compra
+       SET id_estado = $1
+       WHERE id_compra = $2
+       RETURNING id_compra, total, id_estado`,
+      [idEstadoAnulado, id]
     );
 
     if (!rows.length) {
@@ -490,6 +494,5 @@ router.put("/:id", async (req, res) => {
     });
   }
 });
-
 
 export default router;

@@ -2,24 +2,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Filter, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
 import api from "../lib/apiClient";
-
-/* Layout */
 import PageContainer from "../components/pages/PageContainer.jsx";
-
-/* Barra de filtros */
 import FilterBar from "../components/forms/FilterBars.jsx";
-
-/* Tabla genérica */
 import DataTable from "../components/tables/DataTable.jsx";
-
-/* Modales reutilizables */
 import Details from "../components/modals/Details.jsx";
+import DetalleReporte from "../components/modals/DetallesReporte.jsx";
 import Modified from "../components/modals/Modified.jsx";
 import Modals from "../components/modals/Modals.jsx";
-
-
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 const TABS = ["Todo", "Materiales", "Cajas", "Mixtas"];
 const fmtARS = new Intl.NumberFormat("es-AR", {
   style: "currency",
@@ -108,6 +100,7 @@ export default function Compras() {
   const [mostrarAnuladas, setMostrarAnuladas] = useState(false);
   const [compraIdToAnular, setCompraIdToAnular] = useState(null)
   const [isAnularConfirmOpen, setAnularConfirmOpen] = useState(false);
+ 
   const [messageModal, setMessageModal] = useState({
   isOpen: false,
   title: "",
@@ -181,6 +174,71 @@ export default function Compras() {
     setResetSignal((x) => x + 1);
   }
 
+    
+// =========================
+  // DESCARGAR PDF
+  // =========================
+  const handleDownloadDetalleCompra = (compra) => {
+  const doc = new jsPDF();
+
+  if (!compra || !compra.items) {
+    console.error("Error PDF: objeto de compra inválido.");
+    return;
+  }
+
+  // ID visual (OC-0005)
+  const compraCodigo = compra.id || "OC-S/N";
+
+  // ID real en la BD
+  const compraId = compra.dbId || compra.id_compra || null;
+
+  const fecha = compra.fecha || new Date().toISOString().slice(0, 10);
+  const proveedor = compra.proveedor || "—";
+  const obs = compra.obs || "—";
+
+  // ====== ENCABEZADO ======
+  doc.setFontSize(16);
+  doc.text(`Remito de Compra ${compraId}`, 14, 20);
+
+  doc.setFontSize(12);
+  doc.text(`Proveedor: ${proveedor}`, 14, 30);
+  doc.text(`Fecha: ${fecha}`, 14, 36);
+  doc.text(`Observaciones: ${obs}`, 14, 42);
+
+  // ====== TABLA ======
+  const head = [
+    ["Producto", "Cantidad", "Medida", "Precio Unit.", "Subtotal"],
+  ];
+
+  const body = compra.items.map((p) => [
+    p.producto,
+    p.cantidad,
+    p.medida,
+    `$${Number(p.precio).toLocaleString("es-AR")}`,
+    `$${Number(p.subtotal).toLocaleString("es-AR")}`,
+  ]);
+
+  autoTable(doc, {
+    startY: 50,
+    head,
+    body,
+  });
+
+  // ====== TOTAL ======
+  const finalY = doc.lastAutoTable.finalY + 10;
+
+  doc.text(
+    `Total: $${Number(compra.total).toLocaleString("es-AR")}`,
+    14,
+    finalY
+  );
+
+  // ====== DESCARGA ======
+  setTimeout(() => {
+    doc.save(`Detalle de ${compraCodigo}.pdf`);
+  }, 100);
+};
+
   /* Acciones por fila */
   function onViewDetail(row) {
     setEditOpen(false);
@@ -236,10 +294,6 @@ export default function Compras() {
   }
 }
 
-  function onDownload(row) {
-    console.log("Descargar compra:", row.id);
-    // Acá podrías llamar a /api/compras/:id/pdf o similar.
-  }
 
   /* Columnas DataTable */
   const columns = [
@@ -337,9 +391,9 @@ export default function Compras() {
           </button>
           </div>
           <button
-            onClick={() => onDownload(row)}
+            onClick={() => handleDownloadDetalleCompra(row)}
             className="p-1 border border-[#d8e4df] rounded-md hover:bg-[#f7faf9] flex items-center justify-center"
-            title="Descargar comprobante"
+            title="Descargar Detalle de Compra"
           >
             <Download className="w-4 h-4 text-[#154734]" />
           </button>
@@ -470,7 +524,8 @@ export default function Compras() {
         )}
       />
 
-        <div className="flex justify-end mb-4">
+
+        <div className="flex justify-end mb-4 gap-4">
           <button
             onClick={() => setMostrarAnuladas((prev) => !prev)}
             className="border border-[#154734] text-[#154734] px-3 py-1 rounded-md hover:bg-[#e8f4ef] transition"
@@ -624,6 +679,9 @@ export default function Compras() {
           <p className="text-sm text-slate-700">{messageModal.text}</p>
         </Modals>
 
+
+        
+         
     </PageContainer>
   );
 }
