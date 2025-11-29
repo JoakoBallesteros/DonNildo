@@ -17,7 +17,8 @@
     "start:api": "npm run start -w api"
   },
   "dependencies": {
-    "@headlessui/react": "^2.2.9"
+    "@headlessui/react": "^2.2.9",
+    "recharts": "^3.5.1"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.21",

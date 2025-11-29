@@ -8,10 +8,17 @@ import NuevoReporte from "../components/modals/NuevoReporte";
 import MessageModal from "../components/modals/MessageModal";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import StockMaterialChart from "../components/charts/StockMaterialChart";
+import CategoriaChart from "../components/charts/CategoriaChart";
+import TopProductsChart from "../components/charts/TopProductsChart";
+import PesajesMesChart from "../components/charts/PesajesMesChart";
+
 
 import { listarReportes, crearReporte, deleteReportes } from "../services/reportesService.mjs";
 
 export default function Reportes() {
+
+  
   const [reportes, setReportes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState(null);
@@ -62,7 +69,7 @@ export default function Reportes() {
       setLoading(false);
     }
   }, []);
-
+  
   useEffect(() => {
     loadReportes();
   }, [loadReportes]);
@@ -297,7 +304,12 @@ export default function Reportes() {
           Nuevo reporte
         </button>
       </div>
-
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+        <CategoriaChart />
+        <StockMaterialChart />
+        <TopProductsChart />
+        <PesajesMesChart />
+      </div>
       {errorMsg && <p className="text-red-600 mb-4">{errorMsg}</p>}
 
       <div className="mt-6 space-y-5">
