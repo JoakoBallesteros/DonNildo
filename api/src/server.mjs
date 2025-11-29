@@ -22,6 +22,8 @@ import adminUsers from "./routes/adminUsers.mjs";
 import accountRouter from "./routes/account.mjs";
 import auditoriaRoutes from "./routes/auditoria.mjs";
 import reportesRoutes from "./routes/reportes.mjs";
+import remitosRoutes from "./routes/remitos.mjs";
+
 import dashboardRoutes from "./routes/dashboard.mjs";
 
 if (!globalThis.crypto) globalThis.crypto = webcrypto
@@ -76,6 +78,8 @@ app.use("/api/proveedores", proveedoresRouter);
 app.use("/api/v1/ventas", ventasRoutes);
 app.use("/api/v1/stock", stockRoutes);
 app.use("/api/v1/auditoria", auditoriaRoutes);
+app.use("/api/v1/remitos", remitosRoutes);
+app.use("/api/v1/reportes", reportesRoutes);
 
 // rutas viejas para compatibilidad
 app.use("/v1/auth", authRoutes);
