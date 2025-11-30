@@ -351,7 +351,7 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
                             `mx-1 ${linkBase} ${isActive ? active : inactive}`
                           }
                         >
-                          Historial de pesajes
+                          Historial de materiales
                         </NavLink>
                       )}
                     </div>
