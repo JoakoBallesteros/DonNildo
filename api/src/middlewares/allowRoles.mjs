@@ -40,7 +40,7 @@ export function allowRoles(rolesPermitidos = []) {
         return res.status(403).json({ error: "FORBIDDEN" });
       }
 
-      // Autorizado 🚀
+      // Autorizado 
       next();
     } catch (err) {
       console.error("[allowRoles] unexpected:", err);

@@ -360,65 +360,149 @@ router.post("/", async (req, res) => {
   }
 });
 
+// Anular compra con reposición de stock (similar a ventas)
 router.put("/:id/anular", async (req, res) => {
   const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({
+      ok: false,
+      message: "ID de compra inválido",
+    });
+  }
+
+  const client = await pool.connect();
 
   try {
-    const { rows: est } = await pool.query(`
-      SELECT id_estado FROM estado WHERE nombre = 'ANULADO' LIMIT 1
-    `);
+    await client.query("BEGIN");
 
-    if (!est.length) {
-      return res
-        .status(500)
-        .json({ ok: false, message: "Estado ANULADO no existe" });
+    // 1) Buscar estado ANULADO
+    const { rows: estRows } = await client.query(
+      `SELECT id_estado FROM estado WHERE nombre = 'ANULADO' LIMIT 1`
+    );
+    if (!estRows.length) {
+      throw new Error("Configuración faltante: estado 'ANULADO'");
+    }
+    const idEstadoAnulado = estRows[0].id_estado;
+
+    // 2) Buscar tipo_movimiento SALIDA para sacar stock
+    const { rows: movRows } = await client.query(
+      `SELECT id_tipo_movimiento
+         FROM tipo_movimiento
+        WHERE nombre = 'SALIDA'
+        LIMIT 1`
+    );
+    if (!movRows.length) {
+      throw new Error("Configuración faltante: tipo_movimiento 'SALIDA'");
+    }
+    const idTipoMovSalida = movRows[0].id_tipo_movimiento;
+
+    // 3) Obtener detalle de la compra
+    const { rows: detalles } = await client.query(
+      `
+      SELECT id_producto, cantidad
+        FROM detalle_compra
+       WHERE id_compra = $1
+      `,
+      [id]
+    );
+
+    // Si no hay detalles, igualmente anulamos, pero avisamos
+    if (!detalles.length) {
+      console.warn(
+        `[COMPRAS] Compra ${id} sin detalle; se anula solo cabecera`
+      );
     }
 
-    const idEstadoAnulado = est[0].id_estado;
-    // 1) Actualizar la compra en la DB (ajustá el estado según tu modelo)
-    const { rows } = await pool.query(
-      `UPDATE orden_compra
-       SET id_estado = $1
+    // 4) Restar stock y dejar movimientos de SALIDA
+    for (const det of detalles) {
+      const cantNum = Number(det.cantidad) || 0;
+      if (cantNum <= 0) continue;
+
+      // Restamos stock
+      await client.query(
+        `
+        UPDATE stock
+           SET cantidad = cantidad - $1,
+               fecha_ultima_actualiza = now()
+         WHERE id_producto = $2
+      `,
+        [cantNum, det.id_producto]
+      );
+
+      // Movimiento de salida por anulación
+      await client.query(
+        `
+        INSERT INTO movimientos_stock (
+          id_producto,
+          id_tipo_movimiento,
+          cantidad,
+          fecha,
+          unidad,
+          precio_kg,
+          subtotal,
+          observaciones
+        )
+        VALUES (
+          $1,
+          $2,
+          $3,
+          now(),
+          NULL,
+          NULL,
+          NULL,
+          $4
+        )
+      `,
+        [det.id_producto, idTipoMovSalida, cantNum, `Anulación Compra N°${id}`]
+      );
+    }
+
+    // 5) Actualizar cabecera de la compra
+    await client.query(
+      `
+      UPDATE orden_compra
+         SET id_estado = $1,
+             observaciones = COALESCE(observaciones, '') ||
+               E'\n-- ANULADA: ' || now()
        WHERE id_compra = $2
-       RETURNING id_compra, total, id_estado`,
+    `,
       [idEstadoAnulado, id]
     );
 
-    if (!rows.length) {
-      return res
-        .status(404)
-        .json({ ok: false, message: "Compra no encontrada" });
-    }
-
-    const compra = rows[0];
-
-    // 2) Auditoría
+    // 6) Auditoría
     try {
       const userId = await getUserIdFromToken(req.accessToken);
       await registrarAuditoria(
         userId,
         "ANULAR_COMPRA",
         "COMPRAS",
-        `Compra ${compra.id_compra} anulada (estado=${compra.estado})`
+        `Compra ${id} anulada. Stock ajustado con SALIDA.`
       );
     } catch (errAud) {
       console.error(
-        "Error registrando auditoría de anulación:",
+        "[COMPRAS] Error registrando auditoría de anulación:",
         errAud.message
       );
     }
 
-    return res.json({ ok: true, compra });
+    await client.query("COMMIT");
+
+    return res.json({
+      ok: true,
+      message: `Compra ${id} anulada y stock actualizado.`,
+    });
   } catch (err) {
+    await client.query("ROLLBACK");
     console.error("❌ Error en PUT /api/compras/:id/anular:", err);
     return res.status(500).json({
       ok: false,
       message: "Error al anular la compra",
       detail: err.message,
     });
+  } finally {
+    client.release();
   }
 });
-
 /* ============================================
  * PUT /api/compras/:id  → modificar compra
  * ============================================ */

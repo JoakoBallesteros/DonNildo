@@ -58,19 +58,23 @@ function KpiCard({
 }
 
 export default function Home() {
-  const role = (localStorage.getItem("dn_role") || "").toUpperCase();
+  const roleRaw = localStorage.getItem("dn_role") || "";
+  const role = roleRaw.toUpperCase();
   const isAdmin = role === "ADMIN";
 
   const perms = useMemo(() => {
     const isCompras = role === "COMPRAS";
     const isVentas = role === "VENTAS";
+    const isStock = role === "STOCK";
 
     return {
+      // módulos principales
       canCompras: isAdmin || isCompras,
       canVentas: isAdmin || isVentas,
-      // Stock y Reportes los pueden ver Admin / Compras / Ventas / sin rol (por ahora)
-      canStock: isAdmin || isCompras || isVentas || !role,
-      canReportes: isAdmin || isCompras || isVentas || !role,
+      // pueden ver sección Stock: admin + stock + compras + ventas
+      canStock: isAdmin || isStock || isCompras || isVentas,
+      // reportes: SOLO admin
+      canReportes: isAdmin,
     };
   }, [role, isAdmin]);
 
@@ -104,6 +108,7 @@ export default function Home() {
   const sinStock = summary?.stockCritico?.sin_stock ?? 0;
   const totalProd = summary?.stockCritico?.productos_activos ?? 0;
   const ratio = totalProd ? sinStock / totalProd : 0;
+  
 
   let critBg = "";
   let critAccent = "";
