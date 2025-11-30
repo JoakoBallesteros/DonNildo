@@ -45,7 +45,6 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
     } catch (e) {
       console.error("[Sidebar] Error al cerrar sesión:", e);
     } finally {
-      // Navegamos al login (o podrías usar window.location.replace si querés hard refresh)
       navigate("/login", { replace: true });
     }
   };
@@ -98,19 +97,29 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
     return () => clearInterval(id);
   }, [role]);
 
-  // permisos calculados
+  // permisos según rol
   const perms = useMemo(() => {
     const r = (role || "").toUpperCase();
     const isAdmin = r === "ADMIN";
     const isCompras = r === "COMPRAS";
     const isVentas = r === "VENTAS";
+    const isStock = r === "STOCK";
 
     return {
       isAdmin,
+      isCompras,
+      isVentas,
+      isStock,
+      // Menú principales
       canCompras: isAdmin || isCompras,
       canVentas: isAdmin || isVentas,
-      canStock: isAdmin || isCompras || isVentas || !r,
-      canReportes: isAdmin || isCompras || isVentas || !r,
+      canStockSection: isAdmin || isStock || isCompras || isVentas,
+      canReportes: isAdmin,
+
+      // Sub-rutas de stock
+      canStockNuevoProducto: isAdmin || isStock,
+      canStockRegistrarPesaje: isAdmin || isStock,
+      canStockHistorialPesajes: isAdmin || isStock || isCompras || isVentas,
     };
   }, [role]);
 
@@ -277,7 +286,7 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
               )}
 
               {/* Stock */}
-              {perms.canStock && (
+              {perms.canStockSection && (
                 <>
                   <div className="relative mx-1">
                     <NavLink
@@ -310,51 +319,61 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
                   </div>
                   {stockOpen && (
                     <div className="pl-5 space-y-1">
-                      <NavLink
-                        to="/stock/nuevo-producto"
-                        onClick={onCloseMobile}
-                        className={({ isActive }) =>
-                          `mx-1 ${linkBase} ${isActive ? active : inactive}`
-                        }
-                      >
-                        Registrar nuevo producto
-                      </NavLink>
-                      <NavLink
-                        to="/stock/pesaje"
-                        onClick={onCloseMobile}
-                        className={({ isActive }) =>
-                          `mx-1 ${linkBase} ${isActive ? active : inactive}`
-                        }
-                      >
-                        Registrar pesaje
-                      </NavLink>
-                      <NavLink
-                        to="/stock/pesajes"
-                        onClick={onCloseMobile}
-                        className={({ isActive }) =>
-                          `mx-1 ${linkBase} ${isActive ? active : inactive}`
-                        }
-                      >
-                        Historial de pesajes
-                      </NavLink>
+                      {perms.canStockNuevoProducto && (
+                        <NavLink
+                          to="/stock/nuevo-producto"
+                          onClick={onCloseMobile}
+                          className={({ isActive }) =>
+                            `mx-1 ${linkBase} ${isActive ? active : inactive}`
+                          }
+                        >
+                          Registrar nuevo producto
+                        </NavLink>
+                      )}
+
+                      {perms.canStockRegistrarPesaje && (
+                        <NavLink
+                          to="/stock/pesaje"
+                          onClick={onCloseMobile}
+                          className={({ isActive }) =>
+                            `mx-1 ${linkBase} ${isActive ? active : inactive}`
+                          }
+                        >
+                          Registrar pesaje
+                        </NavLink>
+                      )}
+
+                      {perms.canStockHistorialPesajes && (
+                        <NavLink
+                          to="/stock/pesajes"
+                          onClick={onCloseMobile}
+                          className={({ isActive }) =>
+                            `mx-1 ${linkBase} ${isActive ? active : inactive}`
+                          }
+                        >
+                          Historial de pesajes
+                        </NavLink>
+                      )}
                     </div>
                   )}
                 </>
               )}
 
-              {/* Reportes */}
-              <div className="relative mx-1">
-                <NavLink
-                  to="/reportes"
-                  end
-                  onClick={onCloseMobile}
-                  className={({ isActive }) =>
-                    `pr-10 ${linkBase} ${isActive ? active : inactive}`
-                  }
-                >
-                  Reportes
-                </NavLink>
-              </div>
+              {/* Reportes (solo ADMIN) */}
+              {perms.canReportes && (
+                <div className="relative mx-1">
+                  <NavLink
+                    to="/reportes"
+                    end
+                    onClick={onCloseMobile}
+                    className={({ isActive }) =>
+                      `pr-10 ${linkBase} ${isActive ? active : inactive}`
+                    }
+                  >
+                    Reportes
+                  </NavLink>
+                </div>
+              )}
 
               {/* Seguridad (solo ADMIN) */}
               {perms.isAdmin && (

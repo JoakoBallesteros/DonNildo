@@ -3,9 +3,25 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 
 function getApiBaseUrl() {
-  const raw = import.meta.env.VITE_API_URL || "http://localhost:4000";
-  const withScheme = /^https?:\/\//i.test(raw) ? raw : `http://${raw}`;
-  return withScheme.replace(/\/$/, "");
+  const raw = import.meta.env.VITE_API_URL?.trim();
+
+  // 1) Si viene vacío, usamos localhost:4000
+  if (!raw) {
+    return "http://localhost:4000";
+  }
+
+  // 2) Si empieza con "/" la tratamos como ruta relativa (/api)
+  if (raw.startsWith("/")) {
+    return raw.replace(/\/$/, ""); // sin barra final
+  }
+
+  // 3) Si ya tiene esquema http/https, la dejamos como está
+  if (/^https?:\/\//i.test(raw)) {
+    return raw.replace(/\/$/, "");
+  }
+
+  // 4) Si es algo tipo "localhost:4000" le agregamos http://
+  return `http://${raw}`.replace(/\/$/, "");
 }
 
 export default function ForgotPassword() {
