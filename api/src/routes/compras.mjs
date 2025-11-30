@@ -405,6 +405,8 @@ router.put("/:id/anular", async (req, res) => {
       `,
       [id]
     );
+    if (!movRows.length) throw new Error("Movimiento SALIDA no configurado.");
+    const idTipoSalida = movRows[0].id_tipo_movimiento;
 
     // Si no hay detalles, igualmente anulamos, pero avisamos
     if (!detalles.length) {
@@ -496,7 +498,7 @@ router.put("/:id/anular", async (req, res) => {
     console.error("❌ Error en PUT /api/compras/:id/anular:", err);
     return res.status(500).json({
       ok: false,
-      message: "Error al anular la compra",
+      message: "Error al anular compra",
       detail: err.message,
     });
   } finally {
@@ -537,7 +539,7 @@ router.put("/:id", async (req, res) => {
       observaciones ?? null,
       itemsJson,
     ]);
-
+    console.log("RAW SQL RESPONSE modificar_compra_transaccional:", rows);
     if (!rows || rows.length === 0) {
       return res.status(500).json({
         ok: false,

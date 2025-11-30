@@ -71,9 +71,6 @@ router.get("/productos", async (req, res) => {
 // ============================
 // POST /api/reportes
 // ============================
-// ============================
-// POST /api/reportes
-// ============================
 router.post("/", requireAuth, allowRoles(["ADMIN"]), async (req, res) => {
   const client = await pool.connect();
 
@@ -117,9 +114,6 @@ router.post("/", requireAuth, allowRoles(["ADMIN"]), async (req, res) => {
       monto_total: raw.reporte_monto_total,
       fecha_generacion: raw.reporte_fecha_generado,
     };
-
-    console.log("\n📤 REPORTE MAPEADO:");
-    console.log(reporte);
 
     return res.json({ success: true, reporte });
 

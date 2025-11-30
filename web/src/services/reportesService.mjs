@@ -25,15 +25,19 @@ export async function crearReporte(payload) {
       body: JSON.stringify(payload),
     });
 
+        console.log("🔍 POST RAW RESPONSE:", data);
+
     if (!data?.reporte) {
+      console.log("RESPUESTA DEL SERVIDOR:", data);  // <--- DEBUG
       throw new Error("Respuesta inválida del servidor: falta 'reporte'.");
     }
 
-    // Mapear el reporte
     const r = data.reporte;
+
     return {
       id_reporte: r.id_reporte,
-      id: r.codigo,
+      id: r.codigo,        // 👈 AHORA SÍ VA A EXISTIR
+      codigo: r.codigo,    // 👈 AÑADIDO
       tipo: r.tipo,
       producto: r.producto,
       fechaGen: r.fecha_generacion?.slice(0, 10),
@@ -46,16 +50,10 @@ export async function crearReporte(payload) {
     };
 
   } catch (err) {
-    // Limpiar mensaje de error
     let msg = err.message || "Error creando reporte.";
-
-    // Si viene con formato [POST] http://... → 400 MENSAJE
     const match = msg.match(/→\s*\d+\s+(.+)$/);
-    if (match) {
-      msg = match[1];
-    }
+    if (match) msg = match[1];
 
-    // Re-lanzar el error limpio
     throw new Error(msg);
   }
 }

@@ -134,7 +134,7 @@ export default function Home() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 pb-16">
+    <div className="max-w-6xl mx-auto px-4 pb-8">
       {/* Encabezado con logo */}
       <div className="flex flex-col items-center gap-4 my-8">
         <img
