@@ -138,7 +138,7 @@ export default function StockPesajesLista() {
 
   return (
     <PageContainer
-      title="Historial de Pesajes"
+      title="Historial Movimiento de Materiales"
       actions={
         <button
           type="button"
