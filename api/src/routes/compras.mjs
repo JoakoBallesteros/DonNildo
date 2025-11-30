@@ -176,11 +176,9 @@ router.get("/:id", async (req, res) => {
         p.nombre AS proveedor_nombre,
         oc.total,
         oc.fecha,
-        oc.observaciones,
-        
+        oc.observaciones
       FROM orden_compra oc
       LEFT JOIN proveedores p ON p.id_proveedor = oc.id_proveedor
-      
       WHERE oc.id_compra = $1
       LIMIT 1;
     `;
@@ -216,7 +214,6 @@ router.get("/:id", async (req, res) => {
 
     const { rows: itemsRows } = await pool.query(detallesSql, [id]);
 
-    // 3️⃣ Formateo final para front (igual a ventas)
     const items = itemsRows.map((r) => ({
       id_producto: r.id_producto,
       producto: r.producto,
@@ -226,7 +223,7 @@ router.get("/:id", async (req, res) => {
       precio: Number(r.precio_unitario),
       subtotal: Number(r.subtotal),
       medida: r.medida,
-      descuento: 0, // compras no usan descuento
+      descuento: 0,
     }));
 
     return res.json({
@@ -234,7 +231,6 @@ router.get("/:id", async (req, res) => {
       compra,
       items,
     });
-
   } catch (err) {
     console.error("❌ Error en GET /api/compras/:id:", err);
     return res.status(500).json({
@@ -373,12 +369,14 @@ router.put("/:id/anular", async (req, res) => {
     `);
 
     if (!est.length) {
-      return res.status(500).json({ ok: false, message: "Estado ANULADO no existe" });
+      return res
+        .status(500)
+        .json({ ok: false, message: "Estado ANULADO no existe" });
     }
 
     const idEstadoAnulado = est[0].id_estado;
     // 1) Actualizar la compra en la DB (ajustá el estado según tu modelo)
-      const { rows } = await pool.query(
+    const { rows } = await pool.query(
       `UPDATE orden_compra
        SET id_estado = $1
        WHERE id_compra = $2
@@ -430,7 +428,9 @@ router.put("/:id", async (req, res) => {
 
   // Validaciones básicas
   if (!Number.isInteger(id) || id <= 0) {
-    return res.status(400).json({ ok: false, message: "ID de compra inválido" });
+    return res
+      .status(400)
+      .json({ ok: false, message: "ID de compra inválido" });
   }
 
   if (!Array.isArray(items) || items.length === 0) {
@@ -473,7 +473,10 @@ router.put("/:id", async (req, res) => {
         `Compra ${result.id_compra_ret} modificada. Nuevo total: ${result.total_ret}`
       );
     } catch (errAud) {
-      console.error("Error registrando auditoría de modificación:", errAud.message);
+      console.error(
+        "Error registrando auditoría de modificación:",
+        errAud.message
+      );
     }
 
     // Respuesta al front
@@ -484,7 +487,6 @@ router.put("/:id", async (req, res) => {
       total: result.total_ret,
       estado: result.estado_ret,
     });
-
   } catch (err) {
     console.error("❌ Error en PUT /api/compras/:id:", err);
     return res.status(500).json({

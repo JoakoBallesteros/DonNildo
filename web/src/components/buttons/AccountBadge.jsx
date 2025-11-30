@@ -10,18 +10,37 @@ export default function AccountBadge() {
 
   useEffect(() => {
     let alive = true;
+
+    // 1) Intentar leer del localStorage
+    const storedName = localStorage.getItem("dn_user_name");
+    const storedRole = localStorage.getItem("dn_role");
+
+    if (storedName || storedRole) {
+      setMe({
+        nombre: storedName || "Usuario",
+        rol: storedRole || "Rol",
+      });
+      return; // no llama a la api
+    }
+
+    // 2) Solo si no hay nada cacheado, pegarle a /account/me
     (async () => {
       try {
-        const data = await getAccountMe();
+        const data = await getAccountMe(); // una sola vez por sesión
         if (!alive) return;
         setMe(data);
+
         localStorage.setItem("dn_user_name", data?.nombre || "");
         localStorage.setItem("dn_role", data?.rol || "");
       } catch (e) {
         if (alive) setErr(e.message);
+        console.error("[AccountBadge] error getAccountMe:", e);
       }
     })();
-    return () => { alive = false; };
+
+    return () => {
+      alive = false;
+    };
   }, []);
 
   if (err) return null;
