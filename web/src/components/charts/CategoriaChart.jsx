@@ -1,7 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "../../lib/apiClient";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer
 } from "recharts";
 
 export default function CategoriaChart() {
@@ -10,6 +17,18 @@ export default function CategoriaChart() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  // --- FORMATEO DE LABELS ---
+  const formatLabel = (label, periodo) => {
+    if (periodo === "semanas") {
+      // label viene del backend como: "2025-47"
+      const parts = label.split("-");
+      const week = parts[1] || label;
+      return `Sem ${week}`;
+    }
+    return label;
+  };
+
+  // --- CARGA DE DATOS ---
   const loadData = useCallback(async () => {
     setLoading(true);
 
@@ -17,7 +36,13 @@ export default function CategoriaChart() {
       const result = await api(
         `/api/dashboard/categoria?periodo=${periodo}&origen=${origen}`
       );
-      setData(result || []);
+
+      // Asegurar orden correcto por label por las dudas
+      const sorted = (result || []).sort((a, b) =>
+        a.label.localeCompare(b.label)
+      );
+
+      setData(sorted);
     } catch (err) {
       console.error("Error cargando gráfico:", err);
       setData([]);
@@ -32,10 +57,12 @@ export default function CategoriaChart() {
 
   return (
     <div className="bg-white rounded-2xl border p-5 shadow-sm">
-      <h3 className="text-lg font-bold text-emerald-900 mb-4"> Por Categoria</h3>
+      <h3 className="text-lg font-bold text-emerald-900 mb-4">
+        Montos Obtenidos Por Categoria
+      </h3>
 
       {/* FILTROS */}
-      <div className="flex gap-3 mb-4">
+      <div className="flex gap-3 mb-8">
         <select
           value={periodo}
           onChange={(e) => setPeriodo(e.target.value)}
@@ -60,17 +87,59 @@ export default function CategoriaChart() {
       {loading ? (
         <p className="text-slate-500">Cargando...</p>
       ) : data.length === 0 ? (
-        <p className="text-slate-500">No hay datos para los filtros seleccionados.</p>
+        <p className="text-slate-500">
+          No hay datos para los filtros seleccionados.
+        </p>
       ) : (
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={data}>
+        <ResponsiveContainer width="100%" height={350}>
+           <BarChart 
+            data={data}
+            margin={{ top: 20, right: 20, left: 20, bottom: 20 }}   // ⭐ deja espacio para el label
+          >
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="label" />
-            <YAxis />
-            <Tooltip />
+
+            {/* EJE X con labels corregidos */}
+            <XAxis
+              dataKey="label"
+              tickFormatter={(label) => formatLabel(label, periodo)}
+            />
+
+           <YAxis
+            tickFormatter={(v) => v.toLocaleString("es-AR")}   // ✔ sin $
+            width={70}                                         // ⭐ más espacio para que no se corte
+            tickMargin={10}                                    // ⭐ aleja números de la línea
+            label={{
+              value: "Monto ($)",
+              angle:0,
+              position: "insideLeft",
+              dx: -20,                                         // ⭐ ajusta horizontal
+              dy: -143,
+              style: { fill: "#155E3B", fontSize: 12, fontWeight: 600 }
+            }}
+          />
+            
+            <Tooltip
+             
+              formatter={(value, name) =>
+                [
+                  `$${Number(value).toLocaleString("es-AR")}`,
+                  name === "cajas"
+                    ? "Cajas de Embalaje"
+                    : "Materiales Reciclados"
+                ]
+              }
+              labelFormatter={(label) =>
+                formatLabel(label, periodo)
+              }
+            />
             <Legend />
-            <Bar dataKey="cajas" fill="#8B5CF6"  name="Cajas de Embalaje" />
-            <Bar dataKey="materiales" fill="#3B82F6" name="Materiales Reciclados" />
+
+            <Bar dataKey="cajas" fill="#8B5CF6" name="Cajas de Embalaje" />
+            <Bar
+              dataKey="materiales"
+              fill="#3B82F6"
+              name="Materiales Reciclados"
+            />
           </BarChart>
         </ResponsiveContainer>
       )}

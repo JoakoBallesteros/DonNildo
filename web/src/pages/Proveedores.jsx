@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Search } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 
 import api from "../lib/apiClient";
 
@@ -46,7 +45,6 @@ function formatCuit(raw) {
 }
 
 export default function Proveedores() {
-  const navigate = useNavigate();
 
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);

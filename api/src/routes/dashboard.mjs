@@ -144,13 +144,15 @@ router.get(
       let rangoSQL = "";
       let labelSQL = "";
 
-      if (periodo === "dias") {
+     if (periodo === "dias") {
         rangoSQL = "current_date - interval '7 days'";
         labelSQL = "to_char(x.fecha, 'DD Mon')";
-      } else if (periodo === "semanas") {
+      } 
+      else if (periodo === "semanas") {
         rangoSQL = "current_date - interval '8 weeks'";
-        labelSQL = "to_char(x.fecha, 'IW')";
-      } else {
+        labelSQL = "to_char(x.fecha, 'IYYY-IW')";
+      } 
+      else {
         rangoSQL = "current_date - interval '6 months'";
         labelSQL = "to_char(x.fecha, 'Mon')";
       }

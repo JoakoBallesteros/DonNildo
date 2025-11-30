@@ -198,7 +198,7 @@ export default function Compras() {
 
   // ====== ENCABEZADO ======
   doc.setFontSize(16);
-  doc.text(`Remito de Compra ${compraId}`, 14, 20);
+  doc.text(`Detalle de Compra ${compraId}`, 14, 20);
 
   doc.setFontSize(12);
   doc.text(`Proveedor: ${proveedor}`, 14, 30);
