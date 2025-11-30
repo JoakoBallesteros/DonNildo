@@ -8,7 +8,28 @@ export default function TopProductosChart() {
   useEffect(() => {
     async function load() {
       const res = await api("/api/dashboard/top-productos");
-      setData(res);
+
+      // 🔥 Corregir cantidad: "333.000" → 333
+      const fix = res.map((item) => {
+        let cant = item.total_cantidad;
+
+        // limpiar puntos ("333.000"→"333000")
+        let clean = String(cant).replace(/\./g, "");
+
+        // si termina en "000", dividir por 1000
+        if (clean.endsWith("000")) {
+          clean = Number(clean) / 1000;
+        } else {
+          clean = Number(clean);
+        }
+
+        return {
+          ...item,
+          total_cantidad: clean,
+        };
+      });
+
+      setData(fix);
     }
     load();
   }, []);
@@ -19,21 +40,21 @@ export default function TopProductosChart() {
 
       <ResponsiveContainer width="100%" height={340}>
         <BarChart data={data} layout="vertical" margin={{ left: 15, right: 60 }}>
-          <XAxis type="number" 
-            tickFormatter={(v) => v.toLocaleString("es-AR")}   // ✔ sin $
-            width={70}                                         // ⭐ más espacio para que no se corte
-            tickMargin={10}                                    // ⭐ aleja números de la línea
+          <XAxis
+            type="number"
+            tickFormatter={(v) => v.toLocaleString("es-AR")}
+            width={70}
+            tickMargin={10}
             label={{
               value: "Cantidad",
               angle: 0,
               position: "insideLeft",
-              dx: 510,                                         // ⭐ ajusta horizontal
-              dy:-13,
-              style: { fill: "#155E3B", fontSize: 12, fontWeight: 600 }
+              dx: 510,
+              dy: -13,
+              style: { fill: "#155E3B", fontSize: 12, fontWeight: 600 },
             }}
           />
-          <YAxis dataKey="producto" type="category" 
-           />
+          <YAxis dataKey="producto" type="category" />
           <Tooltip />
           <Bar dataKey="total_cantidad" fill="#F97316" />
         </BarChart>

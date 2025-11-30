@@ -109,15 +109,15 @@ export default function Reportes() {
       };
 
     
-
+          
       // ⬇ crearReporte YA NO DEVUELVE { ok }, DEVUELVE EL REPORTE DIRECTO
-      const reporte = await crearReporte(payload);
-
+      const resp = await crearReporte(payload);
+      console.log("RESP:", resp);
       // EXITO
       setMessageModal({
         isOpen: true,
         title: "✔ Reporte creado",
-        text: `Reporte ${reporte.id} generado correctamente.`,
+        text: `Reporte ${resp.id} generado correctamente.`,
         type: "success",
       });
 

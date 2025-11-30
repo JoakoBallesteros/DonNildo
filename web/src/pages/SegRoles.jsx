@@ -167,11 +167,8 @@ export default function SegRoles() {
           href="/seguridad"
           className="px-4 py-2 rounded-md border border-[#154734] text-[#154734] hover:bg-[#e8f4ef]"
         >
-          Cancelar
+          Volver
         </a>
-        <button className="px-5 py-2 rounded-md text-white bg-[#154734] hover:bg-[#103a2b]">
-          Guardar
-        </button>
       </div>
     </PageContainer>
   );
