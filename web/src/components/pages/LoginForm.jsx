@@ -1,7 +1,7 @@
 // src/components/pages/LoginForm.jsx
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { signIn } from "../../services/authService"; // login por SDK Supabase
+import { signIn } from "../../services/authService";
 import { supa } from "../../lib/supabaseClient";
 
 export default function LoginForm() {
@@ -11,6 +11,7 @@ export default function LoginForm() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); // 👈 NUEVO
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -22,11 +23,9 @@ export default function LoginForm() {
     try {
       await signIn(mail, password);
 
-      // Recuperar el usuario logueado desde supabase
       const { data: { user }, error: userError } = await supa.auth.getUser();
       if (userError) throw userError;
 
-      // Buscar su rol
       const { data: rolData } = await supa
         .from("usuarios")
         .select("id_rol, roles(nombre)")
@@ -49,6 +48,8 @@ export default function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col w-full">
+      
+      {/* USUARIO */}
       <label className="text-left text-sm text-[#154734] font-medium mb-1">Usuario</label>
       <input
         type="email"
@@ -59,16 +60,46 @@ export default function LoginForm() {
         onChange={(e) => setMail(e.target.value)}
       />
 
+      {/* CONTRASEÑA */}
       <label className="text-left text-sm text-[#154734] font-medium mb-1">Contraseña</label>
-      <input
-        type="password"
-        placeholder="Contraseña"
-        autoComplete="current-password"
-        className="w-full px-3 py-2 mb-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#154734]"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
+      <div className="relative mb-4">
+        <input
+          type={showPassword ? "text" : "password"}
+          placeholder="Contraseña"
+          autoComplete="current-password"
+          className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#154734] pr-10"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
 
+        {/* 👁️ Botón para mostrar/ocultar */}
+        <button
+          type="button"
+          onClick={() => setShowPassword(!showPassword)}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+        >
+          {showPassword ? (
+            // OJO TACHADO
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+              strokeWidth="1.7" stroke="currentColor" className="w-5 h-5">
+              <path strokeLinecap="round" strokeLinejoin="round"
+                d="M3 3l18 18M10.7 10.7a3 3 0 104.6 4.6M6.7 6.7C4.9 7.9 3.6 9.9 3 12c1.6 4 5.4 7 9 7 1.5 0 3-.4 4.3-1.1M12 5c3.6 0 7.4 3 9 7-.6 1.5-1.5 2.9-2.7 4"
+              />
+            </svg>
+          ) : (
+            // OJO ABIERTO
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+              strokeWidth="1.7" stroke="currentColor" className="w-5 h-5">
+              <path strokeLinecap="round" strokeLinejoin="round"
+                d="M2.04 12.32c2.34-5.44 6.02-8.32 9.96-8.32 3.94 0 7.61 2.88 9.96 8.32-2.35 5.44-6.02 8.32-9.96 8.32-3.94 0-7.61-2.88-9.96-8.32z"
+              />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          )}
+        </button>
+      </div>
+
+      {/* RECORDAR / OLVIDÉ */}
       <div className="flex justify-between items-center mb-6 text-sm">
         <label className="flex items-center gap-1 text-gray-600">
           <input
@@ -80,18 +111,16 @@ export default function LoginForm() {
           Recordarme
         </label>
 
-        {/* 👉 Link directo a la vista de recuperación */}
-        <Link
-          to="/forgot"
-          className="text-[#154734] hover:underline focus:outline-none"
-        >
+        <Link to="/forgot" className="text-[#154734] hover:underline">
           Olvidé mi contraseña
         </Link>
       </div>
 
+      {/* ERRORES */}
       {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
       {success && <p className="text-green-600 text-sm mb-4">{success}</p>}
 
+      {/* BOTÓN */}
       <button
         type="submit"
         disabled={loading}
