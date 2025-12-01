@@ -23,10 +23,9 @@ import accountRouter from "./routes/account.mjs";
 import auditoriaRoutes from "./routes/auditoria.mjs";
 import reportesRoutes from "./routes/reportes.mjs";
 import remitosRoutes from "./routes/remitos.mjs";
-
 import dashboardRoutes from "./routes/dashboard.mjs";
 
-if (!globalThis.crypto) globalThis.crypto = webcrypto
+if (!globalThis.crypto) globalThis.crypto = webcrypto;
 
 const app = express();
 
@@ -34,11 +33,23 @@ app.use(express.json());
 app.use(morgan("dev"));
 
 // -------- CORS --------
+
+// Orígenes extra desde la variable de entorno (separados por coma)
+const envOrigins = (process.env.CORS_ORIGIN || "")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+// Lista final de orígenes permitidos en producción
 const allowedOrigins = [
   "http://localhost:5173",
-  process.env.CORS_ORIGIN,
   "https://5173.brs.devtunnels.ms", // ejemplo de túnel
+  ...envOrigins,
 ].filter(Boolean);
+
+console.log("🔧 NODE_ENV:", process.env.NODE_ENV);
+console.log("🔧 CORS_ORIGIN (raw):", process.env.CORS_ORIGIN);
+console.log("🔧 allowedOrigins (prod):", allowedOrigins);
 
 app.use(
   cors({
@@ -56,6 +67,7 @@ app.use(
         return callback(null, true);
       }
 
+      console.warn("❌ CORS bloqueado por origen no permitido:", origin);
       return callback(
         new Error("CORS bloqueado por origen no permitido: " + origin)
       );
@@ -67,7 +79,6 @@ app.use(
 // -------- Rutas --------
 
 // versión nueva con /api/v1 (lo que usa el front)
-
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/usuarios", usuariosRoutes);
 app.use("/api/v1/roles", rolesRoutes);
@@ -96,8 +107,7 @@ app.use("/api/stock", stockRoutes);
 app.use("/api/auditoria", auditoriaRoutes);
 app.use("/api/reportes", reportesRoutes);
 
-
-console.log('MODE: supabase-only')
+console.log("MODE: supabase-only");
 console.log(
   "DB URL:",
   (process.env.DATABASE_URL || "").replace(
@@ -178,5 +188,5 @@ app.get("/v1/productos", requireAuth, async (req, res) => {
 // -------- Start --------
 const PORT = Number(process.env.PORT || 4000);
 app.listen(PORT, () => {
-  console.log("API on :" + PORT);
+  console.log("✅ API on :" + PORT);
 });
