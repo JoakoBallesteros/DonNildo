@@ -9,14 +9,14 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 4173;
 
-// Ruta a la carpeta dist
+// Carpeta dist
 const distPath = path.join(__dirname, "dist");
 
 // Servir archivos estáticos
 app.use(express.static(distPath));
 
-// ⬇️ Fallback para SPA (USAMOS REGEX, NO STRING CON *)
-app.get(/.*/, (req, res) => {
+// Fallback para SPA: cualquier ruta devuelve index.html
+app.get("*", (req, res) => {
   res.sendFile(path.join(distPath, "index.html"));
 });
 
