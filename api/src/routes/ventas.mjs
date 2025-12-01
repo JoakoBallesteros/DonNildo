@@ -1,10 +1,12 @@
 import { Router } from "express";
 import { pool } from "../db.mjs";
 import { requireAuth } from '../middlewares/requireAuth.mjs'; 
+import { allowRoles } from '../middlewares/allowRoles.mjs';
 import { getUserIdFromToken, registrarAuditoria } from '../utils/auditoriaService.mjs'; 
 
 const router = Router();
-
+router.use(requireAuth);
+router.use(allowRoles(["ADMIN", "VENTAS"]));
 // ====================
 // 1️⃣ Obtener ventas (OPTIMIZADO - PÚBLICO)
 // ====================
