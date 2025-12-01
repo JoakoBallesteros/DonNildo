@@ -7,13 +7,14 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview --host 0.0.0.0 --port $PORT",
-    "start": "npm run preview"
+    "preview": "vite preview",
+    "start": "node server.mjs"
   },
   "dependencies": {
     "@fontsource/ubuntu": "^5.2.8",
     "@headlessui/react": "^2.2.0",
     "@supabase/supabase-js": "^2.76.1",
+    "express": "^5.1.0",
     "jspdf": "^3.0.4",
     "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.545.0",
