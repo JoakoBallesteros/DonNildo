@@ -5,16 +5,11 @@ import DataTable from "../components/tables/DataTable";
 import PrintButton from "../components/buttons/PrintButton";
 import { apiFetch } from "../lib/apiClient";
 
-// --- Helpers de fecha/hora ---
-// Interpretamos lo que viene de la DB como UTC (Supabase)
-// y lo mostramos en horario local (ej: Argentina -03)
+// Helpers fecha
 function parseToLocalDate(value) {
   if (!value) return null;
-
-  // Si ya viene con zona horaria, usamos tal cual
   const hasTZ = /[Zz]|[+-]\d{2}:\d{2}$/.test(value);
-  const iso = hasTZ ? value : value + "Z"; // lo tratamos como UTC
-
+  const iso = hasTZ ? value : value + "Z";
   const d = new Date(iso);
   if (isNaN(d.getTime())) return null;
   return d;
@@ -63,6 +58,7 @@ export default function StockPesajesLista() {
     loadPesajes();
   }, [loadPesajes]);
 
+  // Columnas usadas tanto en pantalla como impresión
   const columns = useMemo(
     () => [
       {
@@ -70,73 +66,42 @@ export default function StockPesajesLista() {
         header: "Fecha",
         accessor: (r) => formatFechaConHora(r.fecha),
         sortAccessor: (r) => parseToLocalDate(r.fecha)?.getTime() || 0,
-        width: 190,
-        align: "center",
-        cellClass: "whitespace-nowrap text-center",
-        sortable: true,
-        filter: "date",
       },
       {
         id: "producto",
         header: "Material",
         accessor: "producto",
-         align: "center",
-        cellClass: "whitespace-nowrap text-center",
-        sortable: true,
-        filter: "text",
       },
       {
         id: "cantidad",
         header: "Cantidad",
         accessor: (r) => Number(r.cantidad || 0),
-        align: "center",
-        width: 170, // ⬅️ antes 130
-        sortable: true,
-        filter: "number",
-        cellClass: "tabular-nums whitespace-nowrap text-center",
       },
       {
         id: "unidad",
         header: "Unidad",
         accessor: "unidad",
-       align: "center",
-        cellClass: "whitespace-nowrap text-center",
-        width: 80,
       },
       {
         id: "precio_kg",
         header: "Precio x Kg",
-         align: "center",
-        cellClass: " tabular-numswhitespace-nowrap text-center",
-        width: 180, // ⬅️ antes 140
-        sortable: true,
-        sortAccessor: (r) => Number(r.precio_kg || 0),
         accessor: (r) =>
           r.precio_kg != null
             ? `$ ${Number(r.precio_kg).toLocaleString("es-AR")}`
             : "—",
-        
       },
       {
         id: "subtotal",
         header: "Subtotal",
-        align: "center",
-        cellClass: " tabular-numswhitespace-nowrap text-center",
-        width: 180, // ⬅️ antes 140
-        sortable: true,
-        sortAccessor: (r) => Number(r.subtotal || 0),
         accessor: (r) =>
           r.subtotal != null
             ? `$ ${Number(r.subtotal).toLocaleString("es-AR")}`
             : "—",
-       
       },
       {
         id: "obs",
         header: "Observaciones",
         accessor: (r) => r.observaciones || "—",
-         align: "center",
-        cellClass: " tabular-numswhitespace-nowrap text-center",
       },
     ],
     []
@@ -161,6 +126,7 @@ export default function StockPesajesLista() {
         </div>
       )}
 
+      {/* TABLA EN PANTALLA */}
       <div
         id="pesajes-print"
         className="bg-white rounded-2xl border border-[#e3e9e5] p-3 md:p-4"
@@ -187,16 +153,54 @@ export default function StockPesajesLista() {
         )}
       </div>
 
+      {/* TABLA ESPECIAL PARA IMPRESIÓN — OCULTA EN PANTALLA */}
+      <div id="pesaje-print-full" className="hidden print:block mt-10">
+        <h2 className="text-xl font-semibold mb-4">
+          Historial de movimiento de Materiales
+        </h2>
+
+        <table className="w-full text-sm border-collapse">
+          <thead className="bg-[#e8f4ef] text-[#154734]">
+            <tr>
+              {columns.map((c) => (
+                <th
+                  key={c.id}
+                  className="px-3 py-2.5 border text-left font-semibold"
+                >
+                  {c.header}
+                </th>
+              ))}
+            </tr>
+          </thead>
+
+          <tbody>
+            {rows.map((row, idx) => (
+              <tr key={idx} className="border-t">
+                {columns.map((col) => {
+                  let value =
+                    typeof col.accessor === "function"
+                      ? col.accessor(row)
+                      : row[col.id] || "—";
+
+                  return (
+                    <td key={col.id} className="px-3 py-2 border">
+                      {value}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* BOTÓN DE IMPRESIÓN */}
       <div className="mt-5 flex items-center">
         <div className="ml-auto">
           <PrintButton
-            targetId="pesaje-print"
+            targetId="pesaje-print-full" // <-- AHORA IMPRIME LA TABLA COMPLETA
             disabled={rows.length === 0}
-            className={
-              rows.length === 0
-                ? "opacity-50 cursor-not-allowed"
-                : ""
-            }
+            className={rows.length === 0 ? "opacity-50 cursor-not-allowed" : ""}
           />
         </div>
       </div>

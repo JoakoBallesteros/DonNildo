@@ -1,7 +1,7 @@
 // src/pages/StockPesaje.jsx
 import React, { useMemo, useState, useEffect, useCallback} from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, Pencil } from "lucide-react";
+import { Plus } from "lucide-react";
 import PageContainer from "../components/pages/PageContainer";
 import DataTable from "../components/tables/DataTable";
 import Modified from "../components/modals/Modified";
@@ -9,6 +9,8 @@ import PrintButton from "../components/buttons/PrintButton";
 import MessageModal from "../components/modals/MessageModal";
 import { apiFetch } from "../lib/apiClient";
 import Modal from "../components/modals/Modals";
+import Logo from "../img/LogoDonNildo.png";
+
 function genId() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
     return crypto.randomUUID();
@@ -374,7 +376,7 @@ const onConfirm = async () => {
             <div className="flex md:justify-end">
               <IconButton
                 onClick={onAdd}
-                className="w-full justify-center md:w-auto px-4 py-2"
+                className="w-full justify-center md:w-auto px-10 py-2.5 mb-1"
               >
                 <Plus className="w-4 h-4" />
                 <span className="font-medium">Añadir</span>
@@ -396,10 +398,96 @@ const onConfirm = async () => {
         </div>
 
         {/* Tabla para imprimir */}
+        <div
+          id="pesaje-print"
+          className="hidden print:block"
+          style={{ padding: "20px" }}
+        >
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+              gap: "18px",
+            }}
+          >
+            {items.map((row) => (
+              <div
+                key={row.id}
+                style={{
+                  border: "2px solid #000",
+                  borderRadius: "12px",
+                  padding: "20px",
+                  background: "white",
+                  pageBreakInside: "avoid",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  height: "230px",
+                }}
+              >
+                {/* Contenedor horizontal logo + texto */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "16px",
+                    marginBottom: "12px",
+                  }}
+                >
+                  {/* LOGO REDONDO */}
+                  <img
+                    src={Logo}
+                    alt="Logo"
+                    style={{
+                      width: "55px",
+                      height: "55px",
+                      borderRadius: "50%",
+                      objectFit: "cover",
+                    }}
+                  />
+
+                  {/* TEXTO AL LADO DEL LOGO */}
+                  <div style={{ textAlign: "left" }}>
+                    <h2
+                      style={{
+                        fontSize: "20px",
+                        fontWeight: "bold",
+                        margin: 0,
+                      }}
+                    >
+                      {row.tipo}
+                    </h2>
+
+                    <p
+                      style={{
+                        fontSize: "26px",
+                        fontWeight: "bold",
+                        margin: "2px 0 0 0",
+                      }}
+                    >
+                      {row.cantidad} {row.unidad?.toUpperCase() ?? "KG"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* FECHA */}
+                <p
+                  style={{
+                    fontSize: "12px",
+                    textAlign: "center",
+                    marginTop: "8px",
+                  }}
+                >
+                  Fecha: {new Date().toLocaleString("es-AR")}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
         <div className="space-y-4">
           {/* Versión desktop */}
           <div
-            id="pesaje-print"
             className="hidden md:block bg-white rounded-2xl border border-[#e3e9e5] shadow-sm p-3 md:p-4"
           >
             <DataTable
