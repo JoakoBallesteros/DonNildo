@@ -6,8 +6,12 @@ import { allowRoles } from "../middlewares/allowRoles.mjs";
 
 const router = Router();
 
+// Todas requieren sesión
 router.use(requireAuth);
 
+// ==============================
+// RESUMEN (cards del home)
+// ==============================
 router.get(
   "/resumen",
   allowRoles(["ADMIN"]),
@@ -22,38 +26,38 @@ router.get(
         { rows: kilosPorMaterial },
       ] = await Promise.all([
 
-        // ==============================
-        // VENTAS DEL MES
-        // ==============================
+        // VENTAS DEL MES (mes actual en AR)
         pool.query(`
           SELECT
             COUNT(*)::int                       AS cantidad,
             COALESCE(SUM(v.total), 0)::numeric  AS total
           FROM venta v
           LEFT JOIN estado e ON e.id_estado = v.id_estado
-          WHERE v.fecha >= date_trunc('month', current_date)
+          WHERE v.fecha >= date_trunc(
+                  'month',
+                  (now() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date
+                )
             AND (e.nombre = 'COMPLETADO' OR e.nombre IS NULL)
         `),
 
-        // ==============================
-        // COMPRAS DEL MES  (CORREGIDO)
-        // ==============================
+        // COMPRAS DEL MES (mes actual en AR)
         pool.query(`
           SELECT
-            COUNT(*)::int                      AS cantidad,
+            COUNT(*)::int                       AS cantidad,
             COALESCE(SUM(oc.total), 0)::numeric AS total
           FROM orden_compra oc
           LEFT JOIN estado e ON e.id_estado = oc.id_estado
-          WHERE oc.fecha >= date_trunc('month', current_date)
+          WHERE oc.fecha >= date_trunc(
+                  'month',
+                  (now() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date
+                )
             AND (e.nombre IS NULL OR e.nombre <> 'ANULADA')
         `),
 
-        // ==============================
-        // PESAJE DEL MES
-        // ==============================
+        // PESAJES DEL MES (mes actual en AR)
         pool.query(`
           SELECT
-            COUNT(*)::int                        AS movimientos,
+            COUNT(*)::int                          AS movimientos,
             COALESCE(SUM(ms.cantidad), 0)::numeric AS kilos_totales
           FROM movimientos_stock ms
           JOIN tipo_movimiento tm
@@ -62,12 +66,13 @@ router.get(
             ON p.id_producto = ms.id_producto
           WHERE tm.nombre = 'ENTRADA'
             AND p.id_tipo_producto = 2
-            AND ms.fecha >= date_trunc('month', current_date)
+            AND ms.fecha >= date_trunc(
+                  'month',
+                  (now() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date
+                )
         `),
 
-        // ==============================
         // STOCK CRÍTICO
-        // ==============================
         pool.query(`
           SELECT
             COUNT(*) FILTER (WHERE s.cantidad = 0)::int AS sin_stock,
@@ -77,24 +82,23 @@ router.get(
           WHERE p.estado = TRUE
         `),
 
-        // ==============================
-        // VENTAS POR DÍA
-        // ==============================
+        // VENTAS POR DÍA (mes actual en AR)
         pool.query(`
           SELECT
             to_char(v.fecha, 'DD')             AS dia,
             COALESCE(SUM(v.total), 0)::numeric AS total
           FROM venta v
           LEFT JOIN estado e ON e.id_estado = v.id_estado
-          WHERE v.fecha >= date_trunc('month', current_date)
+          WHERE v.fecha >= date_trunc(
+                  'month',
+                  (now() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date
+                )
             AND (e.nombre = 'COMPLETADO' OR e.nombre IS NULL)
           GROUP BY 1
           ORDER BY 1
         `),
 
-        // ==============================
-        // KILOS POR MATERIAL
-        // ==============================
+        // KILOS POR MATERIAL (mes actual en AR)
         pool.query(`
           SELECT
             p.nombre                               AS material,
@@ -106,11 +110,13 @@ router.get(
             ON p.id_producto = ms.id_producto
           WHERE tm.nombre = 'ENTRADA'
             AND p.id_tipo_producto = 2
-            AND ms.fecha >= date_trunc('month', current_date)
+            AND ms.fecha >= date_trunc(
+                  'month',
+                  (now() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date
+                )
           GROUP BY p.nombre
           ORDER BY p.nombre
         `),
-
       ]);
 
       res.json({
@@ -128,9 +134,9 @@ router.get(
   }
 );
 
-
-//REPORTES GRAFICOS// ============================================
+// ============================================
 // GET /api/dashboard/categoria
+// (gráfico cajas vs materiales, últimos meses)
 // ============================================
 router.get(
   "/categoria",
@@ -144,16 +150,17 @@ router.get(
       let rangoSQL = "";
       let labelSQL = "";
 
-     if (periodo === "dias") {
-        rangoSQL = "current_date - interval '7 days'";
+      // base en zona AR
+      const baseDate = "(now() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date";
+
+      if (periodo === "dias") {
+        rangoSQL = `${baseDate} - interval '7 days'`;
         labelSQL = "to_char(x.fecha, 'DD Mon')";
-      } 
-      else if (periodo === "semanas") {
-        rangoSQL = "current_date - interval '8 weeks'";
+      } else if (periodo === "semanas") {
+        rangoSQL = `${baseDate} - interval '8 weeks'`;
         labelSQL = "to_char(x.fecha, 'IYYY-IW')";
-      } 
-      else {
-        rangoSQL = "current_date - interval '6 months'";
+      } else {
+        rangoSQL = `${baseDate} - interval '6 months'`;
         labelSQL = "to_char(x.fecha, 'Mon')";
       }
 
@@ -185,6 +192,10 @@ router.get(
     }
   }
 );
+
+// ============================================
+// GET /api/dashboard/stock-material
+// ============================================
 router.get(
   "/stock-material",
   requireAuth,
@@ -218,7 +229,9 @@ router.get(
   }
 );
 
-//mas vendidos
+// ============================================
+// GET /api/dashboard/top-productos
+// ============================================
 router.get(
   "/top-productos",
   requireAuth,
@@ -248,7 +261,10 @@ router.get(
   }
 );
 
-//Kilos
+// ============================================
+// GET /api/dashboard/pesajes-mes
+// (gráfico barras kilos por material del mes)
+// ============================================
 router.get(
   "/pesajes-mes",
   requireAuth,
@@ -266,7 +282,10 @@ router.get(
           ON p.id_producto = ms.id_producto
         WHERE tm.nombre = 'ENTRADA'
           AND p.id_tipo_producto = 2
-          AND ms.fecha >= date_trunc('month', CURRENT_DATE)
+          AND ms.fecha >= date_trunc(
+                'month',
+                (now() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date
+              )
         GROUP BY p.nombre
         ORDER BY kilos DESC;
       `;
