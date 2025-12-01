@@ -64,35 +64,77 @@ router.post("/password/reset", async (req, res) => {
 // --- TOUCH-SESSION: se llama DESPUÉS de un login exitoso ---
 router.post("/touch-session", requireAuth, async (req, res) => {
   try {
-    // 1) Obtener id_usuario INT a partir del token
-    const userId = await getUserIdFromToken(req.accessToken);
-
-    // 2) Registrar auditoría de login (no esperamos resultado crítico)
-    registrarAuditoria(
-      userId,
-      "LOGIN", // tipo de evento
-      "SEGURIDAD", // módulo
-      `Inicio/Refresco de sesión OK para usuario ID ${userId}`
-    );
-
-    // 3) (Opcional) actualizar un timestamp de sesión
     const s = supaAsUser(req.accessToken);
-    const { error } = await s
+
+    // 1) Buscar usuario de la tabla `usuarios` por id_auth
+    const { data: u, error } = await s
       .from("usuarios")
-      .update({ session_started_at: new Date().toISOString() })
-      .eq("id_auth", req.user.id); // req.user.id = auth.uid()
+      .select("id_usuario, nombre, estado, roles(nombre)")
+      .eq("id_auth", req.user.id) // req.user.id = auth.uid() de Supabase
+      .maybeSingle();
 
     if (error) {
-      console.error("[touch-session] error al actualizar usuario:", error);
+      console.error("[touch-session] error select usuarios:", error);
       return res
-        .status(400)
-        .json({ error: { message: error.message || "UPDATE_FAILED" } });
+        .status(500)
+        .json({ error: { message: "Error al validar la sesión." } });
     }
 
-    res.json({ ok: true });
+    if (!u) {
+      return res.status(403).json({
+        error: {
+          message:
+            "Tu usuario no está registrado en la aplicación. Consultá con un administrador.",
+        },
+      });
+    }
+
+    // 2) Validar estado ACTIVO
+    if ((u.estado || "").toUpperCase() !== "ACTIVO") {
+      return res.status(403).json({
+        error: {
+          message:
+            "Tu usuario está inactivo. Por favor, contactá a un administrador.",
+        },
+      });
+    }
+
+    // 3) Actualizar timestamp de sesión (opcional)
+    const { error: updError } = await s
+      .from("usuarios")
+      .update({ session_started_at: new Date().toISOString() })
+      .eq("id_usuario", u.id_usuario);
+
+    if (updError) {
+      console.error("[touch-session] error update usuarios:", updError);
+    }
+
+    // 4) Auditoría de LOGIN
+    try {
+      registrarAuditoria(
+        u.id_usuario,
+        "LOGIN",
+        "SEGURIDAD",
+        `Inicio/Refresco de sesión OK para usuario ID ${u.id_usuario}`
+      );
+    } catch (logErr) {
+      console.warn("[touch-session] auditoría falló:", logErr.message);
+    }
+
+    // 5) Devolvemos datos básicos para el front
+    return res.json({
+      ok: true,
+      usuario: {
+        id_usuario: u.id_usuario,
+        nombre: u.nombre,
+        rol: u.roles?.nombre || null,
+      },
+    });
   } catch (e) {
     console.error("[touch-session] unexpected:", e);
-    res.status(500).json({ error: { message: e.message } });
+    return res.status(500).json({
+      error: { message: "Error al validar la sesión." },
+    });
   }
 });
 
