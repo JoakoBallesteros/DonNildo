@@ -193,7 +193,7 @@ router.put("/:id/anular", requireAuth, async (req, res) => {
     const userId = await getUserIdFromToken(req.accessToken);
     await client.query(
         `SELECT registrar_auditoria($1, $2, $3, $4)`,
-        [userId, 'Anulación', 'Ventas', `Venta N°${id} anulada y stock repuesto.`]
+        [userId, 'ANULAR_VENTA', 'VENTAS', `Venta N°${id} anulada y stock repuesto.`]
     );
 
     await client.query('COMMIT'); 

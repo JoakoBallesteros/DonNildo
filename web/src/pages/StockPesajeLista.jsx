@@ -71,7 +71,8 @@ export default function StockPesajesLista() {
         accessor: (r) => formatFechaConHora(r.fecha),
         sortAccessor: (r) => parseToLocalDate(r.fecha)?.getTime() || 0,
         width: 190,
-        align: "left",
+        align: "center",
+        cellClass: "whitespace-nowrap text-center",
         sortable: true,
         filter: "date",
       },
@@ -79,7 +80,8 @@ export default function StockPesajesLista() {
         id: "producto",
         header: "Material",
         accessor: "producto",
-        align: "left",
+         align: "center",
+        cellClass: "whitespace-nowrap text-center",
         sortable: true,
         filter: "text",
       },
@@ -87,23 +89,25 @@ export default function StockPesajesLista() {
         id: "cantidad",
         header: "Cantidad",
         accessor: (r) => Number(r.cantidad || 0),
-        align: "right",
+        align: "center",
         width: 170, // ⬅️ antes 130
         sortable: true,
         filter: "number",
-        cellClass: "tabular-nums whitespace-nowrap",
+        cellClass: "tabular-nums whitespace-nowrap text-center",
       },
       {
         id: "unidad",
         header: "Unidad",
         accessor: "unidad",
-        align: "center",
+       align: "center",
+        cellClass: "whitespace-nowrap text-center",
         width: 80,
       },
       {
         id: "precio_kg",
         header: "Precio x Kg",
-        align: "right",
+         align: "center",
+        cellClass: " tabular-numswhitespace-nowrap text-center",
         width: 180, // ⬅️ antes 140
         sortable: true,
         sortAccessor: (r) => Number(r.precio_kg || 0),
@@ -111,12 +115,13 @@ export default function StockPesajesLista() {
           r.precio_kg != null
             ? `$ ${Number(r.precio_kg).toLocaleString("es-AR")}`
             : "—",
-        cellClass: "tabular-nums whitespace-nowrap",
+        
       },
       {
         id: "subtotal",
         header: "Subtotal",
-        align: "right",
+        align: "center",
+        cellClass: " tabular-numswhitespace-nowrap text-center",
         width: 180, // ⬅️ antes 140
         sortable: true,
         sortAccessor: (r) => Number(r.subtotal || 0),
@@ -124,13 +129,14 @@ export default function StockPesajesLista() {
           r.subtotal != null
             ? `$ ${Number(r.subtotal).toLocaleString("es-AR")}`
             : "—",
-        cellClass: "tabular-nums whitespace-nowrap",
+       
       },
       {
         id: "obs",
         header: "Observaciones",
         accessor: (r) => r.observaciones || "—",
-        align: "left",
+         align: "center",
+        cellClass: " tabular-numswhitespace-nowrap text-center",
       },
     ],
     []
@@ -183,7 +189,15 @@ export default function StockPesajesLista() {
 
       <div className="mt-5 flex items-center">
         <div className="ml-auto">
-          <PrintButton targetId="pesajes-print" />
+          <PrintButton
+            targetId="pesaje-print"
+            disabled={rows.length === 0}
+            className={
+              rows.length === 0
+                ? "opacity-50 cursor-not-allowed"
+                : ""
+            }
+          />
         </div>
       </div>
     </PageContainer>

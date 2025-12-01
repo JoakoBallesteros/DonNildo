@@ -25,7 +25,7 @@ export default function SegAuditoria() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const [page, setPage] = useState(1); // ⬅️ paginación
+
 
   const formatFechaHora = (value) => {
     if (!value) return "";
@@ -55,7 +55,7 @@ export default function SegAuditoria() {
           usuario: e.usuario || "N/A",
         }))
       );
-      setPage(1); // cada vez que recargo, vuelvo a la página 1
+  
     } catch (e) {
       setError(e.message);
     } finally {
@@ -171,17 +171,9 @@ export default function SegAuditoria() {
     return out;
   }, [rawEvents, tab, desde, hasta]);
 
-  // Paginación en memoria
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paged = useMemo(() => {
-    const start = (page - 1) * PAGE_SIZE;
-    return filtered.slice(start, start + PAGE_SIZE);
-  }, [filtered, page]);
 
-  // cuando cambian filtros "grandes", vuelvo a página 1
-  useEffect(() => {
-    setPage(1);
-  }, [tab, desde, hasta]);
+
+
 
   return (
     <PageContainer title="Auditoría del Sistema">
@@ -257,44 +249,15 @@ export default function SegAuditoria() {
         <>
           <DataTable
             columns={cols}
-            data={paged}
+            data={filtered}
             enableSort
+             wrapperClass="max-h-[422px] "
             tableClass="w-full text-sm border-collapse table-fixed"
             theadClass="bg-[#e8f4ef] text-[#154734]"
             rowClass="hover:bg-[#f6faf7] transition border-t border-[#edf2ef]"
-            headerClass="px-4 py-3 font-semibold border-r border-[#e3e9e5] last:border-none select-none"
-            cellClass="px-4 py-3 border-r border-[#edf2ef] last:border-none align-top"
-            
-          />
-
-          {/* paginación */}
-          <div className="mt-3 flex items-center justify-between text-sm text-slate-700">
-            <span>
-              Página {page} de {totalPages}{" "}
-              <span className="text-slate-500">
-                (mostrando{" "}
-                {filtered.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}–
-                {Math.min(page * PAGE_SIZE, filtered.length)} de{" "}
-                {filtered.length})
-              </span>
-            </span>
-            <div className="flex gap-2">
-              <button
-                className="px-3 py-1 rounded border border-[#d8e4df] disabled:opacity-40"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-              >
-                Anterior
-              </button>
-              <button
-                className="px-3 py-1 rounded border border-[#d8e4df] disabled:opacity-40"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              >
-                Siguiente
-              </button>
-            </div>
-          </div>
+            headerClass="px-4 py-3 font-semibold border-r border-[#e3e9e5] last:border-none select-none text-center"
+            cellClass="px-4 py-3 border-r border-[#edf2ef] last:border-none align-top text-center"
+          />     
         </>
       )}
     </PageContainer>

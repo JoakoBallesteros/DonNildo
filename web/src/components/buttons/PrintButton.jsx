@@ -9,8 +9,11 @@ export default function PrintButton({
   targetId,
   label = "Imprimir",
   className = "",
+  disabled = false,
 }) {
   const handlePrint = () => {
+    if (disabled) return; // 🛑 EVITA que se imprima cuando está desactivado
+
     if (!targetId) {
       window.print();
       return;
@@ -22,14 +25,11 @@ export default function PrintButton({
       return;
     }
 
-    // Abrimos una ventana efímera con el contenido a imprimir
     const w = window.open("", "_blank", "width=800,height=600");
     if (!w) return;
 
-    // Copiamos <head> para que se apliquen los estilos (Tailwind, etc.)
     const head = document.head.innerHTML;
 
-    // Podés agregar estilos específicos para impresión acá:
     const extraPrintCSS = `
       <style>
         @media print {
@@ -48,7 +48,6 @@ export default function PrintButton({
     `);
     w.document.close();
 
-    // Esperamos un tick para que carguen los estilos
     w.focus();
     setTimeout(() => {
       w.print();
@@ -58,8 +57,23 @@ export default function PrintButton({
 
   return (
     <button
-      onClick={handlePrint}
-      className={`inline-flex items-center gap-2 rounded-full bg-[#f1f6f3] text-[#154734] px-4 py-2 border border-[#e2ede8] hover:bg-[#e8f4ef] ${className}`}
+      onClick={(e) => {
+        if (disabled) {
+          e.preventDefault(); // 🛑 bloquea el click
+          return;
+        }
+        handlePrint();
+      }}
+      disabled={disabled}
+      className={`
+        inline-flex items-center gap-2 rounded-full 
+        px-4 py-2 border 
+        ${disabled
+          ? "opacity-50 cursor-not-allowed bg-gray-200 border-gray-300 text-gray-500"
+          : "bg-[#f1f6f3] text-[#154734] border-[#e2ede8] hover:bg-[#e8f4ef]"
+        }
+        ${className}
+      `}
     >
       <Printer className="w-4 h-4" />
       {label}

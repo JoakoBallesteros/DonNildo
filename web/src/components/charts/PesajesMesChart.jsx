@@ -32,7 +32,6 @@ export default function PesajesMesChart() {
           <XAxis dataKey="material" />
 
           <YAxis
-            // 🔥 Mostrar número entero sin formato
             tickFormatter={(v) => Number(v)}
             width={60}
             tickMargin={10}
@@ -50,7 +49,7 @@ export default function PesajesMesChart() {
             formatter={(value) => Number(value)} // 🔥 Limpio también en tooltip
           />
 
-          <Bar dataKey="kilos" fill="#34D399" />
+          <Bar dataKey="kilos" fill="#4ABB88" />
         </BarChart>
       </ResponsiveContainer>
     </div>

@@ -9,7 +9,6 @@ import { apiFetch } from "../lib/apiClient";
 
 export default function StockNuevoProducto() {
   const navigate = useNavigate();
-
   const [messageModal, setMessageModal] = useState({
     isOpen: false,
     title: "",
@@ -55,10 +54,6 @@ export default function StockNuevoProducto() {
     }
   };
 
-  const handleCancel = () => {
-    navigate("/stock"); // o navigate(-1) si se prefiere volver a la anterior
-  };
-
   return (
     <PageContainer title="Registrar nuevo producto">
       <div className="min-h-[70vh] px-3 py-4 sm:px-4 lg:px-6">
@@ -84,7 +79,7 @@ export default function StockNuevoProducto() {
             }}
             labels={{ caja: "Caja", material: "Material" }}
             onSubmit={handleSubmit}
-            onCancel={handleCancel}
+            onCancel={handleCloseMessage}
           />
         </section>
       </div>
@@ -97,6 +92,7 @@ export default function StockNuevoProducto() {
         type={messageModal.type}
         onClose={handleCloseMessage}
       />
+    
     </PageContainer>
   );
 }

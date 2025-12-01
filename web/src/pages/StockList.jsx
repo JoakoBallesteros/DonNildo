@@ -256,40 +256,40 @@ export default function StockList() {
     },
     ...(filtroTipo === "Cajas"
       ? [
-          {
-            label: "Categoría",
-            type: "select",
-            name: "categoria",
-            options: categoriaOptions,
-          },
-          {
-            label: "Largo (cm)",
-            type: "number",
-            name: "medidaL",
-            placeholder: "Ej: 40",
-          },
-          {
-            label: "Ancho (cm)",
-            type: "number",
-            name: "medidaA",
-            placeholder: "Ej: 30",
-          },
-          {
-            label: "Alto (cm)",
-            type: "number",
-            name: "medidaH",
-            placeholder: "Ej: 20",
-          },
-        ]
+        {
+          label: "Categoría",
+          type: "select",
+          name: "categoria",
+          options: categoriaOptions,
+        },
+        {
+          label: "Largo (cm)",
+          type: "number",
+          name: "medidaL",
+          placeholder: "Ej: 40",
+        },
+        {
+          label: "Ancho (cm)",
+          type: "number",
+          name: "medidaA",
+          placeholder: "Ej: 30",
+        },
+        {
+          label: "Alto (cm)",
+          type: "number",
+          name: "medidaH",
+          placeholder: "Ej: 20",
+        },
+      ]
       : [
-          {
-            label: "Unidad",
-            type: "select",
-            name: "medida",
-            inputClass: "lg:w-40",
-            options: unidadOptions,
-          },
-        ]),
+        {
+          label: "Unidad",
+          type: "select",
+          name: "medida",
+          inputClass: "lg:w-40",
+          options: unidadOptions,
+        },
+      ]),
     { label: "Desde", type: "date", name: "desde", inputClass: "w-44" },
     { label: "Hasta", type: "date", name: "hasta", inputClass: "w-44" },
   ];
@@ -384,6 +384,8 @@ export default function StockList() {
         header: "Referencia",
         accessor: "referencia",
         sortable: true,
+         align: "center",
+         cellClass: "text-center",
       },
       {
         id: "categoria",
@@ -392,6 +394,8 @@ export default function StockList() {
         sortable: true,
         sortAccessor: (r) =>
           r.tipo === "Caja" ? (r.categoria || "").toLowerCase() : "",
+        align: "center",
+         cellClass: "text-center",
       },
       {
         id: "medida",
@@ -400,22 +404,26 @@ export default function StockList() {
           r.tipo === "Caja" && r.medidas
             ? `${r.medidas.l}x${r.medidas.a}x${r.medidas.h} cm`
             : "—",
+            align: "center",
+         cellClass: "text-center",
       },
       {
         id: "disp",
         header: "Disponible (u/kg)",
         accessor: (r) => formatDisponible(r),
-        align: "right",
-        cellClass: "text-right whitespace-nowrap",
+        align: "center",
+        cellClass: "text-center whitespace-nowrap",
         sortable: true,
         sortAccessor: (r) => Number(r.disponible || 0),
+        
       },
       {
         id: "ult",
         header: "Últ. mov.",
         accessor: "ultimoMov",
-        cellClass: "whitespace-nowrap",
+        cellClass: "whitespace-nowrap, text-center",
         sortable: true,
+         align: "center",
         sortAccessor: (r) => {
           if (!r.ultimoMov) return 0;
           const d = new Date(r.ultimoMov);
@@ -437,6 +445,7 @@ export default function StockList() {
       {
         id: "precio",
         header: "Precio unitario",
+        
         accessor: (r) => {
           if (r.precio == null) return "—";
 
@@ -449,8 +458,8 @@ export default function StockList() {
           const unidad = r.unidad || "u"; // u / kg
           return `${monto} / ${unidad}`;
         },
-        align: "right",
-        cellClass: "text-right whitespace-nowrap",
+        align: "center",
+        cellClass: "text-center whitespace-nowrap",
         sortable: true,
         sortAccessor: (r) => Number(r.precio || 0),
       },
@@ -467,7 +476,7 @@ export default function StockList() {
             }}
             className="border border-[#154734] text-[#154734] px-3 py-1 text-xs rounded-md hover:bg-[#e8f4ef]"
           >
-            DETALLE
+            Ver Detalle
           </button>
         ),
       },
@@ -477,29 +486,26 @@ export default function StockList() {
         align: "center",
         cellClass: "text-center",
         render: (row) => (
-          <button
-            onClick={() => {
-              setEditRow(row);
-              setEditOpen(true);
-            }}
-            className="bg-[#154734] text-white px-3 py-1 text-xs rounded-md hover:bg-[#1E5A3E]"
-          >
-            MODIFICAR
-          </button>
-        ),
-      },
-      {
-        id: "eliminar",
-        header: "Eliminar",
-        align: "center",
-        cellClass: "text-center",
-        render: (row) => (
-          <button
-            onClick={() => openDeleteConfirm(row)}
-            className="bg-red-700 text-white px-3 py-1 text-xs rounded-md hover:bg-red-800"
-          >
-            ELIMINAR
-          </button>
+          <div className="flex justify-center items-center gap-1">
+
+            <div className="flex flex-row items-center gap-1">
+              <button
+                onClick={() => {
+                  setEditRow(row);
+                  setEditOpen(true);
+                }}
+                className="bg-[#154734] text-white px-2 py-1 text-xs rounded-md hover:bg-[#1E5A3E]"
+              >
+                MODIFICAR
+              </button>
+              <button
+                onClick={() => openDeleteConfirm(row)}
+                className="bg-red-700 text-white px-2 py-1 text-xs rounded-md hover:bg-red-800"
+              >
+                ELIMINAR
+              </button>
+            </div>
+          </div>
         ),
       },
     ],
@@ -561,10 +567,10 @@ export default function StockList() {
       const precioStr =
         r.precio != null
           ? `${Number(r.precio).toLocaleString("es-AR", {
-              style: "currency",
-              currency: "ARS",
-              maximumFractionDigits: 0,
-            })} / ${r.unidad || "u"}`
+            style: "currency",
+            currency: "ARS",
+            maximumFractionDigits: 0,
+          })} / ${r.unidad || "u"}`
           : "—";
 
       return [
@@ -765,18 +771,19 @@ export default function StockList() {
         <div className="flex items-center gap-3">
           <button
             type="button"
+            onClick={() => nav("pesaje")}
+            className="flex items-center gap-2 bg-[#154734] text-white px-4 py-2 rounded-md hover:bg-[#103a2b] transition"
+          >
+            Registrar Pesaje
+          </button>
+          <button
+            type="button"
             onClick={() => setNewOpen(true)}
             className="rounded-md border border-[#154734] text-[#154734] px-4 py-2 hover:bg-[#e8f4ef]"
           >
             + Nuevo producto
           </button>
-          <button
-            type="button"
-            onClick={() => nav("pesaje")}
-            className="rounded-md border border-[#154734] text-[#154734] px-4 py-2 hover:bg-[#e8f4ef]"
-          >
-            Registrar Pesaje
-          </button>
+          
         </div>
       }
     >
@@ -877,10 +884,10 @@ export default function StockList() {
                       <p className="font-medium">
                         {row.precio != null
                           ? `${Number(row.precio).toLocaleString("es-AR", {
-                              style: "currency",
-                              currency: "ARS",
-                              maximumFractionDigits: 0,
-                            })} / ${row.unidad || "u"}`
+                            style: "currency",
+                            currency: "ARS",
+                            maximumFractionDigits: 0,
+                          })} / ${row.unidad || "u"}`
                           : "—"}
                       </p>
                     </div>
@@ -1003,14 +1010,14 @@ export default function StockList() {
                 notas: editRow.notas ?? "",
                 ...(editRow.tipo === "Caja"
                   ? {
-                      l: editRow.medidas?.l ?? "",
-                      a: editRow.medidas?.a ?? "",
-                      h: editRow.medidas?.h ?? "",
-                      disponible: Math.round(editRow.disponible ?? 0),
-                    }
+                    l: editRow.medidas?.l ?? "",
+                    a: editRow.medidas?.a ?? "",
+                    h: editRow.medidas?.h ?? "",
+                    disponible: Math.round(editRow.disponible ?? 0),
+                  }
                   : {
-                      disponible: editRow.disponible ?? 0,
-                    }),
+                    disponible: editRow.disponible ?? 0,
+                  }),
               },
             ],
           }}

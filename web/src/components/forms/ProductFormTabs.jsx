@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import MessageModal from "../modals/MessageModal";
-
+import { useNavigate } from "react-router-dom";
+import Modal from "../modals/Modals";
 export default function ProductFormTabs({
   mode = "create",
   initialValues = {
@@ -16,23 +17,21 @@ export default function ProductFormTabs({
   lockTipo = false,
   labels = { caja: "Caja", material: "Material" },
   onSubmit,
-  onCancel,
 }) {
   const [form, setForm] = useState(initialValues);
+  const [loading, setLoading] = useState(false); 
+  const [isCancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   useEffect(() => setForm(initialValues), [initialValues]);
-
-  // Actualiza un campo cualquiera
+  const navigate = useNavigate();
   const setField = (clave, valor) =>
     setForm((prev) => ({ ...prev, [clave]: valor }));
 
-  // Actualiza una medida individual
   const setMedida = (nombreMedida, valor) =>
     setForm((prev) => ({
       ...prev,
       medidas: { ...(prev.medidas || {}), [nombreMedida]: valor },
     }));
 
-  // Cambiar tipo (Caja/Material) ajusta otros campos
   const applyTipo = (nuevoTipo) => {
     setForm((prev) => ({
       ...prev,
@@ -47,11 +46,9 @@ export default function ProductFormTabs({
     }));
   };
 
-  // desestructuramos para que las deps sean más claras
   const { tipo, medidas } = form;
 
   useEffect(() => {
-    // Solo aplica a cajas
     if (tipo !== "Caja") return;
 
     const { l, a, h } = medidas || {};
@@ -68,7 +65,6 @@ export default function ProductFormTabs({
     );
   }, [tipo, medidas]);
 
-  // Valida los datos antes de enviar
   const validate = () => {
     if (!form.referencia?.trim()) return "La referencia es obligatoria";
     if (!form.precio && form.precio !== 0) return "El precio es obligatorio";
@@ -79,7 +75,6 @@ export default function ProductFormTabs({
     return null;
   };
 
-  // Normaliza campos numéricos antes de enviar
   const normalize = (f) => ({
     ...f,
     precio: Number(f.precio || 0),
@@ -95,24 +90,43 @@ export default function ProductFormTabs({
         : undefined,
   });
 
-  const submit = (e) => {
+  // 🟢 BOTÓN PROTEGIDO CONTRA DOBLE CLIC
+  const submit = async (e) => {
     e.preventDefault();
+    if (loading) return; // evita doble submit
+    setLoading(true);
+
     const err = validate();
     if (err) {
-      setMessageModal({ isOpen: true, title: "❌ Error", text: err, type: "error" });
+      setMessageModal({
+        isOpen: true,
+        title: "❌ Error",
+        text: err,
+        type: "error",
+      });
+      setLoading(false);
       return;
     }
-    onSubmit?.(normalize(form));
+
+    try {
+      await onSubmit?.(normalize(form));
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const [messageModal, setMessageModal] = useState({ isOpen: false, title: "", text: "", type: "" });
+  const [messageModal, setMessageModal] = useState({
+    isOpen: false,
+    title: "",
+    text: "",
+    type: "",
+  });
 
   const inputCls =
     "border border-[#d8e4df] rounded-md px-3 py-2 w-full focus:outline-none focus:ring-1 focus:ring-[#154734]";
   const areaCls = inputCls;
   const selectCls = inputCls;
 
-  // Encabezado de pestañas para cambiar entre Caja y Material
   const TabHeader = !lockTipo ? (
     <div className="flex gap-2 mb-6">
       {[
@@ -138,7 +152,6 @@ export default function ProductFormTabs({
     </div>
   ) : null;
 
-  // Formulario para cajas
   const tabCaja = (
     <div className="space-y-4">
       <div className="flex flex-col">
@@ -154,7 +167,6 @@ export default function ProductFormTabs({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {/* Categoría solo lectura */}
         <div className="flex flex-col">
           <label className="text-sm font-semibold text-[#154734] mb-1">
             Categoría
@@ -167,7 +179,6 @@ export default function ProductFormTabs({
           />
         </div>
 
-        {/* Medidas */}
         {["l", "a", "h"].map((k, i) => (
           <div key={k} className="flex flex-col">
             <label className="text-sm font-semibold text-[#154734] mb-1">
@@ -178,10 +189,7 @@ export default function ProductFormTabs({
               min={0}
               value={form.medidas?.[k] ?? ""}
               onChange={(e) =>
-                setMedida(
-                  k,
-                  e.target.value === "" ? "" : Number(e.target.value)
-                )
+                setMedida(k, e.target.value === "" ? "" : Number(e.target.value))
               }
               placeholder={["40", "30", "20"][i]}
               className={inputCls}
@@ -190,7 +198,6 @@ export default function ProductFormTabs({
         ))}
       </div>
 
-      {/* 👉 NUEVO: cantidad inicial para cajas */}
       <div className="flex flex-col">
         <label className="text-sm font-semibold text-[#154734] mb-1">
           Cantidad inicial (u) — opcional
@@ -233,7 +240,6 @@ export default function ProductFormTabs({
     </div>
   );
 
-  // Formulario para materiales
   const tabMaterial = (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -251,6 +257,7 @@ export default function ProductFormTabs({
         <div className="flex flex-col">
           <label className="text-sm font-semibold text-[#154734] mb-1">
             Unidad
+આ
           </label>
           <select
             value={form.unidad}
@@ -306,58 +313,112 @@ export default function ProductFormTabs({
       </div>
     </div>
   );
+    // === CANCELAR
+  const handleCancelClick = () => {
+    if (JSON.stringify(form) !== JSON.stringify(initialValues)) {
+      setCancelConfirmOpen(true);
+    } else {
+      navigate("/stock");
+    }
+  };
+  
+    // === CONFIRMAR CANCELACIÓN
+    const handleCancelConfirm = () => {
+      setCancelConfirmOpen(false);
+      navigate("/stock");
+    };
+  
 
   return (
     <>
       <form onSubmit={submit} className="space-y-4">
-      {!lockTipo ? (
-        <>
-          {TabHeader}
-          <div className="border border-[#e3e9e5] rounded-md bg-white p-4">
-            {form.tipo === "Caja" ? tabCaja : tabMaterial}
+        {!lockTipo ? (
+          <>
+            {TabHeader}
+            <div className="border border-[#e3e9e5] rounded-md bg-white p-4">
+              {form.tipo === "Caja" ? tabCaja : tabMaterial}
+            </div>
+          </>
+        ) : (
+          <div className="w-full">
+            <div className="mb-3">
+              <label className="text-sm font-semibold text-[#154734] mb-1">
+                Tipo
+              </label>
+              <input
+                value={form.tipo}
+                readOnly
+                className="border border-[#d8e4df] rounded-md px-3 py-2 bg-slate-50"
+              />
+            </div>
+            <div className="border border-[#e3e9e5] rounded-md bg-white p-4">
+              {form.tipo === "Caja" ? tabCaja : tabMaterial}
+            </div>
           </div>
-        </>
-      ) : (
-        <div className="w-full">
-          <div className="mb-3">
-            <label className="text-sm font-semibold text-[#154734] mb-1">
-              Tipo
-            </label>
-            <input
-              value={form.tipo}
-              readOnly
-              className="border border-[#d8e4df] rounded-md px-3 py-2 bg-slate-50"
-            />
-          </div>
-          <div className="border border-[#e3e9e5] rounded-md bg-white p-4">
-            {form.tipo === "Caja" ? tabCaja : tabMaterial}
-          </div>
-        </div>
-      )}
+        )}
 
-      <div className="mt-8 flex flex-col sm:flex-row sm:justify-center gap-3 sm:gap-4 pt-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="h-12 px-8 rounded-xl border-2 border-[#154734] text-[#154734] font-semibold hover:bg-[#e8f4ef] w-full sm:w-auto"
-        >
-          Cancelar
-        </button>
-        <button
-          type="submit"
-          className="h-12 px-10 rounded-xl bg-[#154734] text-white font-semibold shadow hover:bg-[#103a2b] w-full sm:w-auto"
-        >
-          {mode === "create" ? "Guardar" : "Guardar cambios"}
-        </button>
-      </div>
+        <div className="mt-8 flex flex-col sm:flex-row sm:justify-center gap-3 sm:gap-4 pt-2">
+          <button
+            type="button"
+            onClick={handleCancelClick}
+            className="h-12 px-8 rounded-xl border-2 border-[#154734] text-[#154734] font-semibold hover:bg-[#e8f4ef] w-full sm:w-auto"
+          >
+            Cancelar
+          </button>
+
+          <button
+            type="submit"
+            disabled={loading} // 🟢 NUEVO: bloquea botón
+            className="h-12 px-10 rounded-xl bg-[#154734] text-white font-semibold shadow hover:bg-[#103a2b] w-full sm:w-auto disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {loading
+              ? "Guardando..."
+              : mode === "create"
+              ? "Guardar"
+              : "Guardar cambios"}
+          </button>
+        </div>
       </form>
+
       <MessageModal
         isOpen={messageModal.isOpen}
         title={messageModal.title}
         text={messageModal.text}
         type={messageModal.type}
-        onClose={() => setMessageModal(prev => ({ ...prev, isOpen: false }))}
+        onClose={() =>
+          setMessageModal((prev) => ({
+            ...prev,
+            isOpen: false,
+          }))
+        }
       />
+      
+      <Modal
+        isOpen={isCancelConfirmOpen}
+        onClose={() => setCancelConfirmOpen(false)}
+        title="Confirmar Cancelación"
+        size="max-w-md"
+        footer={
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setCancelConfirmOpen(false)}
+              className="px-4 py-2 rounded-md font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
+            >
+              Volver
+            </button>
+            <button
+              onClick={handleCancelConfirm}
+              className="px-4 py-2 rounded-md font-semibold text-white bg-red-600 hover:bg-red-700 transition"
+            >
+              Sí, cancelar
+            </button>
+          </div>
+        }
+      >
+        <p className="text-sm text-slate-700">
+          ¿Estás seguro de que querés cancelar? Se perderán los datos sin guardar.
+        </p>
+      </Modal>
     </>
   );
 }

@@ -1,5 +1,6 @@
 // src/pages/StockPesaje.jsx
-import React, { useMemo, useState, useEffect, useCallback } from "react";
+import React, { useMemo, useState, useEffect, useCallback} from "react";
+import { useNavigate } from "react-router-dom";
 import { Plus, Trash2, Pencil } from "lucide-react";
 import PageContainer from "../components/pages/PageContainer";
 import DataTable from "../components/tables/DataTable";
@@ -7,7 +8,7 @@ import Modified from "../components/modals/Modified";
 import PrintButton from "../components/buttons/PrintButton";
 import MessageModal from "../components/modals/MessageModal";
 import { apiFetch } from "../lib/apiClient";
-
+import Modal from "../components/modals/Modals";
 function genId() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
     return crypto.randomUUID();
@@ -42,9 +43,10 @@ export default function StockPesaje() {
   const [cantidad, setCantidad] = useState("");
   const [precioKg, setPrecioKg] = useState("");
   const [obsFila, setObsFila] = useState("");
-
+  const [loadingSubmit, setLoadingSubmit] = useState(false);
   // lista en pantalla
   const [items, setItems] = useState([]);
+  const [isCancelConfirmOpen, setCancelConfirmOpen] = useState(false);
 
   // modal editar fila
   const [editOpen, setEditOpen] = useState(false);
@@ -57,7 +59,7 @@ export default function StockPesaje() {
     text: "",
     type: "",
   });
-
+  const navigate = useNavigate();
   const limpiarForm = () => {
     setMatId("");
     setCantidad("");
@@ -159,55 +161,73 @@ export default function StockPesaje() {
   // =========================
   // Confirmar pesaje -> API
   // =========================
-  const onConfirm = async () => {
-    if (!items.length) {
-      setMessageModal({
-        isOpen: true,
-        title: "⚠️ Sin ítems",
-        text: "Debes cargar al menos un material antes de confirmar el pesaje.",
-        type: "error",
-      });
-      return;
-    }
+const onConfirm = async () => {
+  if (loadingSubmit) return; // 🟢 evita doble clic
 
-    try {
-      const payload = {
-        items: items.map((i) => ({
-          id_producto: i.id_producto,
-          cantidad: i.cantidad,
-          precio_kg: i.precio || 0,
-          observaciones:
-            i.observaciones && i.observaciones !== "—"
-              ? i.observaciones
-              : undefined,
-        })),
-      };
+  if (!items.length) {
+    setMessageModal({
+      isOpen: true,
+      title: "⚠️ Sin ítems",
+      text: "Debes cargar al menos un material antes de confirmar el pesaje.",
+      type: "error",
+    });
+    return;
+  }
 
-      await apiFetch("/api/stock/pesaje", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
+  setLoadingSubmit(true); // 🟢 activa loading
 
-      setMessageModal({
-        isOpen: true,
-        title: "✅ Pesaje registrado",
-        text: "El stock de los materiales fue actualizado correctamente.",
-        type: "success",
-      });
+  try {
+    const payload = {
+      items: items.map((i) => ({
+        id_producto: i.id_producto,
+        cantidad: i.cantidad,
+        precio_kg: i.precio || 0,
+        observaciones:
+          i.observaciones && i.observaciones !== "—"
+            ? i.observaciones
+            : undefined,
+      })),
+    };
 
-      setItems([]);
-      limpiarForm();
-    } catch (e) {
-      console.error("Error confirmando pesaje:", e);
-      setMessageModal({
-        isOpen: true,
-        title: "❌ Error al registrar pesaje",
-        text: e.message || "Ocurrió un error al registrar el pesaje.",
-        type: "error",
-      });
+    await apiFetch("/api/stock/pesaje", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+
+    setMessageModal({
+      isOpen: true,
+      title: "✅ Pesaje registrado",
+      text: "El stock de los materiales fue actualizado correctamente.",
+      type: "success",
+    });
+
+    setItems([]);
+    limpiarForm();
+
+  } catch (e) {
+    console.error("Error confirmando pesaje:", e);
+    setMessageModal({
+      isOpen: true,
+      title: "❌ Error al registrar pesaje",
+      text: e.message || "Ocurrió un error al registrar el pesaje.",
+      type: "error",
+    });
+  } finally {
+    setLoadingSubmit(false); // 🟢 vuelve botón a normal
+  }
+};
+
+  const handleCancelClick = () => {
+    if (items.length > 0) {       // REEMPLAZAR por tu condición
+      setCancelConfirmOpen(true);
+    } else {
+      navigate("/stock");                 // REEMPLAZAR por la ruta destino
     }
   };
-
+  const handleCancelConfirm = () => {
+    setCancelConfirmOpen(false);
+    navigate("/stock");        // REEMPLAZAR con la ruta destino
+  };
   // =========================
   // Columnas tabla
   // =========================
@@ -218,15 +238,16 @@ export default function StockPesaje() {
         header: "Tipo",
         accessor: "tipo",
         width: 220,
-        align: "left",
+        align: "center",
+        cellClass: "text-center whitespace-nowrap",
       },
       {
         id: "cantidad",
         header: "Cantidad (kg)",
         accessor: (r) => r.cantidad,
-        align: "right",
+        align: "center",
         width: 140,
-        cellClass: "tabular-nums whitespace-nowrap",
+        cellClass: "tabular-nums whitespace-nowrap text-center",
       },
       {
         id: "precioKg",
@@ -237,9 +258,9 @@ export default function StockPesaje() {
             currency: "ARS",
             maximumFractionDigits: 0,
           }),
-        align: "right",
+          align: "center",
         width: 140,
-        cellClass: "tabular-nums whitespace-nowrap",
+        cellClass: "tabular-nums whitespace-nowrap text-center",
       },
       {
         id: "subtotal",
@@ -250,21 +271,23 @@ export default function StockPesaje() {
             currency: "ARS",
             maximumFractionDigits: 0,
           }),
-        align: "right",
+         align: "center",
         width: 140,
-        cellClass: "tabular-nums whitespace-nowrap",
+        cellClass: "tabular-nums whitespace-nowrap text-center",
       },
       {
         id: "obs",
         header: "Observaciones",
         accessor: (r) => r.observaciones || "—",
-        align: "left",
+        align: "center",
+         cellClass: "text-center",
         width: 260,
       },
       {
         id: "acc",
         header: "Acciones",
         align: "center",
+        cellClass: "text-center",
         width: 200,
         render: (row) => (
           <div className="flex items-center justify-center gap-2">
@@ -272,14 +295,12 @@ export default function StockPesaje() {
               onClick={() => onOpenEdit(row)}
               className="inline-flex items-center gap-1 rounded-md text-xs bg-[#154734] text-white px-2 py-1 hover:bg-[#103a2b] whitespace-nowrap"
             >
-              <Pencil className="w-4 h-4" />
               Modificar
             </button>
             <button
               onClick={() => onDelete(row)}
               className="inline-flex items-center gap-1 rounded-md text-xs bg-[#a30000] text-white px-2 py-1 hover:bg-[#7a0000] whitespace-nowrap"
             >
-              <Trash2 className="w-4 h-4" />
               Eliminar
             </button>
           </div>
@@ -391,7 +412,7 @@ export default function StockPesaje() {
               theadClass="bg-[#e8f4ef] text-[#154734]"
               rowClass="hover:bg-[#f6faf7] border-t border-[#edf2ef]"
               headerClass="px-3 py-2.5 font-semibold"
-              cellClass="px-3 py-2.5"
+              cellClass="px-3 py-2.5 text-center"
               emptyLabel="Sin ítems cargados"
             />
           </div>
@@ -487,7 +508,11 @@ export default function StockPesaje() {
         {/* Acciones: imprimir */}
         <div className="flex flex-col gap-4 md:flex-row md:items-center">
           <div className="md:ml-auto">
-            <PrintButton targetId="pesaje-print" />
+           <PrintButton
+              targetId="pesaje-print"   // ✔ el correcto
+              disabled={items.length === 0}
+              className={items.length === 0 ? "opacity-50 cursor-not-allowed" : ""}
+            />
           </div>
         </div>
 
@@ -497,18 +522,22 @@ export default function StockPesaje() {
             type="button"
             className="w-full md:w-auto rounded-md border border-[#154734] text-[#154734] px-8 py-2 font-semibold hover:bg-[#e8f4ef] transition"
             onClick={() => {
-              setItems([]);
-              limpiarForm();
+             handleCancelClick();
             }}
           >
             Cancelar
           </button>
           <button
             type="button"
-            className="w-full md:w-auto bg-[#154734] text-white px-8 py-2 rounded-md font-semibold hover:bg-[#103a2b] transition"
+            disabled={loadingSubmit} 
+            className={`w-full md:w-auto px-8 py-2 rounded-md font-semibold text-white transition 
+              ${loadingSubmit 
+                ? "bg-[#6a8679] cursor-not-allowed opacity-70" 
+                : "bg-[#154734] hover:bg-[#103a2b]"
+              }`}
             onClick={onConfirm}
           >
-            Confirmar
+            {loadingSubmit ? "Guardando..." : "Guardar"}
           </button>
         </div>
       </div>
@@ -561,6 +590,33 @@ export default function StockPesaje() {
         type={messageModal.type}
         onClose={() => setMessageModal((prev) => ({ ...prev, isOpen: false }))}
       />
+     
+      <Modal
+        isOpen={isCancelConfirmOpen}
+        onClose={() => setCancelConfirmOpen(false)}
+        title="Confirmar Cancelación"
+        size="max-w-md"
+        footer={
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setCancelConfirmOpen(false)}
+              className="px-4 py-2 rounded-md font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
+            >
+              Volver
+            </button>
+            <button
+              onClick={handleCancelConfirm}
+              className="px-4 py-2 rounded-md font-semibold text-white bg-red-600 hover:bg-red-700 transition"
+            >
+              Sí, cancelar
+            </button>
+          </div>
+        }
+      >
+        <p className="text-sm text-slate-700">
+          ¿Estás seguro de que querés cancelar? Se perderán los datos sin guardar.
+        </p>
+</Modal>
     </PageContainer>
   );
 }

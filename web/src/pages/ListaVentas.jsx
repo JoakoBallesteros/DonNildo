@@ -18,7 +18,11 @@ const TIPO_MAP = {
   Cajas: "Caja",
   Mixtas: "Mixta",
 };
-
+const TIPO_LABEL = {
+  "Material": "Materiales",
+  "Caja": "Cajas",
+  "Mixta": "Mixta",
+};
 export default function Ventas() {
   const navigate = useNavigate();
 
@@ -296,10 +300,10 @@ const formatFecha = (value) => {
     {
       id: "tipo",
       header: "Tipo",
-      accessor: "tipo",
       align: "center",
       sortable: true,
-    }, 
+      render: (row) => TIPO_LABEL[row.tipo] || row.tipo,
+    },
     {
       id: "fecha",
       header: "Fecha",
@@ -513,23 +517,23 @@ const columnsRemitos = [
           </button>
         )}
       />
-      <div className="flex justify-end mb-4 gap-5">
+      <div className="flex justify-end mb-4 gap-3">
 
         
          <button
           onClick={openRemitos}
-          className="flex items-center gap-2 border border-[#154734] text-[#154734] px-4 py-2 rounded-md hover:bg-[#e8f4ef] transition"
+          className="flex items-center gap-2 border border-[#154734] text-[#154734] px-3 py-1 rounded-md hover:bg-[#e8f4ef] transition"
         >
           Ver remitos
         </button>
 
-
-        <button
-          onClick={() => setMostrarAnuladas((prev) => !prev)}
-          className="border border-[#154734] text-[#154734] px-3 py-1 rounded-md hover:bg-[#e8f4ef] transition"
-        >
-          {mostrarAnuladas ? "Ocultar anuladas" : "Ver anuladas"}
-        </button>
+     
+          <button
+            onClick={() => setMostrarAnuladas((prev) => !prev)}
+            className="border border-[#154734] text-[#154734] px-3 py-1 rounded-md hover:bg-[#e8f4ef] transition"
+          >
+            {mostrarAnuladas ? "Ocultar anuladas" : "Ver anuladas"}
+          </button>
 
 
       </div>
