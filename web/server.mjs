@@ -13,8 +13,13 @@ const PORT = process.env.PORT || 4173;
 const distPath = path.join(__dirname, "dist");
 app.use(express.static(distPath));
 
-// Para cualquier ruta, devolvemos index.html (SPA)
-app.get("*", (req, res) => {
+// ⬅️ ESTA ES LA LÍNEA QUE ROMPÍA
+// app.get("*", (req, res) => {
+//   res.sendFile(path.join(distPath, "index.html"));
+// });
+
+// ✅ Con Express 5, usá "/*" o una regex
+app.get("/*", (req, res) => {
   res.sendFile(path.join(distPath, "index.html"));
 });
 
