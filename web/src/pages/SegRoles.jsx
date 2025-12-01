@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import PageContainer from "../components/pages/PageContainer";
 import DataTable from "../components/tables/DataTable";
 import { supa } from "../lib/supabaseClient";
+import MessageModal from "../components/modals/MessageModal";
 
 export default function SegRoles() {
   const [roles, setRoles] = useState([]);          // roles de la BD
@@ -10,7 +11,12 @@ export default function SegRoles() {
   const [rolSel, setRolSel] = useState("");
   const [usrSel, setUsrSel] = useState("");
   const [rows, setRows] = useState([]);
-
+  const [messageModal, setMessageModal] = useState({
+    isOpen: false,
+    title: "",
+    text: "",
+    type: "",
+  });
   // Cargar roles y usuarios al montar
   useEffect(() => {
     const fetchData = async () => {
@@ -40,29 +46,52 @@ export default function SegRoles() {
 
   // Asignar rol a un usuario
   const onAssign = async () => {
-    const rol = roles.find((r) => r.id_rol === parseInt(rolSel));
-    const usr = usuarios.find((u) => u.id_usuario === parseInt(usrSel));
-    if (!rol || !usr) return;
+  const rol = roles.find((r) => r.id_rol === parseInt(rolSel));
+  const usr = usuarios.find((u) => u.id_usuario === parseInt(usrSel));
+  if (!rol || !usr) {
+    setMessageModal({
+      isOpen: true,
+      title: "⚠️ Datos incompletos",
+      text: "Debés seleccionar un usuario y un rol.",
+      type: "error",
+    });
+    return;
+  }
 
+  try {
     // Actualizar en Supabase
     await supa
       .from("usuarios")
       .update({ id_rol: rol.id_rol })
       .eq("id_usuario", usr.id_usuario);
 
-    // Reemplazar la fila del usuario (una sola fila por usuario)
+    // Actualizar la tabla visual
     setRows((prev) => {
       const sinUsuario = prev.filter((r) => r.id !== usr.id_usuario);
       return [
         ...sinUsuario,
-        {
-          id: usr.id_usuario,
-          rol: rol.nombre,
-          usuario: usr.nombre,
-        },
+        { id: usr.id_usuario, rol: rol.nombre, usuario: usr.nombre },
       ];
     });
-  };
+
+    // Mostrar confirmación
+    setMessageModal({
+      isOpen: true,
+      title: "✅ Rol asignado",
+      text: `El usuario "${usr.nombre}" ahora tiene el rol "${rol.nombre}".`,
+      type: "success",
+    });
+
+  } catch (error) {
+    console.error("ERROR asignando rol:", error);
+    setMessageModal({
+      isOpen: true,
+      title: "❌ Error",
+      text: "Ocurrió un error al asignar el rol. Intenta nuevamente.",
+      type: "error",
+    });
+  }
+};
 
   // Remover rol (dejar id_rol en NULL)
   const onRemove = useCallback(
@@ -170,6 +199,15 @@ export default function SegRoles() {
           Volver
         </a>
       </div>
+      <MessageModal
+        isOpen={messageModal.isOpen}
+        title={messageModal.title}
+        text={messageModal.text}
+        type={messageModal.type}
+        onClose={() =>
+          setMessageModal({ isOpen: false, title: "", text: "", type: "" })
+        }
+      />
     </PageContainer>
   );
 }

@@ -14,12 +14,38 @@ export default function FilterBar({
   const current = selectedFilter ?? filters[0] ?? "";
 
   const handleSelect = (filter) => onFilterSelect?.(filter);
-  const handleChange = (e) =>
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
 
-  const handleApply = () => onApply?.({ ...formData, tipo: current });
+  // =========================================================
+  // 🔥 INPUT EN TIEMPO REAL SOLO PARA "buscar"
+  // =========================================================
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+
+    const next = { ...formData, [name]: value };
+    setFormData(next);
+
+    if (name === "buscar") {
+      // 🟢 Filtrado en tiempo real
+      onApply?.({
+        ...next,
+        tipo: current,
+        triggeredBy: "buscar",
+      });
+    }
+  };
+
+  // Botón aplicar filtros (para fechas y tipo)
+  const handleApply = () => {
+    onApply?.({
+      ...formData,
+      tipo: current,
+      triggeredBy: "button",
+    });
+  };
+
   const handleReset = () => {
-    setFormData({});
+    const reset = {};
+    setFormData(reset);
     onReset?.();
   };
 
@@ -47,13 +73,10 @@ export default function FilterBar({
         </div>
       )}
 
-      {/* Cuadro de filtros */}
+      {/* Contenedor */}
       <div className="bg-[#f7fbf8] border border-[#e2ede8] rounded-2xl p-6">
-        {/* 
-          Mobile: 1 col.
-          Desktop: 5 columnas -> 4 para campos + 1 para acciones (aplicar+reset)
-        */}
         <div className="grid gap-5 items-end grid-cols-1 lg:grid-cols-[minmax(16rem,1.4fr)_minmax(10rem,1fr)_minmax(10rem,1fr)_minmax(10rem,1fr)_auto]">
+          
           {fields.map((field) => (
             <div
               key={field.name}
@@ -63,11 +86,12 @@ export default function FilterBar({
                 {field.label}
               </label>
 
+              {/* SELECT */}
               {field.type === "select" ? (
                 <select
                   name={field.name}
                   value={formData[field.name] ?? ""}
-                  onChange={handleChange}
+                  onChange={handleInputChange}
                   className={`border border-[#d8e4df] rounded-md px-3 py-2 w-full focus:outline-none focus:ring-1 focus:ring-[#154734] ${field.inputClass || ""}`}
                 >
                   {(field.options || []).map((opt) => (
@@ -77,11 +101,12 @@ export default function FilterBar({
                   ))}
                 </select>
               ) : (
+                // INPUTS: solo "buscar" filtra en tiempo real
                 <input
                   type={field.type}
                   name={field.name}
                   value={formData[field.name] ?? ""}
-                  onChange={handleChange}
+                  onChange={handleInputChange}
                   placeholder={field.placeholder}
                   className={`border border-[#d8e4df] rounded-md px-3 py-2 w-full focus:outline-none focus:ring-1 focus:ring-[#154734] ${field.inputClass || ""}`}
                 />
@@ -89,7 +114,7 @@ export default function FilterBar({
             </div>
           ))}
 
-          {/* Acciones (misma celda) */}
+          {/* Botones */}
           <div className="flex items-center justify-end gap-4">
             <button
               type="button"
@@ -107,11 +132,9 @@ export default function FilterBar({
               Reiniciar filtro
             </button>
           </div>
+
         </div>
       </div>
     </div>
   );
 }
-
-
-

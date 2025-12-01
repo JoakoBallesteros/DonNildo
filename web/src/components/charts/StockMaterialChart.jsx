@@ -9,7 +9,16 @@ import {
 } from "recharts";
 import api from "../../lib/apiClient";
 
-const COLORS = ["#3B82F6", "#8B5CF6", "#F97316", "#0EA5E9"];
+const COLORS = ["#6A9CE3", // Azul suave
+  "#E28A3A", // Naranja apagado
+  "#73C2A1", // Verde menta apagado
+  "#C47AC0", // Violeta pastel
+  "#F2C14E", // Amarillo suave
+  "#8CC0DE", // Celeste apagado
+  "#D96A1F", // Naranja oscuro suave
+  "#4ABB88", // Verde apagado
+  "#B08FCC", // Lavanda suave
+  "#A4D4AE"  ];
 
 export default function StockMaterialChart() {
   const [data, setData] = useState([]);

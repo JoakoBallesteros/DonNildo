@@ -105,32 +105,33 @@ export default function CategoriaChart() {
             />
 
            <YAxis
-            tickFormatter={(v) => v.toLocaleString("es-AR")}   // ✔ sin $
-            width={70}                                         // ⭐ más espacio para que no se corte
-            tickMargin={10}                                    // ⭐ aleja números de la línea
+            tickFormatter={(v) => v.toLocaleString("es-AR")}   
+            width={70}                                       
+            tickMargin={10}                                 
             label={{
               value: "Monto ($)",
               angle:0,
               position: "insideLeft",
-              dx: -20,                                         // ⭐ ajusta horizontal
+              dx: -20,                                         
               dy: -143,
               style: { fill: "#155E3B", fontSize: 12, fontWeight: 600 }
             }}
           />
             
             <Tooltip
-             
-              formatter={(value, name) =>
-                [
-                  `$${Number(value).toLocaleString("es-AR")}`,
-                  name === "cajas"
+              formatter={(value, name, props) => {
+                const key = props.dataKey; // este SIEMPRE es "cajas" o "materiales"
+
+                const label =
+                  key === "cajas"
                     ? "Cajas de Embalaje"
-                    : "Materiales Reciclados"
-                ]
-              }
-              labelFormatter={(label) =>
-                formatLabel(label, periodo)
-              }
+                    : key === "materiales"
+                    ? "Materiales Reciclados"
+                    : key;
+
+                return [`$${Number(value).toLocaleString("es-AR")}`, label];
+              }}
+              labelFormatter={(label) => formatLabel(label, periodo)}
             />
             <Legend />
 

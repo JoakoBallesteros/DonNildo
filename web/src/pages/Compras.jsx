@@ -146,12 +146,16 @@ export default function Compras() {
       else return r.estado !== "ANULADO";
     })
     .filter((r) => (tab === "Todo" ? true : r.tipo === tab))
-    .filter((r) =>
-      q
-        ? r.id.toLowerCase().includes(q.toLowerCase()) ||
-          r.proveedor.toLowerCase().includes(q.toLowerCase())
-        : true
-    )
+   .filter((r) => {
+      if (!q) return true;
+
+      const txt = q.toLowerCase();
+      return (
+        r.id.toLowerCase().includes(txt) ||
+        r.proveedor.toLowerCase().includes(txt) ||
+        (r.obs || "").toLowerCase().includes(txt)
+      );
+    })
     .filter((r) => {
       const d = new Date(r.fecha);
       const okFrom = desde ? d >= new Date(desde) : true;
@@ -509,7 +513,7 @@ export default function Compras() {
             name: "buscar",
             label: "Buscar",
             type: "text",
-            placeholder: "Proveedor u orden…",
+            placeholder: "Proveedor, orden u observacion…",
           },
           { name: "fechaDesde", label: "Fecha desde", type: "date" },
           { name: "fechaHasta", label: "Fecha hasta", type: "date" },

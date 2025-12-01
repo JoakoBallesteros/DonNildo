@@ -56,7 +56,7 @@ export default function TopProductosChart() {
           />
           <YAxis dataKey="producto" type="category" />
           <Tooltip />
-          <Bar dataKey="total_cantidad" fill="#F97316" />
+          <Bar dataKey="total_cantidad" fill="#D96A1F" />
         </BarChart>
       </ResponsiveContainer>
     </div>
