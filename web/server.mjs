@@ -15,7 +15,7 @@ const distPath = path.join(__dirname, "dist");
 // Servir estáticos
 app.use(express.static(distPath));
 
-// Fallback SPA
+// Fallback SPA: cualquier ruta devuelve index.html
 app.get("*", (req, res) => {
   res.sendFile(path.join(distPath, "index.html"));
 });
