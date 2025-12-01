@@ -13,6 +13,7 @@
   "dependencies": {
     "@fontsource/ubuntu": "^5.2.8",
     "@supabase/supabase-js": "^2.76.1",
+    "@headlessui/react": "^2.2.0",
     "jspdf": "^3.0.4",
     "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.545.0",
