@@ -12,10 +12,10 @@ const PORT = process.env.PORT || 4173;
 // Carpeta dist
 const distPath = path.join(__dirname, "dist");
 
-// Servir archivos estáticos
+// Servir estáticos
 app.use(express.static(distPath));
 
-// Fallback para SPA: cualquier ruta devuelve index.html
+// Fallback SPA
 app.get("*", (req, res) => {
   res.sendFile(path.join(distPath, "index.html"));
 });
