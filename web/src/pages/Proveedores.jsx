@@ -303,13 +303,14 @@ export default function Proveedores() {
     <PageContainer
       title="Proveedores"
       actions={
-        <button
-          onClick={openNew}
-          className="flex items-center justify-center gap-2 bg-[#176c3f] text-white px-6 py-2 rounded-full hover:bg-[#125434] transition"
-        >
-          <Plus size={16} /> Nuevo proveedor
-        </button>
-      }
+          <button
+            onClick={openNew}
+            className="flex items-center justify-center gap-2 bg-[#154734] text-white px-6 py-2 rounded-full hover:bg-[#103a2b] transition"
+          >
+            <Plus size={16} /> Nuevo proveedor
+          </button>
+        }
+
     >
       {/* Buscador */}
       <div className="mb-4 max-w-xs">
@@ -376,11 +377,12 @@ export default function Proveedores() {
             <button
               type="submit"
               form="proveedor-form"
-              className="px-6 py-2 rounded-full font-semibold text-white bg-[#176c3f] hover:bg-[#125434] transition disabled:opacity-60"
+              className="px-6 py-2 rounded-full font-semibold text-white bg-[#154734] hover:bg-[#103a2b] transition disabled:opacity-60"
               disabled={saving}
             >
               {saving ? "Guardando…" : "Guardar"}
             </button>
+
           </div>
         }
       >
