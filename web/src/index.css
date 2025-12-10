@@ -1,19 +1,58 @@
 @import "tailwindcss";
-html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 
-@layer base{
-  h1{@apply text-3xl md:text-4xl font-bold tracking-tight text-emerald-900;}
-  h2{@apply text-2xl md:text-3xl font-bold tracking-tight text-emerald-900;}
-  h3{@apply text-xl font-semibold text-emerald-900;}
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+@layer base {
+  h1 {
+    @apply text-3xl md:text-4xl font-bold tracking-tight text-emerald-900;
+  }
+  h2 {
+    @apply text-2xl md:text-3xl font-bold tracking-tight text-emerald-900;
+  }
+  h3 {
+    @apply text-xl font-semibold text-emerald-900;
+  }
+}
+
 body {
   min-height: 100vh;
   overflow-y: auto;
   background-color: #f6f9f6;
 }
 
-
 @layer utilities {
+  /* ===== HOME: ocupar la pantalla sin pasarse ===== */
+
+ .dn-home-page {
+  /* restamos un poco más que el header para evitar cualquier overflow */
+  min-height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+
+
+
+  @media (max-height: 900px) {
+    .dn-home-page {
+      /* en pantallas bajitas, dejamos de centrar tanto */
+      justify-content: flex-start;
+      padding-top: 0.75rem;
+      padding-bottom: 0.75rem;
+    }
+  }
+
+  @media (max-height: 750px) {
+    .dn-home-page {
+      padding-top: 0.5rem;
+      padding-bottom: 0.5rem;
+    }
+  }
+
   /* ============================
    * Tablas (listas, stock, reportes, etc.)
    * ============================ */

@@ -133,10 +133,13 @@ export default function Home() {
     critValueColor = "text-xl font-bold text-red-900 leading-tight";
   }
 
-  return (
-    <div className="max-w-6xl mx-auto px-4 pb-6 md:pb-8">
+ return (
+  <main className="dn-home-page">
+     <div className="max-w-6xl mx-auto px-4 pb-3 md:pb-5">
+
       {/* Encabezado con logo */}
-      <div className="dn-home-header flex flex-col items-center gap-4 my-6 md:my-8">
+     
+    <div className="dn-home-header flex flex-col items-center gap-4 my-4 md:my-6">
         <img
           src={logo}
           alt="Reciclados Nildo — Packaging Sustentable"
@@ -212,5 +215,6 @@ export default function Home() {
         )}
       </div>
     </div>
+    </main>
   );
 }

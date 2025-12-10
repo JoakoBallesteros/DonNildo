@@ -524,9 +524,7 @@ const handleNewProductSubmit = async (values) => {
     setEditRow(null);
   }
 
-  const addDisabled =
-    !producto || toNumber(cantidad) <= 0 || toNumber(precioUnit) <= 0;
-
+//
 
   const subtotalCajas = items
     .filter((v) => v.tipo === "Caja")
@@ -745,14 +743,13 @@ const handleNewProductSubmit = async (values) => {
             
               {/* Botón Añadir */}
            <PrimaryButton
-              onClick={addItem}
-              className={`${addDisabled ? "opacity-60 pointer-events-none" : ""}`}
-              text={
-                <span className="inline-flex items-center gap-2 justify-center">
-                  <Plus className="h-4 w-4" /> Añadir
-                </span>
-              }
-            />
+            onClick={addItem}
+            text={
+              <span className="inline-flex items-center gap-2 justify-center">
+                <Plus className="h-4 w-4" /> Añadir
+              </span>
+            }
+          />
 
           <SecondaryButton
             onClick={() => setNewProdOpen(true)}
@@ -809,18 +806,14 @@ const handleNewProductSubmit = async (values) => {
             CANCELAR
           </button>
 
-          <button
-            type="button"
-            onClick={isEditMode ? handleActualizarCompra : handleGuardarCompra}
-            disabled={items.length === 0}
-            className={`min-w-[160px] px-8 py-2.5 rounded-md font-semibold text-white transition ${
-              items.length === 0
-                ? "bg-[#154734]/50 cursor-not-allowed"
-                : "bg-[#154734] hover:bg-[#103a2b]"
-            }`}
-          >
-            {isEditMode ? "ACTUALIZAR COMPRA" : "GUARDAR"}
-          </button>
+                  <button
+          type="button"
+          onClick={isEditMode ? handleActualizarCompra : handleGuardarCompra}
+          className="min-w-[160px] px-8 py-2.5 rounded-md font-semibold text-white bg-[#154734] hover:bg-[#103a2b] transition"
+        >
+          {isEditMode ? "ACTUALIZAR COMPRA" : "GUARDAR"}
+        </button>
+
         </div>
 
       {/* === MODALES (iguales a los tuyos, sin tocar nada) === */}
