@@ -251,7 +251,8 @@ export default function SegAuditoria() {
             columns={cols}
             data={filtered}
             enableSort
-             wrapperClass="max-h-[422px] "
+            wrapperClass="dn-table-wrapper overflow-y-auto"
+
             tableClass="w-full text-sm border-collapse table-fixed"
             theadClass="bg-[#e8f4ef] text-[#154734]"
             rowClass="hover:bg-[#f6faf7] transition border-t border-[#edf2ef]"

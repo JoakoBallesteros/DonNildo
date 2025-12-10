@@ -134,18 +134,19 @@ export default function Home() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 pb-8">
+    <div className="max-w-6xl mx-auto px-4 pb-6 md:pb-8">
       {/* Encabezado con logo */}
-      <div className="flex flex-col items-center gap-4 my-8">
+      <div className="dn-home-header flex flex-col items-center gap-4 my-6 md:my-8">
         <img
           src={logo}
           alt="Reciclados Nildo — Packaging Sustentable"
-          className="w-40 h-40 md:w-48 md:h-48 object-contain rounded-full"
+          className="dn-home-logo w-32 h-32 md:w-40 md:h-40 lg:w-48 lg:h-48 object-contain rounded-full"
         />
-        <h2 className="text-3xl md:text-4xl font-bold text-emerald-900">
+        <h2 className="dn-home-title text-2xl md:text-3xl lg:text-4xl font-bold text-emerald-900">
           Don Nildo
         </h2>
       </div>
+
 
       {/* Fila de KPIs (solo admin) */}
       {isAdmin && (

@@ -1,4 +1,12 @@
-export default function PageContainer({ title, actions, children, noDivider = false, extraPadding = false, extraHeight = false }) {
+// src/components/pages/PageContainer.jsx
+export default function PageContainer({
+  title,
+  actions,
+  children,
+  noDivider = false,
+  extraPadding = false,
+  extraHeight = false,
+}) {
   const paddingClasses = extraPadding
     ? "px-12 py-8 md:px-16 md:py-10 lg:px-20 lg:py-12 xl:px-28 xl:py-14 2xl:px-32 2xl:py-16"
     : "px-12 py-8";
@@ -8,8 +16,10 @@ export default function PageContainer({ title, actions, children, noDivider = fa
     : "";
 
   return (
-    <section className="flex justify-center w-full px-6 py-6">
-      <div className={`w-full max-w-[1750px] bg-white rounded-2xl shadow-sm ${paddingClasses} ${heightClasses}`}>
+    <section className="dn-page flex justify-center w-full px-6 py-6">
+      <div
+        className={`w-full max-w-[1750px] bg-white rounded-2xl shadow-sm ${paddingClasses} ${heightClasses}`}
+      >
         {/* Encabezado */}
         <div
           className={`flex flex-col md:flex-row md:items-center md:justify-between gap-4 ${

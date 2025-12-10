@@ -814,7 +814,8 @@ export default function StockList() {
                 data={dataFiltrada}
                 zebra={false}
                 stickyHeader={true}
-                wrapperClass="!mb-0 !max-h-[480px] overflow-y-auto shadow-sm"
+                  wrapperClass="dn-table-wrapper-tall overflow-y-auto shadow-sm !mb-0"
+
                 tableClass="w-full table-fixed text-sm border-collapse"
                 theadClass="bg-[#e8f4ef] text-[#154734]"
                 rowClass="hover:bg-[#f6faf7] border-t border-[#edf2ef] first:border-t-0"

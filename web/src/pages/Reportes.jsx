@@ -323,7 +323,8 @@ export default function Reportes() {
                 data={reportes}
                 zebra={false}
                 stickyHeader={true}
-                wrapperClass="!mb-0 !max-h-[480px] overflow-y-auto shadow-sm"
+                 wrapperClass="dn-table-wrapper-tall overflow-y-auto shadow-sm !mb-0"
+
                 tableClass="w-full text-sm border-collapse table-fixed"
                 theadClass="bg-[#e8f4ef] text-[#154734]"
                 rowClass="hover:bg-[#f6faf7] border-t border-[#edf2ef]"
@@ -339,7 +340,9 @@ export default function Reportes() {
                 data={reportes}
                 zebra={false}
                 stickyHeader={false}
-                wrapperClass="!mb-0 !max-h-[320px] overflow-y-auto shadow-sm"
+                wrapperClass="dn-table-wrapper-sm overflow-y-auto shadow-sm !mb-0"
+
+
                 tableClass="w-full text-sm border-collapse table-fixed"
                 theadClass="bg-[#e8f4ef] text-[#154734]"
                 rowClass="hover:bg-[#f6faf7] border-t border-[#edf2ef]"

@@ -345,7 +345,8 @@ export default function Proveedores() {
           data={filtered}
           zebra={false}
           stickyHeader={true}
-          wrapperClass="max-h-[415px] overflow-y-auto shadow-sm"
+          wrapperClass="dn-table-wrapper overflow-y-auto shadow-sm"
+
           tableClass="w-full text-sm text-center border-collapse"
           theadClass="bg-[#e8f4ef] text-[#154734]"
           rowClass="bg-white hover:bg-[#f6faf7] border-t border-[#edf2ef]"

@@ -495,7 +495,8 @@ const onConfirm = async () => {
               data={items}
               zebra={false}
               stickyHeader={true}
-              wrapperClass="max-h-[360px] md:max-h-[460px] overflow-y-auto overflow-x-auto"
+                wrapperClass="dn-table-wrapper-tall overflow-y-auto overflow-x-auto"
+
               tableClass="w-full text-sm border-collapse"
               theadClass="bg-[#e8f4ef] text-[#154734]"
               rowClass="hover:bg-[#f6faf7] border-t border-[#edf2ef]"

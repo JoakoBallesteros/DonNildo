@@ -548,7 +548,8 @@ export default function Compras() {
                zebra={false}
                /* header pegado arriba cuando scrolleás dentro de la card */
                stickyHeader={true}
-               wrapperClass="max-h-[355px] overflow-y-auto shadow-sm"
+              wrapperClass="dn-table-wrapper overflow-y-auto shadow-sm"
+
                tableClass="w-full text-sm text-center border-collapse"
                theadClass="bg-[#e8f4ef] text-[#154734]"
                rowClass={(row) =>
