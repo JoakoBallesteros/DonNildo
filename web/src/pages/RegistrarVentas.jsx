@@ -10,10 +10,6 @@ import api from "../lib/apiClient";
 import ProductFormTabs from "../components/forms/ProductFormTabs";
 import ProductoSelect from "../components/ui/ProductoSelect";
 
-// ======================================================================
-// HELPERS & PERSISTENCE KEY (Movidos fuera del componente)
-// ======================================================================
-// === STORAGE SOLO PARA NUEVA VENTA ===
 const NEW_SALE_KEY = "dn_new_sale_items";
 const SESSION_KEY = "dn_pending_sale_items";
 
@@ -25,16 +21,12 @@ const calcSubtotal = (cantidad, precio, descuento) => {
   return +(c * p * (1 - d / 100)).toFixed(2);
 };
 
-// ======================================================================
-// COMPONENTE PRINCIPAL
-// ======================================================================
-
 export default function RegistrarVentas() {
   const { id } = useParams();
-  const isEditMode = Boolean(id); 
- // Estado inicial: usar storage SOLO si NO es edición
+  const isEditMode = Boolean(id);
+
   const [ventas, setVentas] = useState(() => {
-    if (isEditMode) return []; // evitar cargar borrador al editar
+    if (isEditMode) return [];
     const saved = sessionStorage.getItem(NEW_SALE_KEY);
     try {
       return saved ? JSON.parse(saved) : [];
@@ -42,41 +34,39 @@ export default function RegistrarVentas() {
       return [];
     }
   });
+
   useEffect(() => {
-  if (isEditMode) {
-    sessionStorage.removeItem(NEW_SALE_KEY);
-    setVentas([]); // se llenará luego con fetchVenta()
-  }
-}, [isEditMode]);
-useEffect(() => {
-  if (!isEditMode) {
-    sessionStorage.setItem(NEW_SALE_KEY, JSON.stringify(ventas));
-  }
-}, [ventas, isEditMode]);
+    if (isEditMode) {
+      sessionStorage.removeItem(NEW_SALE_KEY);
+      setVentas([]);
+    }
+  }, [isEditMode]);
+
+  useEffect(() => {
+    if (!isEditMode) {
+      sessionStorage.setItem(NEW_SALE_KEY, JSON.stringify(ventas));
+    }
+  }, [ventas, isEditMode]);
+
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
-  producto: "",
-  tipo: "",
-  cantidad: "",
-  precio: "",
-  descuento: "",
-  subtotal: "",
-
-});
+    producto: "",
+    tipo: "",
+    cantidad: "",
+    precio: "",
+    descuento: "",
+    subtotal: "",
+  });
 
   const [errors, setErrors] = useState({});
   const [selectedVenta, setSelectedVenta] = useState(null);
   const [isEditOpen, setEditOpen] = useState(false);
-  // const [isNewProductOpen, setNewProductOpen] = useState(false);  // Mantener para el botón
   const [isCancelConfirmOpen, setCancelConfirmOpen] = useState(false);
-  // === Modal crear nuevo producto (reutiliza ProductFormTabs)
   const [isNewOpen, setNewOpen] = useState(false);
-  // Estados para Eliminación de Ítem (Borrador)
   const [isItemDeleteConfirmOpen, setItemDeleteConfirmOpen] = useState(false);
   const [itemToDeleteIndex, setItemToDeleteIndex] = useState(null);
 
-  // Estados para Modal de Mensajes
   const [messageModal, setMessageModal] = useState({
     isOpen: false,
     title: "",
@@ -84,58 +74,51 @@ useEffect(() => {
     type: "",
   });
 
-  // =========================
-  // EFECTOS
-  // =========================
+  // ===== Carga venta para edición =====
+  useEffect(() => {
+    if (!isEditMode) return;
 
-  //para modificar una venta existente
- useEffect(() => {
-  if (!isEditMode) return;
+    const fetchVenta = async () => {
+      try {
+        const res = await api(`/api/ventas/${id}`);
 
-  const fetchVenta = async () => {
-    try {
-      const res = await api(`/api/ventas/${id}`);
+        const productosBackend = res.productos || [];
+        const productos = productosBackend.map((r) => ({
+          id_producto: r.id_producto,
+          producto: r.producto,
+          tipo: r.tipo_producto === "Caja" ? "Caja" : "Material",
+          cantidad: r.cantidad,
+          precio: r.precio,
+          descuento: r.descuento || 0,
+          subtotal: r.subtotal,
+          medida: r.medida || "u",
+        }));
 
-      // res.productos ES EL ARRAY
-      const productosBackend = res.productos || [];
-      const productos = productosBackend.map((r) => ({
-        id_producto: r.id_producto,
-        producto: r.producto,
-        tipo: r.tipo_producto === "Caja" ? "Caja" : "Material",
-        cantidad: r.cantidad,
-        precio: r.precio,
-        descuento: r.descuento || 0,
-        subtotal: r.subtotal,
-        medida: r.medida || "u",
-      }));
+        setVentas(productos);
+        setFormData((prev) => ({
+          ...prev,
+          observaciones: res.venta?.observaciones || "",
+        }));
+      } catch (err) {
+        console.error("Error cargando venta:", err);
+        setMessageModal({
+          isOpen: true,
+          title: "Error",
+          text: "No se pudo obtener la venta.",
+          type: "error",
+        });
+      }
+    };
 
-      setVentas(productos);
+    fetchVenta();
+  }, [isEditMode, id]);
 
-      // 💡 Al editar, carga también la observación general de la venta
-      // (res.venta.observaciones) en el formulario
-      setFormData((prev) => ({
-        ...prev,
-        observaciones: res.venta?.observaciones || "",
-      }));
-    } catch (err) {
-      console.error("Error cargando venta:", err);
-      setMessageModal({
-        isOpen: true,
-        title: "Error",
-        text: "No se pudo obtener la venta.",
-        type: "error",
-      });
-    }
-  };
-
-  fetchVenta();
-}, [isEditMode, id]);
-  // 2. Guardar 'ventas' cada vez que cambian (Efecto de escritura en Session Storage)
+  // guardo borrador
   useEffect(() => {
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(ventas));
   }, [ventas]);
 
-  // Carga de productos disponibles (llama a la API de Express)
+  // ===== Productos disponibles =====
   const [productosDisponibles, setProductosDisponibles] = useState([]);
   useEffect(() => {
     const fetchProductos = async () => {
@@ -143,9 +126,12 @@ useEffect(() => {
         const data = await api("/v1/productos");
         const rawProductos = data.productos || [];
 
-        // Filtrar solo productos con estado "true" en la tabla
-        const activos = rawProductos.filter((p) =>
-          p?.estado === true || p?.estado === 1 || p?.estado === "1" || p?.estado === "true"
+        const activos = rawProductos.filter(
+          (p) =>
+            p?.estado === true ||
+            p?.estado === 1 ||
+            p?.estado === "1" ||
+            p?.estado === "true"
         );
 
         const items = activos.map((p) => ({
@@ -164,148 +150,146 @@ useEffect(() => {
   }, []);
 
   // =========================
-  // HANDLERS DE FORMULARIO
+  // HANDLERS
   // =========================
 
- const handleChange = (name, value) => {
-  if (["cantidad", "precio", "descuento"].includes(name)) {
-    const n = Number(value);
-    if (isNaN(n) || n < 0) return;
-  }
+  const handleChange = (name, value) => {
+    if (["cantidad", "precio", "descuento"].includes(name)) {
+      const n = Number(value);
+      if (isNaN(n) || n < 0) return;
+    }
 
-  if (name === "producto") {
-    const prod = productosDisponibles.find((p) => p.nombre === value);
-    if (!prod) return;
+    if (name === "producto") {
+      const prod = productosDisponibles.find((p) => p.nombre === value);
+      if (!prod) return;
 
-    setFormData((prev) => ({
-      ...prev,
-      producto: value,
-      tipo: prod.tipoVenta === "Caja" ? "Caja" : "Material",
-      precio: prod.precio || "",
-      subtotal: calcSubtotal(prev.cantidad, prod.precio, prev.descuento),
-    }));
-    return;
-  }
+      setFormData((prev) => ({
+        ...prev,
+        producto: value,
+        tipo: prod.tipoVenta === "Caja" ? "Caja" : "Material",
+        precio: prod.precio || "",
+        subtotal: calcSubtotal(prev.cantidad, prod.precio, prev.descuento),
+      }));
+      return;
+    }
 
-  if (name === "cantidad" || name === "descuento") {
-    const next = { ...formData, [name]: value };
-    next.subtotal = calcSubtotal(next.cantidad, next.precio, next.descuento);
-    setFormData(next);
-    return;
-  }
+    if (name === "cantidad" || name === "descuento") {
+      const next = { ...formData, [name]: value };
+      next.subtotal = calcSubtotal(next.cantidad, next.precio, next.descuento);
+      setFormData(next);
+      return;
+    }
 
-  // Si se edita el campo de observación general, solo actualizamos ese valor
-  if (name === "observaciones") {
-    setFormData((prev) => ({ ...prev, observaciones: value }));
-    return;
-  }
+    if (name === "observaciones") {
+      setFormData((prev) => ({ ...prev, observaciones: value }));
+      return;
+    }
 
-  setFormData((prev) => ({ ...prev, [name]: value }));
-};
- const handleAgregarProducto = () => {
-  if (!formData.producto || !formData.cantidad) {
-    return setMessageModal({
-      isOpen: true,
-      title: "Aviso",
-      text: "Completá producto y cantidad antes de añadir.",
-      type: "error",
-    });
-  }
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
-  const existingIndex = ventas.findIndex(
-    (v) => v.id_producto ===
-      productosDisponibles.find((p) => p.nombre === formData.producto)?.id_producto
-  );
+  const handleAgregarProducto = () => {
+    if (!formData.producto || !formData.cantidad) {
+      return setMessageModal({
+        isOpen: true,
+        title: "Aviso",
+        text: "Completá producto y cantidad antes de añadir.",
+        type: "error",
+      });
+    }
 
-  const cantidad = Number(formData.cantidad);
-  const precio = Number(formData.precio);
-  const descuento = Number(formData.descuento || 0);
-  const nuevoSubtotal = calcSubtotal(cantidad, precio, descuento);
-
-  if (existingIndex !== -1) {
-    setVentas((prev) =>
-      prev.map((item, i) => {
-        if (i === existingIndex) {
-          const newCantidad = item.cantidad + cantidad;
-          const newSubtotal = calcSubtotal(newCantidad, precio, item.descuento);
-          return {
-            ...item,
-            cantidad: newCantidad,
-            subtotal: newSubtotal,
-          };
-        }
-        return item;
-      })
+    const existingIndex = ventas.findIndex(
+      (v) =>
+        v.id_producto ===
+        productosDisponibles.find((p) => p.nombre === formData.producto)
+          ?.id_producto
     );
-  } else {
-    const item = {
-      tipo: formData.tipo,
-      producto: formData.producto,
-      id_producto:
-        productosDisponibles.find((p) => p.nombre === formData.producto)?.id_producto || null,
-      cantidad: cantidad,
-      precio: precio,
-      descuento: descuento,
-      subtotal: nuevoSubtotal,
-      // ← Ya no guardamos observaciones aquí
-    };
 
-    setVentas((prev) => [...prev, item]);
-  }
+    const cantidad = Number(formData.cantidad);
+    const precio = Number(formData.precio);
+    const descuento = Number(formData.descuento || 0);
+    const nuevoSubtotal = calcSubtotal(cantidad, precio, descuento);
 
-    // Reset form
+    if (existingIndex !== -1) {
+      setVentas((prev) =>
+        prev.map((item, i) => {
+          if (i === existingIndex) {
+            const newCantidad = item.cantidad + cantidad;
+            const newSubtotal = calcSubtotal(
+              newCantidad,
+              precio,
+              item.descuento
+            );
+            return {
+              ...item,
+              cantidad: newCantidad,
+              subtotal: newSubtotal,
+            };
+          }
+          return item;
+        })
+      );
+    } else {
+      const item = {
+        tipo: formData.tipo,
+        producto: formData.producto,
+        id_producto:
+          productosDisponibles.find((p) => p.nombre === formData.producto)
+            ?.id_producto || null,
+        cantidad: cantidad,
+        precio: precio,
+        descuento: descuento,
+        subtotal: nuevoSubtotal,
+      };
+
+      setVentas((prev) => [...prev, item]);
+    }
+
     setFormData({
-    producto: "",
-    tipo: "",
-    cantidad: "",
-    precio: "",
-    descuento: "",
-    subtotal: "",
-    observaciones: formData.observaciones, // ← se mantiene
-  });
-  setErrors({});
-};
+      producto: "",
+      tipo: "",
+      cantidad: "",
+      precio: "",
+      descuento: "",
+      subtotal: "",
+      observaciones: formData.observaciones,
+    });
+    setErrors({});
+  };
 
-
-    const ventasConObservacion = ventas.map((item, idx) => ({
-      ...item,
-      observaciones: idx === 0 ? formData.observaciones || "" : "",
-    }));
-
-
+  const ventasConObservacion = ventas.map((item, idx) => ({
+    ...item,
+    observaciones: idx === 0 ? formData.observaciones || "" : "",
+  }));
 
   const handleActualizarVenta = async () => {
-  try {
-    const res = await api(`/api/ventas/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        productos: ventas,
-        observaciones: formData.observaciones || null,
-      }),
-    });
+    try {
+      const res = await api(`/api/ventas/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productos: ventas,
+          observaciones: formData.observaciones || null,
+        }),
+      });
 
-    setMessageModal({
-      isOpen: true,
-      title: "Venta actualizada",
-      text: res.message || "Cambios guardados correctamente.",
-      type: "success",
-    });
-  } catch (err) {
-    console.error(err);
-    setMessageModal({
-      isOpen: true,
-      title: "Error",
-      text: "No se pudo actualizar la venta.",
-      type: "error",
-    });
-  }
-};
-  // =========================
-  // MODALES Y ACCIONES
-  // =========================
+      setMessageModal({
+        isOpen: true,
+        title: "Venta actualizada",
+        text: res.message || "Cambios guardados correctamente.",
+        type: "success",
+      });
+    } catch (err) {
+      console.error(err);
+      setMessageModal({
+        isOpen: true,
+        title: "Error",
+        text: "No se pudo actualizar la venta.",
+        type: "error",
+      });
+    }
+  };
 
-  // Handlers para ELIMINAR ITEM (Borrador)
   const handleOpenItemDelete = (index) => {
     setItemToDeleteIndex(index);
     setItemDeleteConfirmOpen(true);
@@ -317,7 +301,6 @@ useEffect(() => {
     setItemToDeleteIndex(null);
   };
 
-  // Modificar item (Revertido a la lógica original)
   const handleEditar = (venta, index) => {
     setSelectedVenta({ productos: [{ ...venta }], index });
     setEditOpen(true);
@@ -344,7 +327,6 @@ useEffect(() => {
     setSelectedVenta(null);
   };
 
-  // Handlers para CANCELAR (Confirma pérdida de borrador)
   const handleCancelClick = () => {
     if (ventas.length > 0) {
       setCancelConfirmOpen(true);
@@ -354,14 +336,13 @@ useEffect(() => {
   };
 
   const handleCancelConfirm = () => {
-    sessionStorage.removeItem(SESSION_KEY); // <-- Limpiar storage
+    sessionStorage.removeItem(SESSION_KEY);
     setVentas([]);
     setCancelConfirmOpen(false);
     navigate("/ventas");
   };
 
-  // Logica de GUARDAR VENTA (Transaccional)
- const handleGuardarVenta = async () => {
+  const handleGuardarVenta = async () => {
     try {
       if (ventas.length === 0) {
         return setMessageModal({
@@ -375,10 +356,9 @@ useEffect(() => {
       const response = await api("/api/ventas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // 💡 CORRECCIÓN AQUÍ: Enviamos también las observaciones
-        body: JSON.stringify({ 
-            ventas: ventas, 
-            observaciones: formData.observaciones 
+        body: JSON.stringify({
+          ventas: ventas,
+          observaciones: formData.observaciones,
         }),
       });
 
@@ -389,9 +369,9 @@ useEffect(() => {
           text: `La Venta N° ${response.id_venta} ha sido registrada correctamente y el stock actualizado.`,
           type: "success",
         });
-        sessionStorage.removeItem(SESSION_KEY); 
-        setVentas([])
-        setFormData(prev => ({ ...prev, observaciones: "" }))
+        sessionStorage.removeItem(SESSION_KEY);
+        setVentas([]);
+        setFormData((prev) => ({ ...prev, observaciones: "" }));
       }
     } catch (err) {
       console.error("Error al guardar venta:", err.message);
@@ -454,7 +434,12 @@ useEffect(() => {
 
   const columns = [
     { id: "tipo", header: "Tipo", accessor: "tipo", align: "center" },
-    { id: "producto", header: "Producto", accessor: "producto", align: "center" },
+    {
+      id: "producto",
+      header: "Producto",
+      accessor: "producto",
+      align: "center",
+    },
     {
       id: "cantidad",
       header: "Cantidad",
@@ -469,34 +454,34 @@ useEffect(() => {
     },
     {
       id: "observaciones",
-      header: "Observ.Gral", // nuevo título
+      header: "Observ.Gral",
       accessor: "observaciones",
       align: "center",
       width: "200px",
-      render: (row) => row.observaciones, // se renderiza la observación solo en la primera fila
+      render: (row) => row.observaciones,
     },
     {
       id: "acciones",
       header: "Acciones",
       align: "center",
       render: (row) => {
-          const i = ventas.findIndex(v => v.id_producto === row.id_producto);
+        const i = ventas.findIndex(
+          (v) => v.id_producto === row.id_producto
+        );
         return (
-          <div className="flex justify-center items-start gap-2">
-            <div className="flex flex-col gap-1">
-              <button
-                onClick={() => handleEditar(row, i)}
-                className="bg-[#154734] text-white px-3 py-1 text-xs rounded-md hover:bg-[#1E5A3E]"
-              >
-                MODIFICAR
-              </button>
-              <button
-                onClick={() => handleOpenItemDelete(i)}
-                className="bg-[#A30000] text-white px-3 py-1 text-xs rounded-md hover:bg-[#7A0000]"
-              >
-                ELIMINAR
-              </button>
-            </div>
+          <div className="min-w-[140px] flex flex-wrap justify-center items-center gap-2">
+            <button
+              onClick={() => handleEditar(row, i)}
+              className="bg-[#154734] text-white px-3 py-1 text-xs rounded-md hover:bg-[#1E5A3E]"
+            >
+              MODIFICAR
+            </button>
+            <button
+              onClick={() => handleOpenItemDelete(i)}
+              className="bg-[#A30000] text-white px-3 py-1 text-xs rounded-md hover:bg-[#7A0000]"
+            >
+              ELIMINAR
+            </button>
           </div>
         );
       },
@@ -504,48 +489,47 @@ useEffect(() => {
   ];
 
   const handleNewProductSubmit = async (values) => {
-     try {
-    // Llamada al backend (crea el producto en la BD).
-    const row = await api("/api/stock/productos", {
-      method: "POST",
-      body: values,
-    });
+    try {
+      const row = await api("/api/stock/productos", {
+        method: "POST",
+        body: values,
+      });
 
-    // Armamos un objeto compatible con productosDisponibles a partir del registro devuelto.
-    const nuevoProducto = {
-      id_producto: row.id_producto,
-      nombre: row.referencia,
-      precio: Number(row.precio) || 0,
-      tipoVenta: row.tipo === "Caja" ? "Caja" : "Material",
-    };
+      const nuevoProducto = {
+        id_producto: row.id_producto,
+        nombre: row.referencia,
+        precio: Number(row.precio) || 0,
+        tipoVenta: row.tipo === "Caja" ? "Caja" : "Material",
+      };
 
-    setProductosDisponibles((prev) => [...prev, nuevoProducto]);
-    setNewOpen(false);
+      setProductosDisponibles((prev) => [...prev, nuevoProducto]);
+      setNewOpen(false);
 
-    // Mensaje de éxito
-    setMessageModal({
-      isOpen: true,
-      title: "✅ Producto creado",
-      text: `El producto "${nuevoProducto.nombre}" fue creado correctamente.`,
-      type: "success",
-    });
-  } catch (e) {
-    console.error("Error al crear producto:", e);
-    setMessageModal({
-      isOpen: true,
-      title: "❌ Error al crear producto",
-      text: e.message || "Error al crear producto",
-      type: "error",
-    });
-  }
+      setMessageModal({
+        isOpen: true,
+        title: "✅ Producto creado",
+        text: `El producto "${nuevoProducto.nombre}" fue creado correctamente.`,
+        type: "success",
+      });
+    } catch (e) {
+      console.error("Error al crear producto:", e);
+      setMessageModal({
+        isOpen: true,
+        title: "❌ Error al crear producto",
+        text: e.message || "Error al crear producto",
+        type: "error",
+      });
+    }
   };
+
   // =========================
   // RENDER PRINCIPAL
   // =========================
   return (
     <PageContainer title="Registrar Venta" extraHeight>
       <div className="flex flex-col h-full">
-        <div className="flex-1 flex flex-col max-h-[62vh]">
+        {/* 👉 QUITÉ max-h-[62vh] AQUÍ */}
+        <div className="flex-1 flex flex-col">
           <div className="bg-[#f7fbf8] border border-[#e2ede8] rounded-2xl p-4 mb-4 flex-shrink-0">
             <h2 className="text-[#154734] text-base font-semibold mb-3">
               Datos de la venta
@@ -553,11 +537,15 @@ useEffect(() => {
 
             <div className="grid grid-cols-[0.5fr_0.2fr] gap-4 mb-4 max-w-[700px]">
               <div>
-                <label className="block text-sm text-slate-700 mb-1">Producto</label>
+                <label className="block text-sm text-slate-700 mb-1">
+                  Producto
+                </label>
                 <ProductoSelect
                   productos={productosDisponibles}
                   value={
-                    productosDisponibles.find((p) => p.nombre === formData.producto) || null
+                    productosDisponibles.find(
+                      (p) => p.nombre === formData.producto
+                    ) || null
                   }
                   onChange={(p) => handleChange("producto", p?.nombre || "")}
                 />
@@ -583,7 +571,6 @@ useEffect(() => {
               </div>
             </div>
 
-            {/* REVERTIDO: Bloque de botones con layout original */}
             <div className="grid grid-cols-6 gap-5 items-end">
               <FormBuilder
                 fields={[
@@ -656,7 +643,7 @@ useEffect(() => {
               <button
                 type="button"
                 onClick={() => setNewOpen(true)}
-                className=" rounded-md border border-[#154734] text-[#154734] px-4 py-2 hover:bg-[#e8f4ef] transition w-full "
+                className="rounded-md border border-[#154734] text-[#154734] px-4 py-2 hover:bg-[#e8f4ef] transition w-full"
               >
                 + Nuevo producto
               </button>
@@ -667,8 +654,16 @@ useEffect(() => {
             Productos registrados
           </h3>
 
-         <div className="flex-1 min-h-[150px] rounded-t-xl border-t border-[#e3e9e5]">
-           <DataTable columns={columns} data={ventasConObservacion} stickyHeader={true} cellClass="px-4 py-2" wrapperClass="h-[220px] "  enablePagination={true}/>
+          <div className="flex-1 min-h-[150px] rounded-t-xl border-t border-[#e3e9e5]">
+            <DataTable
+              columns={columns}
+              data={ventasConObservacion}
+              stickyHeader={true}
+              cellClass="px-4 py-2"
+              /* 👉 QUITÉ la altura fija, ahora deja crecer y la página hace scroll */
+              wrapperClass="dn-table-wrapper overflow-y-auto"
+              enablePagination={true}
+            />
           </div>
 
           {ventas.length > 0 && (
@@ -690,25 +685,25 @@ useEffect(() => {
         </div>
 
         {/* BOTONES FINALES */}
-        <div className="flex flex-wrap justify-center gap-3 mt-4 pb-2">
-          <button
-            onClick={handleCancelClick}
-            className="border border-[#154734] text-[#154734] px-6 py-2 rounded-md hover:bg-[#f0f7f3] transition"
-          >
-            CANCELAR
-          </button>
+        {/* BOTONES FINALES */}
+<div className="flex flex-wrap justify-center gap-3 mt-4 pb-2">
+  <button
+    onClick={handleCancelClick}
+    className="border border-[#154734] text-[#154734] px-6 py-2 rounded-md hover:bg-[#f0f7f3] transition w-full sm:w-auto"
+  >
+    CANCELAR
+  </button>
 
-          <button
-              onClick={isEditMode ? handleActualizarVenta : handleGuardarVenta}
-            className="bg-[#154734] text-white px-6 py-2 rounded-lg hover:bg-[#103a2b] transition w-full sm:w-auto"
-          >
-            {isEditMode ? "ACTUALIZAR VENTA" : "GUARDAR"}
-          </button>
-        </div>
+  <button
+    onClick={isEditMode ? handleActualizarVenta : handleGuardarVenta}
+    className="bg-[#154734] text-white px-6 py-2 rounded-lg hover:bg-[#103a2b] transition w-full sm:w-auto"
+  >
+    {isEditMode ? "ACTUALIZAR VENTA" : "GUARDAR"}
+  </button>
+</div>
 
-        {/* ======================= MODALES DE LA PÁGINA ======================= */}
 
-        {/* 1. MODAL DE ELIMINACIÓN DE ÍTEM (BORRADOR) */}
+        {/* MODALES (igual que antes) */}
         <Modal
           isOpen={isItemDeleteConfirmOpen}
           onClose={() => setItemDeleteConfirmOpen(false)}
@@ -736,7 +731,6 @@ useEffect(() => {
           </p>
         </Modal>
 
-        {/* 2. MODAL DE CONFIRMACIÓN DE CANCELAR (Pérdida de datos) */}
         <Modal
           isOpen={isCancelConfirmOpen}
           onClose={() => setCancelConfirmOpen(false)}
@@ -765,7 +759,6 @@ useEffect(() => {
           </p>
         </Modal>
 
-        {/* === Modal CREAR nuevo producto */}
         <Modal
           isOpen={isNewOpen}
           title="Registrar nuevo producto"
@@ -782,7 +775,7 @@ useEffect(() => {
               unidad: "u",
               cantidad: "",
               precio: "",
-              notas: "",   // usa “notas” en lugar de “observaciones” para coincidir con la API
+              notas: "",
             }}
             labels={{ caja: "Caja", material: "Material" }}
             onCancel={() => setNewOpen(false)}
@@ -790,7 +783,6 @@ useEffect(() => {
           />
         </Modal>
 
-        {/* 3. MODAL DE MENSAJES (Éxito/Error/Aviso) */}
         <Modal
           isOpen={messageModal.isOpen}
           onClose={() => {
@@ -827,7 +819,6 @@ useEffect(() => {
           <p className="text-sm text-slate-700">{messageModal.text}</p>
         </Modal>
 
-        {/* 4. MODAL DE MODIFICACIÓN (REVERTIDO A LA LÓGICA ORIGINAL) */}
         {selectedVenta && (
           <Modified
             isOpen={isEditOpen}
@@ -844,7 +835,6 @@ useEffect(() => {
               { key: "precio", label: "Precio Unitario", readOnly: true },
               { key: "descuento", label: "Descuento (%)", type: "number" },
               { key: "subtotal", label: "Subtotal", readOnly: true },
-            
             ]}
             computeTotal={(rows) =>
               rows.reduce(
