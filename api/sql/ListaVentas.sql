@@ -1,4 +1,4 @@
-//// ListaVentas.jsx
+
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { Plus, Filter, Download } from "lucide-react";
 import jsPDF from "jspdf";
@@ -41,9 +41,9 @@ export default function Ventas() {
     type: "",
   });
 
-  // =========================
+  
   // FILTROS
-  // =========================
+  
   const handleFilterSelect = (tipo) => setFiltroTipo(tipo);
 
   const aplicarFiltros = ({ buscar, desde, hasta, tipo }) => {
@@ -57,9 +57,9 @@ export default function Ventas() {
     setResetSignal((n) => n + 1);
   };
 
-  // =========================
+
   // CARGA DE DATOS DESDE BACKEND
-  // =========================
+
 
   const loadVentas = useCallback(async () => {
     try {
@@ -81,9 +81,9 @@ export default function Ventas() {
     loadVentas();
   }, [loadVentas]);
 
-  // =========================
+ 
   // MODALES
-  // =========================
+
   const [selectedVenta, setSelectedVenta] = useState(null);
   const [isDetailOpen, setDetailOpen] = useState(false);
 
@@ -131,9 +131,9 @@ export default function Ventas() {
     }
   };
 
-  // =========================
+ 
   // DESCARGAR PDF
-  // =========================
+
   const handleDownloadPDF = (venta) => {
     const doc = new jsPDF();
 
@@ -177,9 +177,9 @@ export default function Ventas() {
       doc.save(`Venta_${ventaId}.pdf`);
     }, 100);
   };
-  // =========================
+  
   // FILTROS DE VISUALIZACIÓN
-  // =========================
+
 
   const ventasFiltradas = useMemo(() => {
   const tsel = TIPO_MAP[filtroTipo];
@@ -202,9 +202,9 @@ export default function Ventas() {
 }, [ventas, filtroTipo, filtros]);
 
 
-  // =========================
+ 
   // COLUMNAS TABLA
-  // =========================
+  
   const columns = [
     {
       id: "numero",
@@ -309,9 +309,9 @@ export default function Ventas() {
     },
   ];
 
-  // =========================
+
   // RENDER PRINCIPAL
-  // =========================
+  
   return (
     <PageContainer
       title="Lista de Ventas"
@@ -374,7 +374,7 @@ export default function Ventas() {
             columns={columns}
             data={ventasFiltradas}
             zebra={false}
-            /* header pegado arriba cuando scrolleás dentro de la card */
+           
             stickyHeader={true}
             wrapperClass="max-h-[360px] overflow-y-auto shadow-sm"
             tableClass="w-full text-sm text-center border-collapse"

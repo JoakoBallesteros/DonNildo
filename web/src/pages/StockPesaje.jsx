@@ -585,7 +585,7 @@ const onConfirm = async () => {
           </div>
         </div>
 
-        {/* Acciones: imprimir */}
+       
         <div className="flex flex-col gap-4 md:flex-row md:items-center">
           <div className="md:ml-auto">
            <PrintButton

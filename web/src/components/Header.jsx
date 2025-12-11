@@ -4,7 +4,6 @@ export default function Header({ sidebarOpen, onToggleSidebar, onOpenSidebarMobi
   return (
     <header className="h-16 bg-white border-b border-slate-200 px-4 md:px-6 flex items-center justify-between">
       <div className="flex items-center gap-2">
-        {/* Mobile: abre overlay */}
         <button
           className="md:hidden p-2 rounded hover:bg-slate-100"
           onClick={onOpenSidebarMobile}
@@ -13,7 +12,7 @@ export default function Header({ sidebarOpen, onToggleSidebar, onOpenSidebarMobi
           <Menu className="w-5 h-5" />
         </button>
 
-        {/* Desktop: mostrar/ocultar completamente */}
+        
         <button
           className="hidden md:inline-flex p-2 rounded hover:bg-slate-100"
           onClick={onToggleSidebar}

@@ -1,4 +1,3 @@
-
 export default function HamburgerButton({ onClick, className="", label="Menú" }) {
   return (
     <button

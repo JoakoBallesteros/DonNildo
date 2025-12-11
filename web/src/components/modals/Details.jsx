@@ -63,7 +63,7 @@ export default function DetailModal({
             </p>
           </div>
         )}
-        {/* Footer: botón para cerrar el modal sin usar la X */}
+      
         <div className="flex justify-end mt-4">
           <button
             onClick={onClose}

@@ -84,14 +84,13 @@ export default function LoginForm() {
           onChange={(e) => setPassword(e.target.value)}
         />
 
-        {/* 👁️ Botón para mostrar/ocultar */}
         <button
           type="button"
           onClick={() => setShowPassword(!showPassword)}
           className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
         >
           {showPassword ? (
-            // OJO TACHADO
+           
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
@@ -107,7 +106,7 @@ export default function LoginForm() {
               />
             </svg>
           ) : (
-            // OJO ABIERTO
+        
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
@@ -127,7 +126,7 @@ export default function LoginForm() {
         </button>
       </div>
 
-      {/* RECORDAR / OLVIDÉ */}
+     
       <div className="flex justify-between items-center mb-6 text-sm">
         <label className="flex items-center gap-1 text-gray-600">
           <input
@@ -144,11 +143,11 @@ export default function LoginForm() {
         </Link>
       </div>
 
-      {/* ERRORES / OK */}
+      
       {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
       {success && <p className="text-green-600 text-sm mb-4">{success}</p>}
 
-      {/* BOTÓN */}
+      
       <button
         type="submit"
         disabled={loading}

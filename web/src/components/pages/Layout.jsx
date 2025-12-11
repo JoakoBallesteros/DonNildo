@@ -31,7 +31,6 @@ export default function Layout() {
       />
 
       <main className="flex-1 min-h-screen overflow-y-auto overflow-x-hidden">
-        {/* Barra móvil con botón hamburguesa */}
         <div className="sticky top-0 z-30 bg-slate-50/95 backdrop-blur shadow-sm md:hidden">
           <div className="px-4 py-2 flex items-center gap-3">
             <HamburgerButton
@@ -47,7 +46,6 @@ export default function Layout() {
           </div>
         </div>
 
-        {/* Top bar solo cuando la sidebar está cerrada en desktop */}
         {!sidebarOpen && (
           <div className="sticky top-0 z-30 bg-slate-50/95 backdrop-blur shadow-sm hidden md:block">
             <div className="px-4 md:px-8 py-2 flex items-center gap-3">

@@ -285,7 +285,6 @@ export default function StockList() {
     { label: "Hasta", type: "date", name: "hasta", inputClass: "w-44" },
   ];
 
-  // === Filtrado (cliente)
   const dataFiltrada = items.filter((r) => {
     const tSel = tipoMap[filtroTipo];
     if (tSel && r.tipo.toLowerCase() !== tSel.toLowerCase()) return false;
@@ -909,7 +908,6 @@ export default function StockList() {
         )}
       </div>
 
-      {/* Export */}
       <div className="mt-6 flex justify-end">
         <button
           onClick={onExport}
@@ -920,7 +918,6 @@ export default function StockList() {
         </button>
       </div>
 
-      {/* Modal CREAR */}
       <Modal
         isOpen={isNewOpen}
         title="Registrar nuevo producto"
@@ -971,7 +968,6 @@ export default function StockList() {
         />
       </Modal>
 
-      {/* Modal EDITAR */}
       {editRow && (
         <Modified
           isOpen={isEditOpen}
@@ -1002,7 +998,6 @@ export default function StockList() {
         />
       )}
 
-      {/* Modal DETALLE */}
       {detailRow && (
         <Modal
           isOpen={isDetailOpen}
@@ -1071,7 +1066,6 @@ export default function StockList() {
         </Modal>
       )}
 
-      {/* Modal CONFIRMAR ELIMINACIÓN */}
       <MessageModal
         isOpen={isDeleteConfirmOpen}
         title="Confirmar eliminación"
@@ -1086,7 +1080,6 @@ export default function StockList() {
         cancelText="Volver"
       />
 
-      {/* Modal MENSAJE */}
       <MessageModal
         isOpen={messageModal.isOpen}
         title={messageModal.title}

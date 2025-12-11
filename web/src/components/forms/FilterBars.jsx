@@ -23,7 +23,7 @@ export default function FilterBar({
     setFormData(next);
 
     if (name === "buscar") {
-      // 🟢 Filtrado en tiempo real
+     
       onApply?.({
         ...next,
         tipo: current,
@@ -51,7 +51,7 @@ export default function FilterBar({
 
   return (
     <div className="mb-6">
-      {/* Pills */}
+      
       {filters.length > 0 && (
         <div className="flex gap-3 mb-4">
           {filters.map((f) => (
@@ -71,7 +71,7 @@ export default function FilterBar({
         </div>
       )}
 
-      {/* Contenedor */}
+      
       <div className="bg-[#f7fbf8] border border-[#e2ede8] rounded-2xl p-6">
         <div className="grid gap-5 items-end grid-cols-1 lg:grid-cols-[minmax(16rem,1.4fr)_minmax(10rem,1fr)_minmax(10rem,1fr)_minmax(10rem,1fr)_auto]">
           
@@ -84,7 +84,7 @@ export default function FilterBar({
                 {field.label}
               </label>
 
-              {/* SELECT */}
+             
               {field.type === "select" ? (
                 <select
                   name={field.name}
@@ -112,7 +112,7 @@ export default function FilterBar({
             </div>
           ))}
 
-          {/* Botones */}
+         
           <div className="flex items-center justify-end gap-4">
             <button
               type="button"

@@ -19,7 +19,7 @@ export default function PageContainer({
       <div
         className={`w-full max-w-[1750px] bg-white rounded-2xl shadow-sm ${paddingClasses} ${heightClasses}`}
       >
-        {/* Encabezado */}
+      
         <div
           className={`flex flex-col md:flex-row md:items-center md:justify-between gap-4 ${
             noDivider ? "" : "pb-6"

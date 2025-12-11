@@ -100,7 +100,7 @@ export default function ProductFormTabs({
     if (err) {
       setMessageModal({
         isOpen: true,
-        title: "❌ Error",
+        title: " Error",
         text: err,
         type: "error",
       });

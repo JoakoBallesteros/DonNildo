@@ -1,4 +1,4 @@
-// src/components/auth/ProtectedRoutes.jsx
+
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supa } from "../../lib/supabaseClient";
@@ -11,7 +11,7 @@ export default function ProtectedRoute() {
   useEffect(() => {
     let isMounted = true;
 
-    // 1) Obtener sesión actual al montar
+    
     supa.auth
       .getSession()
       .then(({ data, error }) => {
@@ -25,7 +25,7 @@ export default function ProtectedRoute() {
         setLoading(false);
       });
 
-    // 2) Escuchar cambios de sesión (login/logout en otras pestañas)
+   
     const { data: subscription } = supa.auth.onAuthStateChange(
       (_event, newSession) => {
         if (!isMounted) return;
@@ -47,11 +47,11 @@ export default function ProtectedRoute() {
     );
   }
 
-  // Si no hay sesión, mandamos al login
+
   if (!session) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  // Si hay sesión válida, renderizamos las rutas hijas
+ 
   return <Outlet />;
 }

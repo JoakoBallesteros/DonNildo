@@ -48,7 +48,7 @@ export default function NuevoReporte({ isOpen, onClose, onCreate }) {
   if (!productoId || !desde || !hasta) {
     setMessageModal({
       isOpen: true,
-      title: "❌ Error",
+      title: "Error",
       text: "Completa todos los campos",
       type: "error",
     });
@@ -73,7 +73,7 @@ export default function NuevoReporte({ isOpen, onClose, onCreate }) {
     
     setMessageModal({
       isOpen: true,
-      title: "❌ Error",
+      title: "Error",
       text: err.message || "No se pudo crear el reporte.",
       type: "error",
     });
@@ -130,7 +130,7 @@ export default function NuevoReporte({ isOpen, onClose, onCreate }) {
           {/* FORM */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
 
-            {/* Producto */}
+            
             <div className="md:col-span-6">
               <label className="block text-sm text-[#154734] mb-1">Producto</label>
               <ProductoSelect

@@ -1,4 +1,4 @@
-// src/components/forms/FormBuilder.jsx
+
 import InputField from "./InputFields";
 
 const COLS = {

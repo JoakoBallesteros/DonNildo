@@ -8,8 +8,8 @@ export default function ActionButton({
     "w-[110px] py-1.5 rounded-md text-white font-medium text-sm transition";
 
   const styles = {
-    edit: "bg-[#0f7a4e] hover:bg-[#0d6843]", // Verde
-    delete: "bg-[#b91c1c] hover:bg-[#991b1b]", // Rojo
+    edit: "bg-[#0f7a4e] hover:bg-[#0d6843]", 
+    delete: "bg-[#b91c1c] hover:bg-[#991b1b]", 
   };
 
   return (

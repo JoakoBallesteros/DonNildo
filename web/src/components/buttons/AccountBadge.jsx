@@ -1,4 +1,3 @@
-// src/components/buttons/AccountBadge.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getAccountMe } from "../../services/accountService.mjs";

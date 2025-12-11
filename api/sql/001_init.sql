@@ -1,8 +1,8 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
--- ===========================================
+
 -- 2. TABLAS DE SEGURIDAD
--- ===========================================
+
 CREATE TABLE IF NOT EXISTS roles (
   id_rol SERIAL PRIMARY KEY,
   nombre TEXT NOT NULL UNIQUE,
@@ -13,11 +13,11 @@ CREATE TABLE IF NOT EXISTS usuarios (
   id_usuario SERIAL PRIMARY KEY,
   dni TEXT UNIQUE,
   nombre TEXT NOT NULL,
-  hash_contrasena TEXT, -- NULL si viene de Supabase Auth
+  hash_contrasena TEXT, 
   mail TEXT NOT NULL,
   id_rol INT NOT NULL REFERENCES roles(id_rol) ON DELETE RESTRICT,
   estado TEXT NOT NULL DEFAULT 'ACTIVO',
-  id_auth UUID UNIQUE, -- vinculación con Supabase Auth
+  id_auth UUID UNIQUE, 
   created_at TIMESTAMP DEFAULT now()
 );
 
@@ -26,7 +26,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_usuarios_mail_lower_unique
 CREATE INDEX IF NOT EXISTS idx_usuarios_estado
   ON usuarios (estado);
 
--- Vincular a tabla interna de Supabase Auth (si existe)
+
 DO $$
 BEGIN
   IF to_regclass('auth.users') IS NOT NULL THEN
@@ -42,9 +42,9 @@ BEGIN
   END IF;
 END$$;
 
--- ===========================================
+
 -- 3. CATÁLOGOS Y TABLAS AUXILIARES
--- ===========================================
+
 CREATE TABLE IF NOT EXISTS categoria (
   id_categoria SERIAL PRIMARY KEY,
   nombre TEXT NOT NULL UNIQUE,
@@ -92,9 +92,9 @@ CREATE TABLE IF NOT EXISTS politicas_seguridad (
   valor TEXT
 );
 
--- ===========================================
+
 -- 4. PRODUCTOS Y STOCK
--- ===========================================
+
 CREATE TABLE IF NOT EXISTS productos (
   id_producto SERIAL PRIMARY KEY,
   nombre TEXT NOT NULL,
@@ -123,9 +123,9 @@ CREATE TABLE IF NOT EXISTS movimientos_stock (
   observaciones TEXT
 );
 
--- ===========================================
+
 -- 5. PROVEEDORES
--- ===========================================
+
 CREATE TABLE IF NOT EXISTS proveedores (
   id_proveedor SERIAL PRIMARY KEY,
   cuit TEXT UNIQUE,
@@ -134,9 +134,9 @@ CREATE TABLE IF NOT EXISTS proveedores (
   direccion TEXT
 );
 
--- ===========================================
+
 -- 6. COMPRAS
--- ===========================================
+
 CREATE TABLE IF NOT EXISTS orden_compra (
   id_compra SERIAL PRIMARY KEY,
   id_proveedor INT REFERENCES proveedores(id_proveedor) ON DELETE RESTRICT,
@@ -168,9 +168,9 @@ CREATE TABLE IF NOT EXISTS remitos (
   observaciones TEXT
 );
 
--- ===========================================
+
 -- 7. VENTAS
--- ===========================================
+
 CREATE TABLE IF NOT EXISTS venta (
   id_venta SERIAL PRIMARY KEY,
   fecha DATE NOT NULL DEFAULT CURRENT_DATE,
@@ -188,9 +188,9 @@ CREATE TABLE IF NOT EXISTS detalle_venta (
   subtotal NUMERIC(14,2) NOT NULL
 );
 
--- ===========================================
+
 -- 8. AUDITORÍA
--- ===========================================
+
 CREATE TABLE IF NOT EXISTS auditoria (
   id_auditoria SERIAL PRIMARY KEY,
   id_usuario INT REFERENCES usuarios(id_usuario),
@@ -209,9 +209,9 @@ CREATE TABLE IF NOT EXISTS log_auditoria (
   mensaje TEXT
 );
 
--- ===========================================
+
 -- 9. DATOS BASE
--- ===========================================
+
 INSERT INTO roles (nombre, descripcion)
 VALUES 
 ('ADMIN', 'Administrador del sistema'),
@@ -236,6 +236,3 @@ VALUES
 ('COMPLETADO', 'Proceso finalizado')
 ON CONFLICT (nombre) DO NOTHING;
 
--- ===========================================
--- FIN DEL SCRIPT
--- ===========================================

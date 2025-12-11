@@ -109,13 +109,11 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
       isCompras,
       isVentas,
       isStock,
-      // Menú principales
       canCompras: isAdmin || isCompras,
       canVentas: isAdmin || isVentas,
       canStockSection: isAdmin || isStock || isCompras || isVentas,
       canReportes: isAdmin,
 
-      // Sub-rutas de stock
       canStockNuevoProducto: isAdmin || isStock,
       canStockRegistrarPesaje: isAdmin || isStock,
       canStockHistorialPesajes: isAdmin || isStock || isCompras || isVentas,
@@ -144,7 +142,6 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
       >
         {shouldRenderContent && (
           <div className="w-72 h-full flex flex-col">
-            {/* Header brand + toggle */}
             <div className="flex items-center justify-between px-4 pt-5 pb-4">
               <Link
                 to="/"
@@ -165,9 +162,9 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
               />
             </div>
 
-            {/* NAV */}
+           
             <nav className="flex-1 overflow-y-auto md:overflow-visible px-3 pb-3 flex flex-col space-y-1">
-              {/* Inicio */}
+             
               <NavLink
                 to="/"
                 end
@@ -179,7 +176,7 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
                 Inicio
               </NavLink>
 
-              {/* Compras */}
+              
               {perms.canCompras && (
                 <>
                   <div className="relative mx-1">
@@ -236,7 +233,7 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
                 </>
               )}
 
-              {/* Ventas */}
+             
               {perms.canVentas && (
                 <>
                   <div className="relative mx-1">
@@ -284,7 +281,7 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
                 </>
               )}
 
-              {/* Stock */}
+             
               {perms.canStockSection && (
                 <>
                   <div className="relative mx-1">
@@ -358,7 +355,7 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
                 </>
               )}
 
-              {/* Reportes (solo ADMIN) */}
+             
               {perms.canReportes && (
                 <div className="relative mx-1">
                   <NavLink
@@ -374,7 +371,7 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
                 </div>
               )}
 
-              {/* Seguridad (solo ADMIN) */}
+           
               {perms.isAdmin && (
                 <>
                   <div className="relative mx-1">
@@ -426,7 +423,7 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
                 </>
               )}
 
-              {/* Salir */}
+             
               <button
                 onClick={handleLogout}
                 className={`mx-1 w-full text-left ${linkBase} ${inactive}`}
@@ -434,7 +431,7 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
                 Salir
               </button>
 
-              {/* Badge abajo */}
+              
               <div className="mt-auto px-1 pt-3">
                 <AccountBadge />
               </div>
