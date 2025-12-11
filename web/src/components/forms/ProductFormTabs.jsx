@@ -90,10 +90,10 @@ export default function ProductFormTabs({
         : undefined,
   });
 
-  // 🟢 BOTÓN PROTEGIDO CONTRA DOBLE CLIC
+  
   const submit = async (e) => {
     e.preventDefault();
-    if (loading) return; // evita doble submit
+    if (loading) return; 
     setLoading(true);
 
     const err = validate();
@@ -313,7 +313,7 @@ export default function ProductFormTabs({
       </div>
     </div>
   );
-    // === CANCELAR
+    //
   const handleCancelClick = () => {
     if (JSON.stringify(form) !== JSON.stringify(initialValues)) {
       setCancelConfirmOpen(true);
@@ -322,7 +322,7 @@ export default function ProductFormTabs({
     }
   };
   
-    // === CONFIRMAR CANCELACIÓN
+   
     const handleCancelConfirm = () => {
       setCancelConfirmOpen(false);
       navigate("/stock");
@@ -368,7 +368,7 @@ export default function ProductFormTabs({
 
           <button
             type="submit"
-            disabled={loading} // 🟢 NUEVO: bloquea botón
+            disabled={loading} 
             className="h-12 px-10 rounded-xl bg-[#154734] text-white font-semibold shadow hover:bg-[#103a2b] w-full sm:w-auto disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {loading

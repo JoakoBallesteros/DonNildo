@@ -1,4 +1,3 @@
-// src/components/pages/PageContainer.jsx
 export default function PageContainer({
   title,
   actions,

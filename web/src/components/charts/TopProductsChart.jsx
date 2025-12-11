@@ -9,14 +9,14 @@ export default function TopProductosChart() {
     async function load() {
       const res = await api("/api/dashboard/top-productos");
 
-      // 🔥 Corregir cantidad: "333.000" → 333
+     
       const fix = res.map((item) => {
         let cant = item.total_cantidad;
 
-        // limpiar puntos ("333.000"→"333000")
+     
         let clean = String(cant).replace(/\./g, "");
 
-        // si termina en "000", dividir por 1000
+     
         if (clean.endsWith("000")) {
           clean = Number(clean) / 1000;
         } else {

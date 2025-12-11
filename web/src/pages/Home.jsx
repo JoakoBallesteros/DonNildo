@@ -1,4 +1,3 @@
-// src/pages/Home.jsx
 import { useMemo, useEffect, useState } from "react";
 import NavCard from "../components/pages/NavCard.jsx";
 import {
@@ -12,9 +11,9 @@ import {
 import api from "../lib/apiClient";
 import logo from "../img/LogoDonNildo.png";
 
-// Card chica de KPI
+
 function KpiCard({
-  // eslint-disable-next-line no-unused-vars
+  
   Icon,
   label,
   value,
@@ -68,12 +67,12 @@ export default function Home() {
     const isStock = role === "STOCK";
 
     return {
-      // módulos principales
+      
       canCompras: isAdmin || isCompras,
       canVentas: isAdmin || isVentas,
-      // pueden ver sección Stock: admin + stock + compras + ventas
+     
       canStock: isAdmin || isStock || isCompras || isVentas,
-      // reportes: SOLO admin
+      
       canReportes: isAdmin,
     };
   }, [role, isAdmin]);
@@ -81,13 +80,13 @@ export default function Home() {
   const [summary, setSummary] = useState(null);
 
   useEffect(() => {
-    if (!isAdmin) return; // solo el admin consulta el dashboard
+    if (!isAdmin) return; 
 
     let cancelled = false;
 
     async function fetchSummary() {
       try {
-        const data = await api("/dashboard/resumen"); // GET por defecto
+        const data = await api("/dashboard/resumen"); 
         if (!cancelled) setSummary(data);
       } catch (err) {
         console.error("Error cargando resumen de dashboard:", err);
@@ -116,17 +115,14 @@ export default function Home() {
   let critValueColor = "text-xl font-bold text-emerald-900 leading-tight";
 
   if (sinStock === 0) {
-    // Todo OK → verde suave
     critBg = "border border-emerald-100";
     critAccent = "bg-emerald-50 text-emerald-700";
   } else if (ratio <= 0.25) {
-    // Alerta leve → amarillo
     critBg = "border border-amber-100 bg-amber-50/40";
     critAccent = "bg-amber-100 text-amber-700";
     critLabelColor = "text-xs uppercase tracking-wide text-amber-700/80";
     critValueColor = "text-xl font-bold text-amber-900 leading-tight";
   } else {
-    // Mucho crítico → rojo
     critBg = "border border-red-100 bg-red-50/60";
     critAccent = "bg-red-100 text-red-700";
     critLabelColor = "text-xs uppercase tracking-wide text-red-700/80";

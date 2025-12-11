@@ -27,7 +27,7 @@ SELECT
 WHERE NOT EXISTS (SELECT 1 FROM productos WHERE nombre='Plástico Stretch 500m');
 
 -- ==============================
--- 2️⃣ VENTA DE PRUEBA MIXTA
+-- 2️VENTA DE PRUEBA MIXTA
 -- ==============================
 INSERT INTO venta (fecha, id_estado, total, observaciones)
 SELECT
@@ -38,7 +38,7 @@ SELECT
 WHERE NOT EXISTS (SELECT 1 FROM venta WHERE total=2050.00);
 
 -- ==============================
--- 3️⃣ DETALLES DE LA VENTA
+-- 3️DETALLES DE LA VENTA
 -- ==============================
 INSERT INTO detalle_venta (id_venta, id_producto, cantidad, precio_unitario, subtotal)
 SELECT

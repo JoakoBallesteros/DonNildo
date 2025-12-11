@@ -1,4 +1,3 @@
-// src/components/pages/Layout.jsx
 import { useState, useEffect } from "react";
 import { Outlet, useLocation, Link } from "react-router-dom";
 import Sidebar from "../pages/Sidebar.jsx";
@@ -7,20 +6,18 @@ import HamburgerButton from "../buttons/HamburgerButton.jsx";
 export default function Layout() {
   const { pathname } = useLocation();
 
-  // 🔹 En Home ("/") arranca cerrada, en el resto abierta
+ 
   const [sidebarOpen, setSidebarOpen] = useState(() => pathname !== "/");
   const [sidebarMobileOpen, setSidebarMobileOpen] = useState(false);
 
-  // 🔹 Si cambio de ruta:
-  //    - Voy a "/"  → cierro sidebar en desktop
-  //    - Voy a otra → la abro (para que se vea el menú en módulos)
+
   useEffect(() => {
     if (pathname === "/") {
       setSidebarOpen(false);
     } else {
       setSidebarOpen(true);
     }
-    // en cualquier cambio de ruta cierro el menú móvil
+    
     setSidebarMobileOpen(false);
   }, [pathname]);
 

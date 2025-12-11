@@ -1,4 +1,3 @@
-// src/components/Sidebar.jsx
 import { useState, useEffect, useMemo } from "react";
 import { NavLink, useLocation, useNavigate, Link } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
@@ -77,7 +76,7 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
     else openOnly(key);
   };
 
-  // sincroniza acordeón con la ruta
+ 
   useEffect(() => {
     if (!ACCORDION) return;
     if (isSectionActive(pathname, "/compras")) openOnly("compras");
@@ -88,7 +87,7 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
     else openOnly(null);
   }, [pathname]);
 
-  // refresca rol desde localStorage
+  
   useEffect(() => {
     const id = setInterval(() => {
       const r = getRole();
@@ -97,7 +96,7 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
     return () => clearInterval(id);
   }, [role]);
 
-  // permisos según rol
+  
   const perms = useMemo(() => {
     const r = (role || "").toUpperCase();
     const isAdmin = r === "ADMIN";

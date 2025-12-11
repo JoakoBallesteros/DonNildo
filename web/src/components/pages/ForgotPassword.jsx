@@ -1,26 +1,25 @@
-// src/components/pages/ForgotPassword.jsx
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 
 function getApiBaseUrl() {
   const raw = import.meta.env.VITE_API_URL?.trim();
 
-  // 1) Si viene vacío, usamos localhost:4000
+
   if (!raw) {
     return "http://localhost:4000";
   }
 
-  // 2) Si empieza con "/" la tratamos como ruta relativa (/api)
+
   if (raw.startsWith("/")) {
-    return raw.replace(/\/$/, ""); // sin barra final
+    return raw.replace(/\/$/, ""); 
   }
 
-  // 3) Si ya tiene esquema http/https, la dejamos como está
+
   if (/^https?:\/\//i.test(raw)) {
     return raw.replace(/\/$/, "");
   }
 
-  // 4) Si es algo tipo "localhost:4000" le agregamos http://
+
   return `http://${raw}`.replace(/\/$/, "");
 }
 
@@ -29,8 +28,7 @@ export default function ForgotPassword() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  const [resendIn, setResendIn] = useState(0); // segundos
-  const navigate = useNavigate();
+  const [resendIn, setResendIn] = useState(0); 
   const baseUrl = getApiBaseUrl();
 
   useEffect(() => {
@@ -77,7 +75,7 @@ export default function ForgotPassword() {
       setSuccess(
         "Si la cuenta existe, te enviamos un correo con el enlace para restablecer tu contraseña."
       );
-      setResendIn(60); // cooldown tras un envío correcto
+      setResendIn(60);
     } catch (e) {
       setError(e?.message || "No se pudo enviar el correo.");
     } finally {

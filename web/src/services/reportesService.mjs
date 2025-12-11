@@ -25,10 +25,10 @@ export async function crearReporte(payload) {
       body: JSON.stringify(payload),
     });
 
-        console.log("🔍 POST RAW RESPONSE:", data);
+        console.log(" POST RAW RESPONSE:", data);
 
     if (!data?.reporte) {
-      console.log("RESPUESTA DEL SERVIDOR:", data);  // <--- DEBUG
+      console.log("RESPUESTA DEL SERVIDOR:", data); 
       throw new Error("Respuesta inválida del servidor: falta 'reporte'.");
     }
 
@@ -36,8 +36,8 @@ export async function crearReporte(payload) {
 
     return {
       id_reporte: r.id_reporte,
-      id: r.codigo,        // 👈 AHORA SÍ VA A EXISTIR
-      codigo: r.codigo,    // 👈 AÑADIDO
+      id: r.codigo,        
+      codigo: r.codigo,    
       tipo: r.tipo,
       producto: r.producto,
       fechaGen: r.fecha_generacion?.slice(0, 10),

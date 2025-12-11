@@ -1,16 +1,5 @@
 import React from "react";
 
-/**
- * 🔹 DetailModal (versión generalizada)
- *
- * Props:
- * - isOpen: boolean → controla si se muestra el modal
- * - onClose: función → se ejecuta al cerrar el modal
- * - title: string → título del modal
- * - columns: array → nombres de columnas [{key, label}]
- * - data: objeto con la información principal (ej: { numero, fecha, total, items: [] })
- * - itemsKey: string → nombre de la propiedad que contiene los ítems (ej: "productos", "detalles", etc.)
- */
 export default function DetailModal({
   isOpen,
   onClose,

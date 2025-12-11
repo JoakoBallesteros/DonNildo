@@ -26,12 +26,11 @@ export default function FormBuilder({
     const common =
       "border border-[#cfdcd3] rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[#154734] w-full";
 
-    // label común
     const Label = f.label ? (
       <label className="text-sm text-[#154734] mb-1 font-medium">{f.label}</label>
     ) : null;
 
-    // tipos
+  
     if (f.type === "select") {
       return (
         <div className="flex flex-col">
@@ -73,7 +72,7 @@ export default function FormBuilder({
       );
     }
 
-    // default input
+   
     return (
       <div className="flex flex-col">
         {Label}

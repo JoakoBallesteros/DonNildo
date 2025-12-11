@@ -4,12 +4,12 @@ import { supa } from "../../lib/supabaseClient";
 
 export default function ResetPassword() {
   const navigate = useNavigate();
-  const [stage, setStage] = useState("checking"); // checking | ready | done
+  const [stage, setStage] = useState("checking"); 
   const [error, setError] = useState(null);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
 
-  // 1) Validar el enlace e iniciar sesión temporal para poder cambiar la contraseña
+
   useEffect(() => {
     const run = async () => {
       try {
@@ -23,8 +23,7 @@ export default function ResetPassword() {
           const { error } = await supa.auth.exchangeCodeForSession(code);
           if (error) throw error;
         } else if (window.location.hash.includes("access_token")) {
-          // Flujo clásico: llega #access_token=...
-          // En general la sesión ya queda activa; verificamos:
+          
           const { data, error } = await supa.auth.getSession();
           if (error) throw error;
           if (!data?.session) throw new Error("No se pudo validar la sesión.");
@@ -42,7 +41,7 @@ export default function ResetPassword() {
     run();
   }, []);
 
-  // 2) Guardar nueva contraseña
+ 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);

@@ -1,11 +1,11 @@
-# Ignorar cualquier .env o .env.*
+
 **/.env
 **/.env.*
 **/*.env
 
-# Permitir plantillas de ejemplo
+
 !**/.env.example
-# Node
+
 node_modules/
 **/node_modules/
 

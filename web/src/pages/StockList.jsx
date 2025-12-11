@@ -1,4 +1,3 @@
-// src/pages/StockList.jsx
 import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Download } from "lucide-react";
@@ -17,7 +16,7 @@ import { apiFetch } from "../lib/apiClient";
 
 const MAX_EXPORT_ROWS = 500;
 
-// 🔎 Helper para mapear id_tipo_producto -> texto
+
 function mapTipoPorId(id_tipo_producto, fallback) {
   if (fallback) return fallback;
   switch (id_tipo_producto) {
@@ -30,7 +29,7 @@ function mapTipoPorId(id_tipo_producto, fallback) {
   }
 }
 
-// Calcula categoría de caja según la mayor dimensión
+
 function calcCategoriaCaja(l, a, h) {
   const maxDim = Math.max(Number(l) || 0, Number(a) || 0, Number(h) || 0);
   if (!maxDim) return "";
@@ -39,7 +38,7 @@ function calcCategoriaCaja(l, a, h) {
   return "Grande";
 }
 
-// 🔢 Formateo de cantidad + unidad
+
 function formatDisponible(r) {
   const n = Number(r.disponible ?? 0);
 
@@ -60,7 +59,7 @@ function formatDisponible(r) {
   })} ${r.unidad}`;
 }
 
-// Fecha corta dd-mm-aaaa
+
 function formatFechaCorta(value) {
   if (!value) return "—";
   const d = new Date(value);
@@ -75,7 +74,7 @@ function formatFechaCorta(value) {
     .replace(/\//g, "-");
 }
 
-// Mapea fila cruda de la view a UI
+
 function mapDbRowToUi(row) {
   let medidas = null;
   if (row.alto != null && row.ancho != null && row.profundidad != null) {
@@ -109,7 +108,6 @@ export default function StockList() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
-  // === Filtros
   const [filtroTipo, setFiltroTipo] = useState("Todo");
   const [filtros, setFiltros] = useState({
     buscar: "",
@@ -123,18 +121,15 @@ export default function StockList() {
   });
   const [resetSignal, setResetSignal] = useState(0);
 
-  // === Modal editar
   const [isEditOpen, setEditOpen] = useState(false);
   const [editRow, setEditRow] = useState(null);
 
-  // === Modal crear nuevo producto
   const [isNewOpen, setNewOpen] = useState(false);
 
-  // === Modal detalle
   const [isDetailOpen, setDetailOpen] = useState(false);
   const [detailRow, setDetailRow] = useState(null);
 
-  // === Modales de mensajes y confirmaciones
+ 
   const [messageModal, setMessageModal] = useState({
     isOpen: false,
     title: "",
@@ -145,9 +140,7 @@ export default function StockList() {
   const [isDeleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
 
-  // =========================
-  // CARGA DESDE BACKEND
-  // =========================
+
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
@@ -174,9 +167,7 @@ export default function StockList() {
     loadData();
   }, [loadData]);
 
-  // =========================
-  // FILTROS
-  // =========================
+ 
 
   const tipoMap = {
     Todo: null,
@@ -334,9 +325,7 @@ export default function StockList() {
     return true;
   });
 
-  // =========================
-  // ELIMINAR
-  // =========================
+  
   const openDeleteConfirm = useCallback((row) => {
     setProductToDelete(row);
     setDeleteConfirmOpen(true);
@@ -356,7 +345,7 @@ export default function StockList() {
 
       setMessageModal({
         isOpen: true,
-        title: "✅ Producto eliminado",
+        title: " Producto eliminado",
         text: `El producto "${productToDelete.referencia}" fue eliminado correctamente.`,
         type: "success",
       });
@@ -364,7 +353,7 @@ export default function StockList() {
       console.error("Error al eliminar producto:", e);
       setMessageModal({
         isOpen: true,
-        title: "❌ Error al eliminar",
+        title: " Error al eliminar",
         text: e.message || "Error al eliminar producto",
         type: "error",
       });
@@ -373,9 +362,7 @@ export default function StockList() {
     }
   }, [productToDelete]);
 
-  // =========================
-  // COLUMNAS TABLA
-  // =========================
+ 
   const columns = useMemo(
     () => [
       { id: "tipo", header: "Tipo", accessor: "tipo", sortable: true },
@@ -508,9 +495,6 @@ export default function StockList() {
     [openDeleteConfirm]
   );
 
-  // =========================
-  // EXPORTAR PDF
-  // =========================
   const onExport = () => {
     if (!dataFiltrada.length) {
       setMessageModal({
@@ -590,9 +574,7 @@ export default function StockList() {
     doc.save(`Stock_${today}.pdf`);
   };
 
-  // =========================
-  // Guardar cambios desde el modal Modified
-  // =========================
+  
   const handleSaveEdited = async (payload) => {
     let updated = payload?.rows?.[0];
     if (!updated || !editRow) return;
@@ -664,7 +646,7 @@ export default function StockList() {
 
       setMessageModal({
         isOpen: true,
-        title: "✅ Producto actualizado",
+        title: " Producto actualizado",
         text: "Los datos del producto se actualizaron correctamente.",
         type: "success",
       });
@@ -672,7 +654,7 @@ export default function StockList() {
       console.error("Error al actualizar producto:", e);
       setMessageModal({
         isOpen: true,
-        title: "❌ Error al actualizar",
+        title: " Error al actualizar",
         text: e.message || "Error al actualizar producto",
         type: "error",
       });
@@ -757,9 +739,7 @@ export default function StockList() {
     ];
   }, [editRow]);
 
-  // =========================
-  // RENDER
-  // =========================
+ 
   return (
     <PageContainer
       title="Stock"

@@ -1,4 +1,4 @@
-// src/pages/SegRoles.jsx
+
 import { useEffect, useMemo, useState, useCallback } from "react";
 import PageContainer from "../components/pages/PageContainer";
 import DataTable from "../components/tables/DataTable";
@@ -6,8 +6,8 @@ import { supa } from "../lib/supabaseClient";
 import MessageModal from "../components/modals/MessageModal";
 
 export default function SegRoles() {
-  const [roles, setRoles] = useState([]);          // roles de la BD
-  const [usuarios, setUsuarios] = useState([]);    // usuarios de la BD
+  const [roles, setRoles] = useState([]);         
+  const [usuarios, setUsuarios] = useState([]);   
   const [rolSel, setRolSel] = useState("");
   const [usrSel, setUsrSel] = useState("");
   const [rows, setRows] = useState([]);
@@ -17,7 +17,7 @@ export default function SegRoles() {
     text: "",
     type: "",
   });
-  // Cargar roles y usuarios al montar
+
   useEffect(() => {
     const fetchData = async () => {
       const { data: rolesData } = await supa
@@ -31,9 +31,9 @@ export default function SegRoles() {
       setRoles(rolesData || []);
       setUsuarios(usuariosData || []);
 
-      // Montar filas iniciales con rol y usuario
+      
       const inicial = (usuariosData || [])
-        .filter((u) => u.id_rol) // solo usuarios con rol asignado
+        .filter((u) => u.id_rol) 
         .map((u) => {
           const rol =
             rolesData?.find((r) => r.id_rol === u.id_rol)?.nombre || "";
@@ -44,7 +44,7 @@ export default function SegRoles() {
     fetchData();
   }, []);
 
-  // Asignar rol a un usuario
+ 
   const onAssign = async () => {
   const rol = roles.find((r) => r.id_rol === parseInt(rolSel));
   const usr = usuarios.find((u) => u.id_usuario === parseInt(usrSel));
@@ -59,13 +59,13 @@ export default function SegRoles() {
   }
 
   try {
-    // Actualizar en Supabase
+   
     await supa
       .from("usuarios")
       .update({ id_rol: rol.id_rol })
       .eq("id_usuario", usr.id_usuario);
 
-    // Actualizar la tabla visual
+    
     setRows((prev) => {
       const sinUsuario = prev.filter((r) => r.id !== usr.id_usuario);
       return [
@@ -74,10 +74,10 @@ export default function SegRoles() {
       ];
     });
 
-    // Mostrar confirmación
+   
     setMessageModal({
       isOpen: true,
-      title: "✅ Rol asignado",
+      title: " Rol asignado",
       text: `El usuario "${usr.nombre}" ahora tiene el rol "${rol.nombre}".`,
       type: "success",
     });
@@ -86,14 +86,14 @@ export default function SegRoles() {
     console.error("ERROR asignando rol:", error);
     setMessageModal({
       isOpen: true,
-      title: "❌ Error",
+      title: " Error",
       text: "Ocurrió un error al asignar el rol. Intenta nuevamente.",
       type: "error",
     });
   }
 };
 
-  // Remover rol (dejar id_rol en NULL)
+  
   const onRemove = useCallback(
     async (row) => {
       const usuario = usuarios.find((u) => u.nombre === row.usuario);

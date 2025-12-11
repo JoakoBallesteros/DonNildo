@@ -1,4 +1,3 @@
-// src/pages/StockNuevoProducto.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -17,7 +16,7 @@ export default function StockNuevoProducto() {
   });
 
   const handleCloseMessage = () => {
-    // si fue OK, volvemos al listado de stock
+  
     if (messageModal.type === "success") {
       navigate("/stock");
     }
@@ -26,28 +25,28 @@ export default function StockNuevoProducto() {
 
   const handleSubmit = async (values) => {
     try {
-      // pega al mismo endpoint que usa StockList
+      
       const row = await apiFetch("/api/stock/productos", {
         method: "POST",
         body: JSON.stringify(values),
       });
 
-      // row viene desde la view v_stock_list
+   
       const nombre = row.referencia || row.nombre || values.referencia;
 
       setMessageModal({
         isOpen: true,
-        title: "✅ Producto creado",
+        title: " Producto creado",
         text: `El producto "${nombre}" fue creado correctamente.`,
         type: "success",
       });
 
-      // 📝 La auditoría CREAR_PRODUCTO  se hace en el backend.
+     
     } catch (e) {
       console.error("Error al crear producto:", e);
       setMessageModal({
         isOpen: true,
-        title: "❌ Error al crear",
+        title: " Error al crear",
         text: e.message || "Ocurrió un error al crear el producto.",
         type: "error",
       });

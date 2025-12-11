@@ -1,4 +1,4 @@
-// src/App.jsx
+
 import {
   BrowserRouter,
   Routes,
@@ -21,19 +21,19 @@ import Compras from "./pages/Compras.jsx";
 import Proveedores from "./pages/Proveedores.jsx";
 import RegistrarCompra from "./pages/RegistrarCompra.jsx";
 
-/* Stock */
+
 import StockList from "./pages/StockList.jsx";
 import StockNuevoProducto from "./pages/StockNuevoProducto.jsx";
 import StockPesaje from "./pages/StockPesaje.jsx";
 import StockPesajesLista from "./pages/StockPesajeLista.jsx";
 
-/* Ventas */
+
 import Ventas from "./pages/ListaVentas.jsx";
 import RegistrarVentas from "./pages/RegistrarVentas.jsx";
 
-/* Reportes */
+
 import Reportes from "./pages/Reportes.jsx";
-/* Seguridad*/
+
 import SegUsuarios from "./pages/SegUsuarios";
 import SegAuditoria from "./pages/SegAuditoria";
 import SegRoles from "./pages/SegRoles";
@@ -53,13 +53,13 @@ export default function App() {
 
         {/* RUTAS PROTEGIDAS POR SESIÓN */}
         <Route element={<ProtectedRoute />}>
-          {/* Perfil también debería requerir sesión */}
+          
           <Route path="/account" element={<AccountProfile />} />
 
           <Route path="/" element={<Layout />}>
             <Route index element={<Home />} />
 
-            {/* ========== COMPRAS ========== */}
+            
             <Route
               path="compras"
               element={
@@ -74,7 +74,7 @@ export default function App() {
               <Route path="editar/:id" element={<RegistrarCompra />} />
             </Route>
 
-            {/* ========== VENTAS ========== */}
+    
             <Route
               path="ventas"
               element={
@@ -94,8 +94,8 @@ export default function App() {
               />
             </Route>
 
-            {/* ========== STOCK ========== */}
-            {/* Admin + Stock + Compras + Ventas pueden entrar a la sección Stock */}
+           
+            
             <Route
               path="stock"
               element={
@@ -106,10 +106,10 @@ export default function App() {
                 </RequireRoles>
               }
             >
-              {/* Listado de productos/stock: todos los anteriores */}
+          
               <Route index element={<StockList />} />
 
-              {/* Nuevo producto: solo ADMIN + STOCK */}
+        
               <Route
                 path="nuevo-producto"
                 element={
@@ -119,7 +119,7 @@ export default function App() {
                 }
               />
 
-              {/* Registrar pesaje: solo ADMIN + STOCK */}
+             
               <Route
                 path="pesaje"
                 element={
@@ -129,7 +129,7 @@ export default function App() {
                 }
               />
 
-              {/* Historial de pesajes: ADMIN + STOCK + COMPRAS + VENTAS */}
+             
               <Route
                 path="pesajes"
                 element={
@@ -142,7 +142,7 @@ export default function App() {
               />
             </Route>
 
-            {/* ========== REPORTES (solo ADMIN) ========== */}
+          
             <Route
               path="reportes"
               element={
@@ -152,7 +152,7 @@ export default function App() {
               }
             />
 
-            {/* ========== SEGURIDAD (solo ADMIN) ========== */}
+          
             <Route
               path="seguridad"
               element={
@@ -180,7 +180,7 @@ export default function App() {
           </Route>
         </Route>
 
-        {/* Cualquier otra ruta redirige */}
+      
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

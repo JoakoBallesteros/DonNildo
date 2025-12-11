@@ -1,4 +1,3 @@
-// web/src/pages/SegAuditoria.jsx
 import React, { useMemo, useState, useEffect, useCallback } from "react";
 import PageContainer from "../components/pages/PageContainer";
 import DataTable from "../components/tables/DataTable";
@@ -13,7 +12,7 @@ const TABS = [
   "Seguridad",
 ];
 
-const PAGE_SIZE = 10; // ⬅️ cantidad de filas por página
+const PAGE_SIZE = 10; 
 
 export default function SegAuditoria() {
   const [q, setQ] = useState("");
@@ -39,7 +38,6 @@ export default function SegAuditoria() {
     });
   };
 
-  // Carga desde la API (q + tab se van por querystring)
   const loadEvents = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -68,10 +66,10 @@ export default function SegAuditoria() {
   }, [loadEvents]);
 
   const handleSetTab = (t) => {
-    setTab(t); // loadEvents se dispara por el cambio de dependencia 'tab'
+    setTab(t); 
   };
 
-  // Columnas alineadas con el modelo Auditoria: id, fechaHora, evento, módulo, descripción (+ usuario)
+  
   const cols = useMemo(
     () => [
       {
@@ -118,7 +116,7 @@ export default function SegAuditoria() {
         nowrap: true,
         sortable: true,
       },
-      // descripción / mensaje
+  
       {
         id: "det",
         header: "Descripción",
@@ -128,7 +126,7 @@ export default function SegAuditoria() {
     []
   );
 
-  // Filtrado por TAB + fechas
+
   const filtered = useMemo(() => {
     let out = rawEvents;
 
@@ -218,7 +216,7 @@ export default function SegAuditoria() {
           </div>
         </div>
 
-        {/* chips módulo */}
+     
         <div className="mt-5 flex gap-2 flex-wrap">
           {TABS.map((t) => (
             <button

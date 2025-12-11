@@ -3,16 +3,14 @@ import { Plus, Search } from "lucide-react";
 
 import api from "../lib/apiClient";
 
-/* Layout */
+
 import PageContainer from "../components/pages/PageContainer.jsx";
-/* Tabla genérica */
+
 import DataTable from "../components/tables/DataTable.jsx";
-/* Modal genérico */
+
 import Modal from "../components/modals/Modals.jsx";
 
-/* =======================
- * Helpers
- * ======================= */
+
 
 function mapProveedorFromApi(p) {
   return {
@@ -31,9 +29,8 @@ const emptyForm = {
   direccion: "",
 };
 
-// Formatea CUIT como XX-XXXXXXXX-X mientras el usuario escribe
 function formatCuit(raw) {
-  const digits = raw.replace(/\D/g, "").slice(0, 11); // solo números, máx 11
+  const digits = raw.replace(/\D/g, "").slice(0, 11); 
 
   if (digits.length <= 2) return digits;
   if (digits.length <= 10) {
@@ -54,13 +51,11 @@ export default function Proveedores() {
 
   // modal ABM
   const [isFormOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState(null); // proveedor en edición o null
+  const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
 
-  /* =======================
-   * Carga inicial
-   * ======================= */
+ 
   useEffect(() => {
     async function fetchProveedores() {
       try {
@@ -90,9 +85,7 @@ export default function Proveedores() {
     fetchProveedores();
   }, []);
 
-  /* =======================
-   * Filtro buscar
-   * ======================= */
+
   const filtered = useMemo(() => {
     if (!search.trim()) return rows;
     const q = search.trim().toLowerCase();
@@ -103,9 +96,7 @@ export default function Proveedores() {
     );
   }, [rows, search]);
 
-  /* =======================
-   * Handlers ABM
-   * ======================= */
+ 
 
   function openNew() {
     setEditing(null);
@@ -144,7 +135,7 @@ export default function Proveedores() {
   async function handleSubmit(e) {
     e.preventDefault();
 
-    // validación simple de CUIT: 11 dígitos
+
     const cuitDigits = form.cuit.replace(/\D/g, "");
     if (cuitDigits.length !== 11) {
       alert("El CUIT debe tener 11 dígitos (formato XX-XXXXXXXX-X).");
@@ -184,7 +175,6 @@ export default function Proveedores() {
       if (resp.proveedor) {
         updatedProveedor = mapProveedorFromApi(resp.proveedor);
       } else {
-        // fallback si la API no devuelve el proveedor
         updatedProveedor = {
           id: editing?.id ?? resp.id ?? null,
           ...payload,
@@ -239,9 +229,7 @@ export default function Proveedores() {
     }
   }
 
-  /* =======================
-   * Columnas tabla
-   * ======================= */
+  
 
   const columns = [
     {
@@ -295,9 +283,6 @@ export default function Proveedores() {
     },
   ];
 
-  /* =======================
-   * Render
-   * ======================= */
 
   return (
     <PageContainer

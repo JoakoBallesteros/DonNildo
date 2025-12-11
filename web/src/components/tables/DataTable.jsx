@@ -1,4 +1,3 @@
-// src/components/tables/DataTable.jsx
 import React, { useMemo, useState, useEffect } from "react";
 
 export default function DataTable({
@@ -8,7 +7,7 @@ export default function DataTable({
   onRowClick,
   emptyLabel = "No hay datos",
 
-  // clases por defecto
+  
   tableClass = "w-full text-sm border-collapse table-fixed",
   theadClass = "bg-[#e8f4ef] text-[#154734]",
   tbodyClass = "",
@@ -19,14 +18,13 @@ export default function DataTable({
   zebra = false,
   stickyHeader = true,
 
-  // features
-  enableSort = false,
+ 
   enableFilters = false,
 
-  // wrapper (ahora se aplica al contenedor scroll interno)
+
   wrapperClass = "",
 
-  // paginación
+
   enablePagination = true,
   pageSize = 10,
 }) {
@@ -57,10 +55,10 @@ export default function DataTable({
   const setFilter = (colId, payload) =>
     setFilters((prev) => ({ ...prev, [colId]: payload }));
 
-  // ---------- estado de paginación ----------
+ 
   const [page, setPage] = useState(1);
 
-  // si cambian datos/filtros/orden, volvemos a la página 1
+  
   useEffect(() => {
     setPage(1);
   }, [data, filters, sort]);
@@ -72,7 +70,7 @@ export default function DataTable({
     return sort.dir === "asc" ? <span>▲</span> : <span>▼</span>;
   };
 
-  // ---------- data procesada (filtros + sort) ----------
+  
   const processed = useMemo(() => {
     let out = [...data];
 
@@ -156,7 +154,7 @@ export default function DataTable({
     return out;
   }, [data, columns, enableFilters, filters, enableSort, sort]);
 
-  // ---------- aplicar paginación ----------
+ 
   const totalRows = processed.length;
   const safePageSize = pageSize > 0 ? pageSize : 10;
   const totalPages = enablePagination
@@ -182,7 +180,7 @@ export default function DataTable({
 
   return (
     <div className="relative bg-white rounded-xl border border-[#e3e9e5]">
-      {/* 🔹 contenedor con scroll (antes era el root) */}
+      {/* contenedor con scroll (antes era el root) */}
       <div
         className={[
           "max-h-[320px] overflow-y-auto overflow-x-auto",

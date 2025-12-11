@@ -1,4 +1,3 @@
-// src/pages/StockPesaje.jsx
 import React, { useMemo, useState, useEffect, useCallback} from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
@@ -35,26 +34,26 @@ function IconButton({ children, className = "", ...rest }) {
 }
 
 export default function StockPesaje() {
-  // === materiales desde backend
+ 
   const [materiales, setMateriales] = useState([]);
   const [loadingMat, setLoadingMat] = useState(true);
   const [err, setErr] = useState("");
 
-  // form alta
+
   const [matId, setMatId] = useState("");
   const [cantidad, setCantidad] = useState("");
   const [precioKg, setPrecioKg] = useState("");
   const [obsFila, setObsFila] = useState("");
   const [loadingSubmit, setLoadingSubmit] = useState(false);
-  // lista en pantalla
+ 
   const [items, setItems] = useState([]);
   const [isCancelConfirmOpen, setCancelConfirmOpen] = useState(false);
 
-  // modal editar fila
+  
   const [editOpen, setEditOpen] = useState(false);
   const [editRow, setEditRow] = useState(null);
 
-  // modal mensajes (éxito / error)
+  
   const [messageModal, setMessageModal] = useState({
     isOpen: false,
     title: "",
@@ -69,9 +68,7 @@ export default function StockPesaje() {
     setObsFila("");
   };
 
-  // =========================
-  // Cargar materiales desde API
-  // =========================
+  
   const loadMateriales = useCallback(async () => {
     try {
       setLoadingMat(true);
@@ -90,9 +87,7 @@ export default function StockPesaje() {
     loadMateriales();
   }, [loadMateriales]);
 
-  // =========================
-  // Alta de fila
-  // =========================
+  
   const onAdd = () => {
     const material = materiales.find(
       (m) => String(m.id_producto) === String(matId)
@@ -122,7 +117,7 @@ export default function StockPesaje() {
     setItems((prev) => [
       ...prev,
       {
-        id: genId(), // acá usamos genId en vez de crypto.randomUUID()
+        id: genId(),
         id_producto: material.id_producto,
         tipo: material.nombre,
         unidad: material.unidad_stock || "kg",
@@ -133,7 +128,7 @@ export default function StockPesaje() {
       },
     ]);
 
-    limpiarForm(); //  esto queda igual, solo limpia los inputs
+    limpiarForm();
   };
 
   const onDelete = (row) => {
@@ -160,11 +155,9 @@ export default function StockPesaje() {
     setItems((prev) => prev.map((r) => (r.id === editRow.id ? recalc : r)));
   };
 
-  // =========================
-  // Confirmar pesaje -> API
-  // =========================
+  
 const onConfirm = async () => {
-  if (loadingSubmit) return; // 🟢 evita doble clic
+  if (loadingSubmit) return; 
 
   if (!items.length) {
     setMessageModal({
@@ -176,7 +169,7 @@ const onConfirm = async () => {
     return;
   }
 
-  setLoadingSubmit(true); // 🟢 activa loading
+  setLoadingSubmit(true); 
 
   try {
     const payload = {
@@ -215,24 +208,22 @@ const onConfirm = async () => {
       type: "error",
     });
   } finally {
-    setLoadingSubmit(false); // 🟢 vuelve botón a normal
+    setLoadingSubmit(false);
   }
 };
 
   const handleCancelClick = () => {
-    if (items.length > 0) {       // REEMPLAZAR por tu condición
+    if (items.length > 0) {      
       setCancelConfirmOpen(true);
     } else {
-      navigate("/stock");                 // REEMPLAZAR por la ruta destino
+      navigate("/stock");                
     }
   };
   const handleCancelConfirm = () => {
     setCancelConfirmOpen(false);
-    navigate("/stock");        // REEMPLAZAR con la ruta destino
+    navigate("/stock");        
   };
-  // =========================
-  // Columnas tabla
-  // =========================
+ 
   const columns = useMemo(
     () => [
       {
@@ -426,7 +417,7 @@ const onConfirm = async () => {
                   height: "230px",
                 }}
               >
-                {/* Contenedor horizontal logo + texto */}
+               
                 <div
                   style={{
                     display: "flex",
@@ -435,7 +426,7 @@ const onConfirm = async () => {
                     marginBottom: "12px",
                   }}
                 >
-                  {/* LOGO REDONDO */}
+                 
                   <img
                     src={Logo}
                     alt="Logo"
@@ -447,7 +438,7 @@ const onConfirm = async () => {
                     }}
                   />
 
-                  {/* TEXTO AL LADO DEL LOGO */}
+                
                   <div style={{ textAlign: "left" }}>
                     <h2
                       style={{
@@ -471,7 +462,7 @@ const onConfirm = async () => {
                   </div>
                 </div>
 
-                {/* FECHA */}
+               
                 <p
                   style={{
                     fontSize: "12px",
@@ -631,7 +622,7 @@ const onConfirm = async () => {
         </div>
       </div>
 
-      {/* Modal editar fila */}
+    
       {editRow && (
         <Modified
           isOpen={editOpen}
@@ -671,7 +662,7 @@ const onConfirm = async () => {
         />
       )}
 
-      {/* Modal mensajes (éxito / error) */}
+
       <MessageModal
         isOpen={messageModal.isOpen}
         title={messageModal.title}

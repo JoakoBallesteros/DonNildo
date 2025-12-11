@@ -1,4 +1,3 @@
-// src/pages/Compras.jsx
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Filter, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -20,7 +19,7 @@ const fmtARS = new Intl.NumberFormat("es-AR", {
   maximumFractionDigits: 0,
 });
 
-// Saca el número de un ID tipo "OC-0012" → 12
+
 function getNumericIdFromDisplay(id) {
   if (typeof id === "number") return id;
   const match = String(id).match(/(\d+)$/);
@@ -28,7 +27,7 @@ function getNumericIdFromDisplay(id) {
 }
 
 function mapCompraFromApi(c) {
-  // Normalizamos varios posibles nombres de campos para que el front no explote
+  
   const idRaw = c.id ?? c.id_compra ?? c.numero_oc;
   const id =
     typeof idRaw === "string"
@@ -37,7 +36,7 @@ function mapCompraFromApi(c) {
       ? `OC-${String(idRaw).padStart(4, "0")}`
       : "OC-S/N";
 
-  // ID numérico real de la compra en la DB
+  
   const dbId =
     typeof c.id_compra === "number"
       ? c.id_compra
@@ -59,7 +58,7 @@ function mapCompraFromApi(c) {
   const total = Number(c.total ?? 0);
   const obs = c.observaciones ?? c.obs ?? "—";
 
-  // Detalles: puede venir como items, detalles, detalle_compra, etc.
+
   const rawItems = c.items ?? c.detalles ?? c.detalle_compra ?? [];
 
   const items = rawItems.map((it, idx) => ({
@@ -109,9 +108,7 @@ export default function Compras() {
     type: "",
   });
 
-  /* ======================
-   * Cargar compras de la API
-   * ====================== */
+ 
   useEffect(() => {
     async function fetchCompras() {
       try {
@@ -139,7 +136,6 @@ export default function Compras() {
     fetchCompras();
   }, [mostrarAnuladas]);
 
-  /* Filtrado */
   const filtered = useMemo(() => {
     return rows
       .filter((r) => {
@@ -180,9 +176,7 @@ export default function Compras() {
     setResetSignal((x) => x + 1);
   }
 
-  // =========================
-  // DESCARGAR PDF
-  // =========================
+ 
   const handleDownloadDetalleCompra = (compra) => {
     const doc = new jsPDF();
 
@@ -191,17 +185,17 @@ export default function Compras() {
       return;
     }
 
-    // ID visual (OC-0005)
+ 
     const compraCodigo = compra.id || "OC-S/N";
 
-    // ID real en la BD
+
     const compraId = compra.dbId || compra.id_compra || null;
 
     const fecha = compra.fecha || new Date().toISOString().slice(0, 10);
     const proveedor = compra.proveedor || "—";
     const obs = compra.obs || "—";
 
-    // ====== ENCABEZADO ======
+
     doc.setFontSize(16);
     doc.text(`Detalle de Compra ${compraId}`, 14, 20);
 
@@ -210,7 +204,7 @@ export default function Compras() {
     doc.text(`Fecha: ${fecha}`, 14, 36);
     doc.text(`Observaciones: ${obs}`, 14, 42);
 
-    // ====== TABLA ======
+
     const head = [
       ["Producto", "Cantidad", "Medida", "Precio Unit.", "Subtotal"],
     ];
@@ -229,7 +223,7 @@ export default function Compras() {
       body,
     });
 
-    // ====== TOTAL ======
+
     const finalY = doc.lastAutoTable.finalY + 10;
 
     doc.text(
@@ -238,7 +232,7 @@ export default function Compras() {
       finalY
     );
 
-    // ====== DESCARGA ======
+
     setTimeout(() => {
       doc.save(`Detalle de ${compraCodigo}.pdf`);
     }, 100);
@@ -252,7 +246,7 @@ export default function Compras() {
     setDetailOpen(true);
   }
 
-  // ===> ANULA EN BACKEND Y DESPUÉS ACTUALIZA EL FRONT
+
   async function confirmarAnulacion() {
     if (!compraIdToAnular) return;
 
@@ -266,7 +260,7 @@ export default function Compras() {
       if (!resp?.ok) {
         setMessageModal({
           isOpen: true,
-          title: "❌ Error al anular",
+          title: "Error al anular",
           text: resp?.message || "No se pudo anular la compra.",
           type: "error",
         });
@@ -275,7 +269,7 @@ export default function Compras() {
 
       setMessageModal({
         isOpen: true,
-        title: "✅ Compra anulada",
+        title: "Compra anulada",
         text: `La compra ${compraIdToAnular} fue anulada correctamente.`,
         type: "success",
       });
@@ -432,14 +426,14 @@ export default function Compras() {
   const computeTotal = (list) =>
     list.reduce((sum, it) => sum + Number(it.subtotal || 0), 0).toFixed(2);
 
-  // ===> GUARDA EN BACKEND Y LUEGO ACTUALIZA LA FILA
+ 
   async function onSaveEdit(updated) {
     const compraId =
       updated.dbId ??
       updated.id_compra ??
       getNumericIdFromDisplay(updated.id);
 
-    // Actualización visual inmediata (optimista)
+   
     setRows((prev) =>
       prev.map((r) => (r.id === updated.id ? { ...r, ...updated } : r))
     );
@@ -552,7 +546,7 @@ export default function Compras() {
             columns={columns}
             data={filtered}
             zebra={false}
-            /* header pegado arriba cuando scrolleás dentro de la card */
+         
             stickyHeader={true}
             wrapperClass="dn-table-wrapper overflow-y-auto shadow-sm"
             tableClass="w-full text-sm text-center border-collapse"

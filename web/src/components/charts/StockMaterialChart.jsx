@@ -9,15 +9,15 @@ import {
 } from "recharts";
 import api from "../../lib/apiClient";
 
-const COLORS = ["#6A9CE3", // Azul suave
-  "#E28A3A", // Naranja apagado
-  "#73C2A1", // Verde menta apagado
-  "#C47AC0", // Violeta pastel
-  "#F2C14E", // Amarillo suave
-  "#8CC0DE", // Celeste apagado
-  "#D96A1F", // Naranja oscuro suave
-  "#4ABB88", // Verde apagado
-  "#B08FCC", // Lavanda suave
+const COLORS = ["#6A9CE3", 
+  "#E28A3A", 
+  "#73C2A1", 
+  "#C47AC0", 
+  "#F2C14E", 
+  "#8CC0DE", 
+  "#D96A1F", 
+  "#4ABB88", 
+  "#B08FCC", 
   "#A4D4AE"  ];
 
 export default function StockMaterialChart() {
@@ -44,7 +44,7 @@ export default function StockMaterialChart() {
     loadData();
   }, []);
 
-  // Tooltip personalizado
+
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
       const item = payload[0].payload;

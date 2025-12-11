@@ -1,4 +1,3 @@
-// ListaVentas.jsx
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { Plus, Filter, Download } from "lucide-react";
 import jsPDF from "jspdf";
@@ -53,9 +52,7 @@ export default function Ventas() {
     type: "",
   });
 
-  // =========================
-  // FILTROS
-  // =========================
+
   const handleFilterSelect = (tipo) => setFiltroTipo(tipo);
 
   const aplicarFiltros = ({ buscar, desde, hasta, tipo }) => {
@@ -69,9 +66,6 @@ export default function Ventas() {
     setResetSignal((n) => n + 1);
   };
 
-  // =========================
-  // CARGA DE DATOS DESDE BACKEND
-  // =========================
 
   const loadVentas = useCallback(async () => {
     try {
@@ -92,9 +86,7 @@ export default function Ventas() {
     loadVentas();
   }, [loadVentas]);
 
-  // =========================
-  // MODALES
-  // =========================
+  
   const [selectedVenta, setSelectedVenta] = useState(null);
   const [isDetailOpen, setDetailOpen] = useState(false);
 
@@ -180,7 +172,6 @@ export default function Ventas() {
     const productos = venta.productos;
     const obs = venta.observaciones ?? null;
 
-    // --- PDF ---
     doc.setFontSize(16);
     doc.text(`Remito de Venta N° ${ventaId}`, 14, 20);
 
@@ -202,12 +193,10 @@ export default function Ventas() {
       doc.lastAutoTable.finalY + 10
     );
 
-    // Descargar PDF
     setTimeout(() => {
       doc.save(`Remito_Venta_${ventaId}.pdf`);
     }, 100);
 
-    // --- GUARDAR REMITO EN BD ---
     try {
       const payload = {
         id_venta: ventaId,
@@ -244,9 +233,7 @@ export default function Ventas() {
     }
   };
 
-  // =========================
-  // FILTROS DE VISUALIZACIÓN
-  // =========================
+  
 
   const ventasFiltradas = useMemo(() => {
     const tsel = TIPO_MAP[filtroTipo];
@@ -282,9 +269,7 @@ export default function Ventas() {
       .replace(/\//g, "-"); // 25-11-2025
   };
 
-  // =========================
-  // COLUMNAS TABLA
-  // =========================
+ 
   const columns = [
     {
       id: "numero",
@@ -464,9 +449,7 @@ export default function Ventas() {
     },
   ];
 
-  // =========================
-  // RENDER PRINCIPAL
-  // =========================
+ 
   return (
     <PageContainer
       title="Lista de Ventas"
@@ -675,7 +658,7 @@ export default function Ventas() {
                 : "bg-[#9b102e] text-white opacity-60 cursor-not-allowed"
             }`}
             >
-              🗑️ Eliminar seleccionados
+               Eliminar seleccionados
             </button>
           </div>
 

@@ -17,10 +17,9 @@ export default function CategoriaChart() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // --- FORMATEO DE LABELS ---
+ 
   const formatLabel = (label, periodo) => {
     if (periodo === "semanas") {
-      // label viene del backend como: "2025-47"
       const parts = label.split("-");
       const week = parts[1] || label;
       return `Sem ${week}`;
@@ -28,7 +27,7 @@ export default function CategoriaChart() {
     return label;
   };
 
-  // --- CARGA DE DATOS ---
+
   const loadData = useCallback(async () => {
     setLoading(true);
 
@@ -37,7 +36,7 @@ export default function CategoriaChart() {
         `/api/dashboard/categoria?periodo=${periodo}&origen=${origen}`
       );
 
-      // Asegurar orden correcto por label por las dudas
+  
       const sorted = (result || []).sort((a, b) =>
         a.label.localeCompare(b.label)
       );
@@ -61,7 +60,7 @@ export default function CategoriaChart() {
         Montos Obtenidos Por Categoria
       </h3>
 
-      {/* FILTROS */}
+
       <div className="flex gap-3 mb-8">
         <select
           value={periodo}
@@ -83,7 +82,6 @@ export default function CategoriaChart() {
         </select>
       </div>
 
-      {/* CHART */}
       {loading ? (
         <p className="text-slate-500">Cargando...</p>
       ) : data.length === 0 ? (
@@ -94,11 +92,11 @@ export default function CategoriaChart() {
         <ResponsiveContainer width="100%" height={350}>
            <BarChart 
             data={data}
-            margin={{ top: 20, right: 20, left: 20, bottom: 20 }}   // ⭐ deja espacio para el label
+            margin={{ top: 20, right: 20, left: 20, bottom: 20 }}  
           >
             <CartesianGrid strokeDasharray="3 3" />
 
-            {/* EJE X con labels corregidos */}
+      
             <XAxis
               dataKey="label"
               tickFormatter={(label) => formatLabel(label, periodo)}
@@ -120,7 +118,7 @@ export default function CategoriaChart() {
             
             <Tooltip
               formatter={(value, name, props) => {
-                const key = props.dataKey; // este SIEMPRE es "cajas" o "materiales"
+                const key = props.dataKey; 
 
                 const label =
                   key === "cajas"

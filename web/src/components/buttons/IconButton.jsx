@@ -1,13 +1,5 @@
 import React from "react";
 
-/** Botón con ícono reutilizable
- * props:
- *  - onClick, title
- *  - className (opcional)
- *  - children  -> ícono (ej: <Printer />)
- *  - label     -> texto opcional a la derecha del ícono
- *  - variant: "ghost" | "outline" | "solid"
- */
 export default function IconButton({
   onClick,
   title,

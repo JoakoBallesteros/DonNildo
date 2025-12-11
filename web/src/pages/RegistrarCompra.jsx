@@ -1,15 +1,12 @@
-// src/pages/RegistrarCompra.jsx
 import { useEffect, useMemo, useRef, useState,  } from "react";
 import MessageModal from "../components/modals/MessageModal";
 import { Plus, ChevronDown, Calendar } from "lucide-react";
 import api from "../lib/apiClient";
 import { useNavigate, useParams } from "react-router-dom";
-/* Layout & UI */
 import PageContainer from "../components/pages/PageContainer.jsx";
 import PrimaryButton from "../components/buttons/PrimaryButton.jsx";
 import IconButton from "../components/buttons/IconButton.jsx";
 import DataTable from "../components/tables/DataTable.jsx";
-/* Formularios / Modales */
 import ProductFormTabs from "../components/forms/ProductFormTabs.jsx";
 import Modal from "../components/modals/Modals.jsx";
 import Modified from "../components/modals/Modified.jsx";
@@ -18,10 +15,10 @@ import FormBuilder from "../components/forms/FormBuilder.jsx";
 import SecondaryButton from "../components/buttons/SecondaryButton.jsx";
 
 
-//Persistencia
+
 const NEW_BUY_KEY = "dn_new_buy_items";
 const SESSION_KEY = "dn_pending_buy_items";
-/* ====== Helpers ====== */
+
 const fmt = new Intl.NumberFormat("es-AR", {
   style: "currency",
   currency: "ARS",
@@ -32,25 +29,24 @@ const toNumber = (v) => {
   const s = String(v).trim();
   if (!s) return 0;
 
-  // Caso formato latino: 1.234,56 → quitamos puntos y usamos coma como decimal
+  
   if (s.includes(",") && !s.includes(".")) {
     const normalized = s.replace(/\./g, "").replace(",", ".");
     return Number(normalized) || 0;
   }
 
-  // Caso normal: 600 o 600.50 → dejamos el punto como decimal
+  
   const normalized = s.replace(/[^0-9.]/g, "");
   return Number(normalized) || 0;
 };
 
-/* ====== Página ====== */
+
 export default function RegistrarCompra() {
    const { id } = useParams();
   const isEditMode = Boolean(id); 
 
 
 
-// 🔥 PUNTO 4 — CARGA DE DATOS EN MODO EDICIÓN
 useEffect(() => {
   if (!isEditMode) return;
 
@@ -65,23 +61,19 @@ useEffect(() => {
 
       const c = res.compra;
 
-      // ============================
-      // CABECERA
-      // ============================
+      
       setProveedor(c.id_proveedor ?? "");
       setFecha(
         c.fecha ? new Date(c.fecha).toISOString().slice(0, 10) : ""
       );
       setObs(c.observaciones ?? "");
 
-      // ============================
-      // ÍTEMS
-      // ============================
+      
       const adaptados = (res.items || []).map(it => ({
-        id: crypto.randomUUID(),     // ID local interno
-        prodId: it.id_producto,      // ID real para guardar
-        producto: it.producto,       // nombre
-        tipo: it.tipo,               // Caja / Material
+        id: crypto.randomUUID(),     
+        prodId: it.id_producto,      
+        producto: it.producto,      
+        tipo: it.tipo,               
         medida: it.medida || "u",
         cantidad: Number(it.cantidad),
         precioUnit: Number(it.precio_unitario),
@@ -99,20 +91,20 @@ useEffect(() => {
 }, [id, isEditMode]);
 
 
-  // Catálogos desde la API
-  const [productos, setProductos] = useState([]); // [{id, nombre, tipo, medida, precioRef}]
-  const [proveedores, setProveedores] = useState([]); // [{id, nombre, cuit?}]
+  
+  const [productos, setProductos] = useState([]); 
+  const [proveedores, setProveedores] = useState([]); 
   
   // Form principal
   const [producto, setProducto] = useState(null);
 
   const [cantidad, setCantidad] = useState("");
   const [precioUnit, setPrecioUnit] = useState("");
-  const [proveedor, setProveedor] = useState(""); // guarda el id del proveedor
+  const [proveedor, setProveedor] = useState(""); 
   const [fecha, setFecha] = useState("");
   const [obs, setObs] = useState("");
 
-  // Items agregados
+
   const [items, setItems] = useState(() => {
     if (isEditMode) return [];
 
@@ -124,12 +116,12 @@ useEffect(() => {
     }
   });
 
-  // Modales
+  
   const [newProdOpen, setNewProdOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editRow, setEditRow] = useState(null);
   const [isCancelConfirmOpen, setCancelConfirmOpen] = useState(false);
-    // Estados para Eliminación de Ítem (Borrador)
+    
     const [isItemDeleteConfirmOpen, setItemDeleteConfirmOpen] = useState(false);
    const [itemToDeleteIndex, setItemToDeleteIndex] = useState(null);
   const [messageModal, setMessageModal] = useState({
@@ -139,7 +131,7 @@ useEffect(() => {
     type: "",
   });
 
-  // Focus
+  
   const cantRef = useRef(null);
   useEffect(() => {
   if (!isEditMode) {
@@ -154,9 +146,7 @@ useEffect(() => {
   }
 }, [isEditMode]);
 
-  // ==========================
-  // Cargar catálogos desde BD
-  // ==========================
+  
   useEffect(() => {
     async function cargarCatalogos() {
       try {
@@ -165,16 +155,16 @@ useEffect(() => {
           api("/api/compras/proveedores"),
         ]);
 
-        // Productos
+        
         if (resProd?.ok && Array.isArray(resProd.productos)) {
           const mappedProd = resProd.productos.map((p) => {
-            // Intentamos mapear diferentes nombres de campos a la forma que usa la UI
+            
             const id = p.id ?? p.id_producto;
             const nombre = p.nombre;
             const categoria = p.categoria ?? p.categoria_nombre;
             const tipoDb = p.tipo ?? p.tipo_nombre;
 
-            // Tipo visual: "Cajas" o "Productos"
+           
             const tipo =
               tipoDb ??
               (categoria === "Cajas" ? "Cajas" : "Productos");
@@ -193,7 +183,7 @@ useEffect(() => {
           setProductos(mappedProd);
         }
 
-        // Proveedores
+        
         if (resProv?.ok && Array.isArray(resProv.proveedores)) {
           const mappedProv = resProv.proveedores.map((p) => ({
             id: p.id ?? p.id_proveedor,
@@ -236,7 +226,7 @@ useEffect(() => {
       (it) => it.prodId === producto.id
     );
 
-    // Si el producto YA EXISTE → actualizar cantidad y subtotal
+    
     if (existingIndex !== -1) {
       setItems((prev) =>
         prev.map((it, idx) => {
@@ -252,7 +242,7 @@ useEffect(() => {
         })
       );
     } else {
-      // Si NO existe → agregar nuevo ítem
+    
       const nuevo = {
         id: crypto.randomUUID(),
         tipo: producto.tipo,
@@ -269,7 +259,7 @@ useEffect(() => {
       setItems((prev) => [...prev, nuevo]);
     }
 
-    // limpiar inputs (pero NO la observación general)
+  
     setCantidad("");
     setPrecioUnit("");
     setProducto(null);
@@ -280,9 +270,9 @@ useEffect(() => {
     [items]
   );
 
-  //guardar
+  
 
-  // 👉 POST al backend
+
   const handleGuardarCompra = async () => {
  try {
        if (items.length === 0) {
@@ -312,7 +302,7 @@ useEffect(() => {
        if (response.ok) {
          setMessageModal({
            isOpen: true,
-           title: "✅ ¡Compra Registrada!",
+           title: "¡Compra Registrada!",
            text: `La compra N° ${response.id_compra} ha sido registrada correctamente y el stock actualizado.`,
            type: "success",
          });
@@ -330,7 +320,7 @@ useEffect(() => {
  
        let friendlyMsg =
          "Error al comunicarse con el servidor. Intente más tarde.";
-       let title = "❌ Error al Guardar";
+       let title = " Error al Guardar";
  
        if (err.message.includes("STOCK_INSUFICIENTE")) {
          const match = err.message.match(/STOCK_INSUFICIENTE: (.*)/);
@@ -342,14 +332,14 @@ useEffect(() => {
            friendlyMsg =
              "Stock insuficiente para uno o más productos. Por favor, verifique el inventario.";
          }
-         title = "⚠️ Stock Insuficiente";
+         title = " Stock Insuficiente";
        } else if (
          err.message.includes("NETWORK_FAILURE") ||
          err.message.includes("404")
        ) {
          friendlyMsg =
            "No se pudo conectar al sistema. Asegúrese de que el backend esté activo.";
-         title = "❌ Error de Conexión";
+         title = " Error de Conexión";
        } else if (err.message.includes("500")) {
          friendlyMsg =
            "Ocurrió un error inesperado en el servidor. Revise el log de Express.";
@@ -364,7 +354,6 @@ useEffect(() => {
      }
    };
 
-   // Handlers para CANCELAR (Confirma pérdida de borrador)
       const handleCancelClick = () => {
         if (items.length > 0) {
           setCancelConfirmOpen(true);
@@ -375,7 +364,7 @@ useEffect(() => {
 
       const handleCancelConfirm = () => {
         sessionStorage.removeItem(NEW_BUY_KEY);
-        sessionStorage.removeItem(SESSION_KEY); // <-- Limpiar storage
+        sessionStorage.removeItem(SESSION_KEY); 
       
         setCancelConfirmOpen(false);
         navigate("/compras");
@@ -462,7 +451,7 @@ const handleNewProductSubmit = async (values) => {
 
 
 
-  // ===== Edición de un ítem con Modified (adapter precioUnit <-> precio) =====
+ 
   const editColumns = [
     { key: "tipo", label: "Tipo", readOnly: true},
     {
@@ -504,13 +493,13 @@ const handleNewProductSubmit = async (values) => {
     list.reduce((sum, r) => sum + Number(r.subtotal || 0), 0).toFixed(2);
 
   function abrirEditar(row) {
-    const rowForEdit = { ...row, precio: row.precioUnit }; // mapeo al nombre que Modified utiliza
+    const rowForEdit = { ...row, precio: row.precioUnit }; 
     setEditRow(rowForEdit);
     setEditOpen(true);
   }
 
   function onSaveEdit(updatedObj) {
-    // puede venir como { items:[fila] } o como objeto directo
+ 
     const edited = (updatedObj?.items && updatedObj.items[0]) || updatedObj;
     const normalized = {
       ...edited,
@@ -539,7 +528,7 @@ const handleNewProductSubmit = async (values) => {
     .filter((v) => v.tipo === "Material")
     .reduce((a, v) => a + Number(v.cantidad), 0);
 
-  /* ====== DataTable: Próximos a confirmar ====== */
+  
   const columns = [
     {
       id: "tipo",
@@ -816,8 +805,8 @@ const handleNewProductSubmit = async (values) => {
 
         </div>
 
-      {/* === MODALES (iguales a los tuyos, sin tocar nada) === */}
-      {/** Mantengo todo igual aquí */}
+     
+     
       {newProdOpen && (
         <Modal
           isOpen={newProdOpen}

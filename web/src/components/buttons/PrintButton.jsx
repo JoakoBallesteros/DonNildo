@@ -1,10 +1,7 @@
 import React from "react";
 import { Printer } from "lucide-react";
 
-/**
- * Imprime solo el nodo con id = targetId.
- * Si no pasás targetId -> imprime toda la página (window.print()).
- */
+
 export default function PrintButton({
   targetId,
   label = "Imprimir",
@@ -12,7 +9,7 @@ export default function PrintButton({
   disabled = false,
 }) {
   const handlePrint = () => {
-    if (disabled) return; // 🛑 EVITA que se imprima cuando está desactivado
+    if (disabled) return; 
 
     if (!targetId) {
       window.print();
@@ -59,7 +56,7 @@ export default function PrintButton({
     <button
       onClick={(e) => {
         if (disabled) {
-          e.preventDefault(); // 🛑 bloquea el click
+          e.preventDefault();
           return;
         }
         handlePrint();

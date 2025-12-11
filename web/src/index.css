@@ -24,10 +24,9 @@ body {
 }
 
 @layer utilities {
-  /* ===== HOME: ocupar la pantalla sin pasarse ===== */
 
  .dn-home-page {
-  /* restamos un poco más que el header para evitar cualquier overflow */
+ 
   min-height: calc(100vh - 120px);
   display: flex;
   flex-direction: column;
@@ -39,7 +38,7 @@ body {
 
   @media (max-height: 900px) {
     .dn-home-page {
-      /* en pantallas bajitas, dejamos de centrar tanto */
+      
       justify-content: flex-start;
       padding-top: 0.75rem;
       padding-bottom: 0.75rem;
@@ -53,36 +52,30 @@ body {
     }
   }
 
-  /* ============================
-   * Tablas (listas, stock, reportes, etc.)
-   * ============================ */
 
-  /* Altura por defecto en pantallas “normales” */
+
+ 
   .dn-table-wrapper {
     max-height: 430px;
   }
 
-  /* Versión más bajita (remitos, tablas secundarias) */
+ 
   .dn-table-wrapper-sm {
     max-height: 320px;
   }
 
-  /* Versión alta (stock, reportes, pesajes, etc.) */
+
   .dn-table-wrapper-tall {
     max-height: 480px;
   }
 
-  /* ============================
-   * Ajustes cuando la pantalla es baja de ALTO
-   * ============================ */
+  
 
   @media (max-height: 900px) {
-    /* Menos padding general alrededor de las tarjetas */
     .dn-page {
       padding-block: 1.25rem;
     }
 
-    /* Header del dashboard más compacto */
     .dn-home-header {
       margin-block: 1.5rem;
       gap: 0.75rem;
@@ -97,7 +90,6 @@ body {
       font-size: 1.6rem;
     }
 
-    /* Tablas un poco más chicas */
     .dn-table-wrapper {
       max-height: 340px;
     }
@@ -112,7 +104,6 @@ body {
   }
 
   @media (max-height: 750px) {
-    /* Aún más compacto en pantallas bien bajitas */
     .dn-page {
       padding-block: 0.75rem;
     }
@@ -131,7 +122,6 @@ body {
       font-size: 1.4rem;
     }
 
-    /* Tablas aún más compactas */
     .dn-table-wrapper {
       max-height: 280px;
     }

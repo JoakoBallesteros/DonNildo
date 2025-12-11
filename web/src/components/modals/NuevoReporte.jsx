@@ -63,9 +63,9 @@ export default function NuevoReporte({ isOpen, onClose, onCreate }) {
   };
 
   try {
-    const result = await onCreate(payload); // usa crearReporteHandler
+    const result = await onCreate(payload); 
 
-    // 👇 Sólo cerramos si ok === true
+    
     if (result?.ok) {
       onClose();
     }

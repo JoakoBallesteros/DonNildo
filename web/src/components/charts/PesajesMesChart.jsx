@@ -9,7 +9,7 @@ export default function PesajesMesChart() {
     async function load() {
       const res = await api("/api/dashboard/pesajes-mes");
 
-      // 🔥 Convertir kilos a enteros (sin decimales)
+  
       const fixed = res.map((item) => ({
         ...item,
         kilos: Math.round(Number(item.kilos) || 0)
@@ -46,7 +46,7 @@ export default function PesajesMesChart() {
           />
 
           <Tooltip 
-            formatter={(value) => Number(value)} // 🔥 Limpio también en tooltip
+            formatter={(value) => Number(value)} 
           />
 
           <Bar dataKey="kilos" fill="#4ABB88" />

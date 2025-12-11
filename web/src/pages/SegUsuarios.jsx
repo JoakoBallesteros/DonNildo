@@ -53,7 +53,7 @@ export default function SegUsuarios() {
     );
   }, [items, q]);
 
-  // Handler para eliminar con manejo de errores
+ 
   const handleEliminar = useCallback(
     async (row) => {
       if (!confirm(`¿Estás seguro de eliminar al usuario ${row.nombre}?`)) {
@@ -61,20 +61,20 @@ export default function SegUsuarios() {
       }
 
       try {
-        console.log("🗑️ Eliminando usuario:", row.id_usuario);
+        console.log(" Eliminando usuario:", row.id_usuario);
 
         await eliminarUsuario(row.id_usuario);
 
-        console.log("✅ Usuario eliminado exitosamente");
+        console.log(" Usuario eliminado exitosamente");
 
-        // Recargar desde el servidor para asegurar sincronización
+  
         await cargar();
       } catch (error) {
-        console.error("❌ Error al eliminar:", error);
+        console.error(" Error al eliminar:", error);
         setErr(`Error al eliminar usuario: ${error.message}`);
         setMessageModal({
           isOpen: true,
-          title: "❌ Error",
+          title: " Error",
           text: `No se pudo eliminar el usuario: ${error.message}`,
           type: "error",
         });

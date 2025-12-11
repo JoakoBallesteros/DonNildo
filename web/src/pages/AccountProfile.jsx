@@ -1,4 +1,4 @@
-// src/pages/AccountProfile.jsx
+
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getAccountMe, updateAccountMe } from "../services/accountService.mjs";
@@ -60,11 +60,10 @@ export default function AccountProfile() {
       });
       setOk("Datos guardados ✓");
 
-      // refrescamos cache local (lo usa la sidebar)
       localStorage.setItem("dn_user_name", updated?.nombre || form.nombre);
       localStorage.setItem("dn_role", updated?.rol || form.rol);
 
-      // Volvemos atrás luego de un pequeño delay
+     
       setTimeout(() => navigate(-1), 800);
     } catch (e) {
       setErr(e.message);

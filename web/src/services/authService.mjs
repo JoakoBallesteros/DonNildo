@@ -1,39 +1,39 @@
-// src/services/authService.mjs
+
 import { supa } from "../lib/supabaseClient";
 import api from "../lib/apiClient";
 
-// Mantener dn_token sincronizado con la sesión de Supabase
+
 supa.auth.onAuthStateChange((_event, session) => {
   const t = session?.access_token || null;
   if (t) localStorage.setItem("dn_token", t);
   else localStorage.removeItem("dn_token");
 });
 
-// Login directo con Supabase + validación en tabla usuarios
+
 export async function signIn(email, password) {
-  // 1) Login en Supabase
+ 
   const { data, error } = await supa.auth.signInWithPassword({
     email,
     password,
   });
   if (error) {
-    // credenciales inválidas
+   
     throw error;
   }
 
-  // 2) Validar contra la API (estado ACTIVO, etc.)
+  
   try {
     const resp = await api("/v1/auth/touch-session", {
       method: "POST",
     });
 
-    // Devolvemos tanto el user de Supabase como el usuario de la app
+    
     return {
       user: data.user,
       appUser: resp?.usuario || null,
     };
   } catch (e) {
-    // Si la API dice que está inactivo / no registrado → cerrar sesión y re-lanzar
+   
     console.warn("[authService] touch-session falló:", e.message);
 
     try {
@@ -51,14 +51,14 @@ export async function signIn(email, password) {
       sessionStorage.clear();
     }
 
-    // e viene armado por apiClient con e.status y e.message
+    
     throw e;
   }
 }
 
 export async function signOut() {
   try {
-    // 1) Auditoría de logout en tu API
+   
     await api("/v1/auth/logout-audit", { method: "POST" });
   } catch (e) {
     console.warn(
@@ -68,10 +68,10 @@ export async function signOut() {
   }
 
   try {
-    // 2) Cerrar sesión en Supabase
+   
     await supa.auth.signOut();
   } finally {
-    // 3) Limpiar TODO lo que use la app.local
+   
     localStorage.removeItem("dn_token");
     localStorage.removeItem("dn_user");
     localStorage.removeItem("dn_refresh");

@@ -1,11 +1,11 @@
-// src/pages/StockPesajesLista.jsx
+
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import PageContainer from "../components/pages/PageContainer";
 import DataTable from "../components/tables/DataTable";
 import PrintButton from "../components/buttons/PrintButton";
 import { apiFetch } from "../lib/apiClient";
 
-// Helpers fecha
+
 function parseToLocalDate(value) {
   if (!value) return null;
   const hasTZ = /[Zz]|[+-]\d{2}:\d{2}$/.test(value);
@@ -58,7 +58,7 @@ export default function StockPesajesLista() {
     loadPesajes();
   }, [loadPesajes]);
 
-  // Columnas usadas tanto en pantalla como impresión
+ 
   const columns = useMemo(
     () => [
       {
@@ -126,7 +126,7 @@ export default function StockPesajesLista() {
         </div>
       )}
 
-      {/* TABLA EN PANTALLA */}
+     
       <div
         id="pesajes-print"
         className="bg-white rounded-2xl border border-[#e3e9e5] p-3 md:p-4"
@@ -198,7 +198,7 @@ export default function StockPesajesLista() {
       <div className="mt-5 flex items-center">
         <div className="ml-auto">
           <PrintButton
-            targetId="pesaje-print-full" // <-- AHORA IMPRIME LA TABLA COMPLETA
+            targetId="pesaje-print-full"
             disabled={rows.length === 0}
             className={rows.length === 0 ? "opacity-50 cursor-not-allowed" : ""}
           />

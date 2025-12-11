@@ -74,7 +74,7 @@ export default function RegistrarVentas() {
     type: "",
   });
 
-  // ===== Carga venta para edición =====
+
   useEffect(() => {
     if (!isEditMode) return;
 
@@ -113,12 +113,12 @@ export default function RegistrarVentas() {
     fetchVenta();
   }, [isEditMode, id]);
 
-  // guardo borrador
+  
   useEffect(() => {
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(ventas));
   }, [ventas]);
 
-  // ===== Productos disponibles =====
+
   const [productosDisponibles, setProductosDisponibles] = useState([]);
   useEffect(() => {
     const fetchProductos = async () => {
@@ -149,10 +149,7 @@ export default function RegistrarVentas() {
     fetchProductos();
   }, []);
 
-  // =========================
-  // HANDLERS
-  // =========================
-
+  
   const handleChange = (name, value) => {
     if (["cantidad", "precio", "descuento"].includes(name)) {
       const n = Number(value);
@@ -365,7 +362,7 @@ export default function RegistrarVentas() {
       if (response.success) {
         setMessageModal({
           isOpen: true,
-          title: "✅ ¡Venta Registrada!",
+          title: " ¡Venta Registrada!",
           text: `La Venta N° ${response.id_venta} ha sido registrada correctamente y el stock actualizado.`,
           type: "success",
         });
@@ -378,7 +375,7 @@ export default function RegistrarVentas() {
 
       let friendlyMsg =
         "Error al comunicarse con el servidor. Intente más tarde.";
-      let title = "❌ Error al Guardar";
+      let title = " Error al Guardar";
 
       if (err.message.includes("STOCK_INSUFICIENTE")) {
         const match = err.message.match(/STOCK_INSUFICIENTE: (.*)/);
@@ -390,14 +387,14 @@ export default function RegistrarVentas() {
           friendlyMsg =
             "Stock insuficiente para uno o más productos. Por favor, verifique el inventario.";
         }
-        title = "⚠️ Stock Insuficiente";
+        title = " Stock Insuficiente";
       } else if (
         err.message.includes("NETWORK_FAILURE") ||
         err.message.includes("404")
       ) {
         friendlyMsg =
           "No se pudo conectar al sistema. Asegúrese de que el backend esté activo.";
-        title = "❌ Error de Conexión";
+        title = " Error de Conexión";
       } else if (err.message.includes("500")) {
         friendlyMsg =
           "Ocurrió un error inesperado en el servidor. Revise el log de Express.";
@@ -412,9 +409,7 @@ export default function RegistrarVentas() {
     }
   };
 
-  // =========================
-  // TOTALES Y COLUMNAS
-  // =========================
+  
   const totalVenta = ventas.reduce(
     (acc, v) => acc + Number(v.subtotal || 0),
     0
@@ -507,7 +502,7 @@ export default function RegistrarVentas() {
 
       setMessageModal({
         isOpen: true,
-        title: "✅ Producto creado",
+        title: " Producto creado",
         text: `El producto "${nuevoProducto.nombre}" fue creado correctamente.`,
         type: "success",
       });
@@ -515,7 +510,7 @@ export default function RegistrarVentas() {
       console.error("Error al crear producto:", e);
       setMessageModal({
         isOpen: true,
-        title: "❌ Error al crear producto",
+        title: " Error al crear producto",
         text: e.message || "Error al crear producto",
         type: "error",
       });
@@ -528,7 +523,7 @@ export default function RegistrarVentas() {
   return (
     <PageContainer title="Registrar Venta" extraHeight>
       <div className="flex flex-col h-full">
-        {/* 👉 QUITÉ max-h-[62vh] AQUÍ */}
+        
         <div className="flex-1 flex flex-col">
           <div className="bg-[#f7fbf8] border border-[#e2ede8] rounded-2xl p-4 mb-4 flex-shrink-0">
             <h2 className="text-[#154734] text-base font-semibold mb-3">
@@ -660,7 +655,7 @@ export default function RegistrarVentas() {
               data={ventasConObservacion}
               stickyHeader={true}
               cellClass="px-4 py-2"
-              /* 👉 QUITÉ la altura fija, ahora deja crecer y la página hace scroll */
+             
               wrapperClass="dn-table-wrapper overflow-y-auto"
               enablePagination={true}
             />
@@ -684,8 +679,7 @@ export default function RegistrarVentas() {
           )}
         </div>
 
-        {/* BOTONES FINALES */}
-        {/* BOTONES FINALES */}
+       
 <div className="flex flex-wrap justify-center gap-3 mt-4 pb-2">
   <button
     onClick={handleCancelClick}
@@ -703,7 +697,7 @@ export default function RegistrarVentas() {
 </div>
 
 
-        {/* MODALES (igual que antes) */}
+      
         <Modal
           isOpen={isItemDeleteConfirmOpen}
           onClose={() => setItemDeleteConfirmOpen(false)}

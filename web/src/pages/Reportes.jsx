@@ -53,9 +53,7 @@ export default function Reportes() {
     }
   }, [reportes, selectedIds]);
 
-  // ============================
-  // CARGAR REPORTES
-  // ============================
+  
   const loadReportes = useCallback(async () => {
     setLoading(true);
     setErrorMsg(null);
@@ -74,16 +72,14 @@ export default function Reportes() {
     loadReportes();
   }, [loadReportes]);
 
-  // ============================
-  // CREAR REPORTE
-  // ============================
+ 
   const crearReporteHandler = async ({ tipo, id_producto, fecha_desde, fecha_hasta }) => {
     try {
       // Validaciones
       if (!tipo || !id_producto || !fecha_desde || !fecha_hasta) {
         setMessageModal({
           isOpen: true,
-          title: "❌ Error",
+          title: " Error",
           text: "Por favor complete todos los campos requeridos.",
           type: "error",
         });
@@ -93,14 +89,14 @@ export default function Reportes() {
       if (new Date(fecha_desde) > new Date(fecha_hasta)) {
         setMessageModal({
           isOpen: true,
-          title: "❌ Error",
+          title: " Error",
           text: "La fecha 'desde' no puede ser mayor que la fecha 'hasta'.",
           type: "error",
         });
         return { ok: false };
       }
 
-      // Payload
+      
       const payload = {
         tipo,
         id_producto: Number(id_producto),
@@ -110,7 +106,7 @@ export default function Reportes() {
 
     
           
-      // ⬇ crearReporte YA NO DEVUELVE { ok }, DEVUELVE EL REPORTE DIRECTO
+      
       const resp = await crearReporte(payload);
       console.log("RESP:", resp);
       // EXITO
@@ -140,9 +136,7 @@ export default function Reportes() {
 
 
 
-  // ============================
-  // COLUMNAS TABLA
-  // ============================
+ 
   const columns = useMemo(
     () => [
       { id: "id", header: "Codigo", accessor: "id", width: 100, align: "center" },
@@ -237,7 +231,7 @@ export default function Reportes() {
     } catch (err) {
       setMessageModal({
         isOpen: true,
-        title: "❌ Error",
+        title: "Error",
         text: err.message || "Error al eliminar reportes.",
         type: "error",
       });
@@ -382,7 +376,7 @@ export default function Reportes() {
                 : 'bg-[#9b102e] text-white opacity-60 cursor-not-allowed'
             }`}
           >
-            🗑️ Eliminar Seleccionados
+            Eliminar Seleccionados
           </button>
         </span>
       </div>

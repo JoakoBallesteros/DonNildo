@@ -21,7 +21,7 @@ export async function api(path, opts = {}) {
   const method = (opts.method || "GET").toUpperCase();
   const isFormData = opts.body instanceof FormData;
 
-  // 🧼 NORMALIZAR PATH: asegurar slash y evitar /api duplicado
+  
   let cleanPath = path || "";
   if (!cleanPath.startsWith("/")) cleanPath = `/${cleanPath}`;
   cleanPath = cleanPath.replace(/^\/api(?=\/|$)/, "");
@@ -36,7 +36,7 @@ export async function api(path, opts = {}) {
     ...(opts.headers || {}),
   };
 
-  // 🔑 Normalizar el body: si es objeto y no es FormData → JSON.stringify
+ 
   let body = opts.body;
   if (!isFormData && body != null && typeof body === "object") {
     body = JSON.stringify(body);
@@ -57,7 +57,7 @@ export async function api(path, opts = {}) {
   try {
     text = await resp.text();
   } catch {
-    /* nada */
+   
   }
 
   const data = text ? toJsonSafe(text) : null;

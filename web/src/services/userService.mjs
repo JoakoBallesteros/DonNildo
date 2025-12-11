@@ -1,10 +1,10 @@
-// web/src/services/userService.mjs
+
 import { api } from "../lib/apiClient";
 
 export async function listarUsuarios(query) {
   const q = query ? `?search=${encodeURIComponent(query)}` : "";
   const { usuarios = [] } = await api(`/v1/usuarios${q}`);
-  // normalización de conveniencia
+  
   return usuarios.map(u => ({ ...u, rol_nombre: u.roles?.nombre ?? "" }));
 }
 

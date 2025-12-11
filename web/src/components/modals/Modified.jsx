@@ -19,7 +19,7 @@
 
     const listMode = Boolean(itemsKey) || Array.isArray(items);
 
-    // ✅ Cargar data cada vez que cambia y el modal esté abierto
+
     useEffect(() => {
       if (!isOpen || !data) return;
 
@@ -66,7 +66,6 @@
       onClose();
     };
 
-    // Si aún no se cargó el array, mostrar “Cargando...”
     if (listMode && list.length === 0) {
       return (
         <Modal isOpen={isOpen} title={title} onClose={onClose} size={size}>

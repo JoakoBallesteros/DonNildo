@@ -1,4 +1,3 @@
-// src/components/pages/LoginForm.jsx
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { signIn } from "../../services/authService";
@@ -26,7 +25,7 @@ export default function LoginForm() {
     try {
       const { appUser } = await signIn(mail, password);
 
-      // Guardar datos básicos para el resto de la app (sidebar, home, etc.)
+   
       if (appUser?.rol) {
         localStorage.setItem("dn_role", appUser.rol);
       }
@@ -34,7 +33,7 @@ export default function LoginForm() {
         localStorage.setItem("dn_user_name", appUser.nombre);
       }
 
-      // Recordar mail si corresponde
+   
       if (rememberMe) {
         localStorage.setItem("dn_mail_recordado", mail);
       } else {
@@ -44,11 +43,11 @@ export default function LoginForm() {
       setSuccess("Inicio de sesión exitoso.");
       navigate("/");
     } catch (err) {
-      // Si viene de la API con 403 (usuario inactivo / no registrado)
+      
       if (err?.status === 403 && err?.message) {
         setError(err.message);
       } else {
-        // Si viene de Supabase (credenciales inválidas)
+        
         setError("Usuario o contraseña inválidos");
       }
     } finally {

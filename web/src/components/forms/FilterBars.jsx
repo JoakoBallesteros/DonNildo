@@ -15,9 +15,7 @@ export default function FilterBar({
 
   const handleSelect = (filter) => onFilterSelect?.(filter);
 
-  // =========================================================
-  // 🔥 INPUT EN TIEMPO REAL SOLO PARA "buscar"
-  // =========================================================
+ 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
 
@@ -34,7 +32,7 @@ export default function FilterBar({
     }
   };
 
-  // Botón aplicar filtros (para fechas y tipo)
+
   const handleApply = () => {
     onApply?.({
       ...formData,
@@ -101,7 +99,7 @@ export default function FilterBar({
                   ))}
                 </select>
               ) : (
-                // INPUTS: solo "buscar" filtra en tiempo real
+         
                 <input
                   type={field.type}
                   name={field.name}
