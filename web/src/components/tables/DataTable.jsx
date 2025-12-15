@@ -1,3 +1,4 @@
+// src/components/tables/DataTable.jsx
 import React, { useMemo, useState, useEffect } from "react";
 
 export default function DataTable({
@@ -7,7 +8,6 @@ export default function DataTable({
   onRowClick,
   emptyLabel = "No hay datos",
 
-  
   tableClass = "w-full text-sm border-collapse table-fixed",
   theadClass = "bg-[#e8f4ef] text-[#154734]",
   tbodyClass = "",
@@ -18,13 +18,15 @@ export default function DataTable({
   zebra = false,
   stickyHeader = true,
 
- 
+  // 💡 Filtros
   enableFilters = false,
 
+  // 💡 ORDENAMIENTO (FALTABA ESTA PROP)
+  enableSort = false,
 
   wrapperClass = "",
 
-
+  // 💡 Paginación
   enablePagination = true,
   pageSize = 10,
 }) {
@@ -55,10 +57,9 @@ export default function DataTable({
   const setFilter = (colId, payload) =>
     setFilters((prev) => ({ ...prev, [colId]: payload }));
 
- 
+  // ---------- paginación ----------
   const [page, setPage] = useState(1);
 
-  
   useEffect(() => {
     setPage(1);
   }, [data, filters, sort]);
@@ -70,10 +71,10 @@ export default function DataTable({
     return sort.dir === "asc" ? <span>▲</span> : <span>▼</span>;
   };
 
-  
   const processed = useMemo(() => {
     let out = [...data];
 
+    // ----- filtros -----
     if (enableFilters) {
       out = out.filter((row) =>
         columns.every((c) => {
@@ -120,6 +121,7 @@ export default function DataTable({
       );
     }
 
+    // ----- ordenamiento -----
     if (enableSort && sort) {
       const col = columns.find((c) => c.id === sort.id);
       if (col) {
@@ -154,7 +156,7 @@ export default function DataTable({
     return out;
   }, [data, columns, enableFilters, filters, enableSort, sort]);
 
- 
+  // ----- paginación calculada -----
   const totalRows = processed.length;
   const safePageSize = pageSize > 0 ? pageSize : 10;
   const totalPages = enablePagination
@@ -353,9 +355,7 @@ export default function DataTable({
               pageRows.map((row, ri) => (
                 <tr
                   key={rowKey(row, ri)}
-                  onClick={
-                    onRowClick ? () => onRowClick(row, ri) : undefined
-                  }
+                  onClick={onRowClick ? () => onRowClick(row, ri) : undefined}
                   className={[
                     typeof rowClass === "function"
                       ? rowClass(row, ri)
