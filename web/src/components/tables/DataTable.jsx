@@ -1,4 +1,3 @@
-// src/components/tables/DataTable.jsx
 import React, { useMemo, useState, useEffect } from "react";
 
 export default function DataTable({
@@ -18,15 +17,15 @@ export default function DataTable({
   zebra = false,
   stickyHeader = true,
 
-  // 💡 Filtros
+  
   enableFilters = false,
 
-  // 💡 ORDENAMIENTO (FALTABA ESTA PROP)
+
   enableSort = false,
 
   wrapperClass = "",
 
-  // 💡 Paginación
+ 
   enablePagination = true,
   pageSize = 10,
 }) {
@@ -40,8 +39,7 @@ export default function DataTable({
       ? "justify-center"
       : "justify-start";
 
-  // ---------- estado de sort ----------
-  const [sort, setSort] = useState(null); // { id, dir: 'asc'|'desc' }
+  const [sort, setSort] = useState(null); 
 
   const toggleSort = (col) => {
     if (!enableSort || !col.sortable) return;
@@ -52,12 +50,10 @@ export default function DataTable({
     });
   };
 
-  // ---------- estado de filtros ----------
   const [filters, setFilters] = useState({});
   const setFilter = (colId, payload) =>
     setFilters((prev) => ({ ...prev, [colId]: payload }));
 
-  // ---------- paginación ----------
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -74,7 +70,6 @@ export default function DataTable({
   const processed = useMemo(() => {
     let out = [...data];
 
-    // ----- filtros -----
     if (enableFilters) {
       out = out.filter((row) =>
         columns.every((c) => {
@@ -121,7 +116,6 @@ export default function DataTable({
       );
     }
 
-    // ----- ordenamiento -----
     if (enableSort && sort) {
       const col = columns.find((c) => c.id === sort.id);
       if (col) {
@@ -156,7 +150,6 @@ export default function DataTable({
     return out;
   }, [data, columns, enableFilters, filters, enableSort, sort]);
 
-  // ----- paginación calculada -----
   const totalRows = processed.length;
   const safePageSize = pageSize > 0 ? pageSize : 10;
   const totalPages = enablePagination
