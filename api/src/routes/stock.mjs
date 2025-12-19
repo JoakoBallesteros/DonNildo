@@ -718,23 +718,22 @@ router.get(
   allowRoles(["ADMIN", "OPERADOR", "STOCK", "COMPRAS", "VENTAS"]),
   async (req, res, next) => {
     try {
-      const { rows } = await pool.query(
-        `
-        SELECT
-          id_movimiento,
-          fecha,
-          id_producto,
-          producto,
-          cantidad,
-          unidad,
-          precio_kg,
-          subtotal,
-          observaciones
-        FROM v_pesajes
-        ORDER BY fecha DESC, id_movimiento DESC
-        LIMIT 500
-        `
-      );
+      const { rows } = await pool.query(`
+      SELECT
+        id_movimiento,
+        fecha,
+        id_producto,
+        producto,
+        tipo_mov,
+        cantidad,
+        unidad,
+        precio_kg,
+        subtotal,
+        observaciones
+      FROM v_mov_materiales
+      ORDER BY fecha DESC, id_movimiento DESC
+      LIMIT 500
+    `);
 
       res.json(rows);
     } catch (err) {

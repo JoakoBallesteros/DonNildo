@@ -19,7 +19,7 @@ export default function ProductFormTabs({
   onSubmit,
 }) {
   const [form, setForm] = useState(initialValues);
-  const [loading, setLoading] = useState(false); 
+  const [loading, setLoading] = useState(false);
   const [isCancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   useEffect(() => setForm(initialValues), [initialValues]);
   const navigate = useNavigate();
@@ -54,10 +54,15 @@ export default function ProductFormTabs({
     const { l, a, h } = medidas || {};
     if (!l || !a || !h) return;
 
-    const maxDim = Math.max(Number(l), Number(a), Number(h));
+    const L = Number(l) || 0;
+    const A = Number(a) || 0;
+    const H = Number(h) || 0;
+
+    const volumen = L * A * H;
     let cat = "";
-    if (maxDim <= 30) cat = "Chica";
-    else if (maxDim <= 60) cat = "Mediana";
+
+    if (volumen <= 3000) cat = "Chica";
+    else if (volumen <= 10000) cat = "Mediana";
     else cat = "Grande";
 
     setForm((prev) =>
@@ -90,10 +95,9 @@ export default function ProductFormTabs({
         : undefined,
   });
 
-  
   const submit = async (e) => {
     e.preventDefault();
-    if (loading) return; 
+    if (loading) return;
     setLoading(true);
 
     const err = validate();
@@ -189,7 +193,10 @@ export default function ProductFormTabs({
               min={0}
               value={form.medidas?.[k] ?? ""}
               onChange={(e) =>
-                setMedida(k, e.target.value === "" ? "" : Number(e.target.value))
+                setMedida(
+                  k,
+                  e.target.value === "" ? "" : Number(e.target.value)
+                )
               }
               placeholder={["40", "30", "20"][i]}
               className={inputCls}
@@ -257,7 +264,6 @@ export default function ProductFormTabs({
         <div className="flex flex-col">
           <label className="text-sm font-semibold text-[#154734] mb-1">
             Unidad
-આ
           </label>
           <select
             value={form.unidad}
@@ -313,7 +319,7 @@ export default function ProductFormTabs({
       </div>
     </div>
   );
-    //
+  //
   const handleCancelClick = () => {
     if (JSON.stringify(form) !== JSON.stringify(initialValues)) {
       setCancelConfirmOpen(true);
@@ -321,13 +327,11 @@ export default function ProductFormTabs({
       navigate("/stock");
     }
   };
-  
-   
-    const handleCancelConfirm = () => {
-      setCancelConfirmOpen(false);
-      navigate("/stock");
-    };
-  
+
+  const handleCancelConfirm = () => {
+    setCancelConfirmOpen(false);
+    navigate("/stock");
+  };
 
   return (
     <>
@@ -368,7 +372,7 @@ export default function ProductFormTabs({
 
           <button
             type="submit"
-            disabled={loading} 
+            disabled={loading}
             className="h-12 px-10 rounded-xl bg-[#154734] text-white font-semibold shadow hover:bg-[#103a2b] w-full sm:w-auto disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {loading
@@ -392,7 +396,7 @@ export default function ProductFormTabs({
           }))
         }
       />
-      
+
       <Modal
         isOpen={isCancelConfirmOpen}
         onClose={() => setCancelConfirmOpen(false)}
@@ -416,7 +420,8 @@ export default function ProductFormTabs({
         }
       >
         <p className="text-sm text-slate-700">
-          ¿Estás seguro de que querés cancelar? Se perderán los datos sin guardar.
+          ¿Estás seguro de que querés cancelar? Se perderán los datos sin
+          guardar.
         </p>
       </Modal>
     </>

@@ -188,7 +188,7 @@ export default function SegAuditoria() {
               onKeyDown={(e) => {
                 if (e.key === "Enter") loadEvents();
               }}
-              placeholder="Usuario / tipo / id"
+              placeholder="Usuario / tipo de evento"
               className="w-full border border-[#d8e4df] rounded-md px-3 py-2"
             />
           </div>

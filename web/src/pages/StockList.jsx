@@ -16,7 +16,6 @@ import { apiFetch } from "../lib/apiClient";
 
 const MAX_EXPORT_ROWS = 500;
 
-
 function mapTipoPorId(id_tipo_producto, fallback) {
   if (fallback) return fallback;
   switch (id_tipo_producto) {
@@ -29,15 +28,18 @@ function mapTipoPorId(id_tipo_producto, fallback) {
   }
 }
 
-
 function calcCategoriaCaja(l, a, h) {
-  const maxDim = Math.max(Number(l) || 0, Number(a) || 0, Number(h) || 0);
-  if (!maxDim) return "";
-  if (maxDim <= 30) return "Chica";
-  if (maxDim <= 60) return "Mediana";
+  const L = Number(l) || 0;
+  const A = Number(a) || 0;
+  const H = Number(h) || 0;
+
+  const volumen = L * A * H;
+  if (!volumen) return "";
+
+  if (volumen <= 3000) return "Chica";
+  if (volumen <= 10000) return "Mediana";
   return "Grande";
 }
-
 
 function formatDisponible(r) {
   const n = Number(r.disponible ?? 0);
@@ -59,7 +61,6 @@ function formatDisponible(r) {
   })} ${r.unidad}`;
 }
 
-
 function formatFechaCorta(value) {
   if (!value) return "—";
   const d = new Date(value);
@@ -73,7 +74,6 @@ function formatFechaCorta(value) {
     })
     .replace(/\//g, "-");
 }
-
 
 function mapDbRowToUi(row) {
   let medidas = null;
@@ -129,7 +129,6 @@ export default function StockList() {
   const [isDetailOpen, setDetailOpen] = useState(false);
   const [detailRow, setDetailRow] = useState(null);
 
- 
   const [messageModal, setMessageModal] = useState({
     isOpen: false,
     title: "",
@@ -139,7 +138,6 @@ export default function StockList() {
 
   const [isDeleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
-
 
   const loadData = useCallback(async () => {
     try {
@@ -166,10 +164,6 @@ export default function StockList() {
   useEffect(() => {
     loadData();
   }, [loadData]);
-
- 
-
-
 
   const categoriaOptions = useMemo(
     () => [
@@ -309,7 +303,8 @@ export default function StockList() {
 
       // 3️⃣ Filtros especiales para Cajas
       if (filtroTipo === "Cajas") {
-        if (filtros.categoria && r.categoria !== filtros.categoria) return false;
+        if (filtros.categoria && r.categoria !== filtros.categoria)
+          return false;
 
         const L = Number(filtros.medidaL || 0);
         const A = Number(filtros.medidaA || 0);
@@ -340,8 +335,6 @@ export default function StockList() {
     });
   }, [items, filtros, filtroTipo]);
 
-
-  
   const openDeleteConfirm = useCallback((row) => {
     setProductToDelete(row);
     setDeleteConfirmOpen(true);
@@ -378,7 +371,6 @@ export default function StockList() {
     }
   }, [productToDelete]);
 
- 
   const columns = useMemo(
     () => [
       { id: "tipo", header: "Tipo", accessor: "tipo", sortable: true },
@@ -590,7 +582,6 @@ export default function StockList() {
     doc.save(`Stock_${today}.pdf`);
   };
 
-  
   const handleSaveEdited = async (payload) => {
     let updated = payload?.rows?.[0];
     if (!updated || !editRow) return;
@@ -755,7 +746,6 @@ export default function StockList() {
     ];
   }, [editRow]);
 
- 
   return (
     <PageContainer
       title="Stock"
@@ -886,9 +876,7 @@ export default function StockList() {
                       <p className="text-xs font-semibold text-[#7a8b82]">
                         Observaciones
                       </p>
-                      <p className="font-medium">
-                        {row.notas?.trim() || "—"}
-                      </p>
+                      <p className="font-medium">{row.notas?.trim() || "—"}</p>
                     </div>
                   </div>
 
@@ -1043,9 +1031,7 @@ export default function StockList() {
               <span className="col-span-2">{detailRow.unidad}</span>
 
               <span className="font-semibold text-[#154734]">Disponible:</span>
-              <span className="col-span-2">
-                {formatDisponible(detailRow)}
-              </span>
+              <span className="col-span-2">{formatDisponible(detailRow)}</span>
 
               <span className="font-semibold text-[#154734]">Últ. mov.:</span>
               <span className="col-span-2">
@@ -1102,9 +1088,7 @@ export default function StockList() {
         title={messageModal.title}
         text={messageModal.text}
         type={messageModal.type}
-        onClose={() =>
-          setMessageModal((prev) => ({ ...prev, isOpen: false }))
-        }
+        onClose={() => setMessageModal((prev) => ({ ...prev, isOpen: false }))}
       />
     </PageContainer>
   );
