@@ -608,7 +608,7 @@ const handleNewProductSubmit = async (values) => {
   ];
 
   return (
-    <PageContainer title="Registrar Compra">
+    <PageContainer title={isEditMode ? "Modificar Compra" : "Registrar Compra"} >
       <div className="flex flex-col h-full">
 
         {/* === CARD DE DATOS === */}

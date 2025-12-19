@@ -543,7 +543,7 @@ useEffect(() => {
   // RENDER PRINCIPAL
   // =========================
   return (
-    <PageContainer title="Registrar Venta" extraHeight>
+    <PageContainer title={isEditMode ? "Modificar Venta" : "Registrar Venta"}  extraHeight>
       <div className="flex flex-col h-full">
         <div className="flex-1 flex flex-col max-h-[62vh]">
           <div className="bg-[#f7fbf8] border border-[#e2ede8] rounded-2xl p-4 mb-4 flex-shrink-0">
