@@ -169,11 +169,7 @@ export default function StockList() {
 
  
 
-  const tipoMap = {
-    Todo: null,
-    Cajas: "Caja",
-    Materiales: "Material",
-  };
+
 
   const categoriaOptions = useMemo(
     () => [
@@ -285,44 +281,65 @@ export default function StockList() {
     { label: "Hasta", type: "date", name: "hasta", inputClass: "w-44" },
   ];
 
-  const dataFiltrada = items.filter((r) => {
-    const tSel = tipoMap[filtroTipo];
-    if (tSel && r.tipo.toLowerCase() !== tSel.toLowerCase()) return false;
+  const dataFiltrada = useMemo(() => {
+    // Mapeo directo del filtro de pestañas al tipo real
+    const tSel =
+      filtroTipo === "Cajas"
+        ? "Caja"
+        : filtroTipo === "Materiales"
+        ? "Material"
+        : null;
 
-    if (filtros.buscar) {
-      const t = filtros.buscar.toLowerCase();
-      const hit =
-        r.referencia?.toLowerCase().includes(t) ||
-        r.tipo?.toLowerCase().includes(t);
-      if (!hit) return false;
-    }
+    const desde = filtros.desde || "";
+    const hasta = filtros.hasta || "";
 
-    if (filtroTipo === "Cajas") {
-      if (filtros.categoria && r.categoria !== filtros.categoria) return false;
+    return items.filter((r) => {
+      // 1️⃣ Tipo (Todo / Cajas / Materiales)
+      if (tSel && r.tipo.toLowerCase() !== tSel.toLowerCase()) return false;
 
-      const L = Number(filtros.medidaL || 0);
-      const A = Number(filtros.medidaA || 0);
-      const H = Number(filtros.medidaH || 0);
-      if (L || A || H) {
-        const ml = r.medidas?.l ?? null;
-        const ma = r.medidas?.a ?? null;
-        const mh = r.medidas?.h ?? null;
-        if (L && ml !== L) return false;
-        if (A && ma !== A) return false;
-        if (H && mh !== H) return false;
+      // 2️⃣ Buscar por referencia o tipo
+      if (filtros.buscar) {
+        const t = filtros.buscar.toLowerCase();
+        const hit =
+          r.referencia?.toLowerCase().includes(t) ||
+          r.tipo?.toLowerCase().includes(t);
+
+        if (!hit) return false;
       }
-    } else {
-      if (filtros.medida && filtros.medida !== r.unidad) return false;
-    }
 
-    if (r.ultimoMov) {
-      const f = new Date(r.ultimoMov);
-      if (filtros.desde && f < new Date(filtros.desde)) return false;
-      if (filtros.hasta && f > new Date(filtros.hasta)) return false;
-    }
+      // 3️⃣ Filtros especiales para Cajas
+      if (filtroTipo === "Cajas") {
+        if (filtros.categoria && r.categoria !== filtros.categoria) return false;
 
-    return true;
-  });
+        const L = Number(filtros.medidaL || 0);
+        const A = Number(filtros.medidaA || 0);
+        const H = Number(filtros.medidaH || 0);
+
+        if (L || A || H) {
+          const ml = r.medidas?.l ?? null;
+          const ma = r.medidas?.a ?? null;
+          const mh = r.medidas?.h ?? null;
+          if (L && ml !== L) return false;
+          if (A && ma !== A) return false;
+          if (H && mh !== H) return false;
+        }
+      } else {
+        // Materiales: filtro por unidad (kg / u)
+        if (filtros.medida && filtros.medida !== r.unidad) return false;
+      }
+
+      // 4️⃣ Filtro por fecha de último movimiento (INCLUSIVO)
+      if (r.ultimoMov) {
+        const fechaRow = String(r.ultimoMov).slice(0, 10); // "YYYY-MM-DD"
+
+        if (desde && fechaRow < desde) return false;
+        if (hasta && fechaRow > hasta) return false;
+      }
+
+      return true;
+    });
+  }, [items, filtros, filtroTipo]);
+
 
   
   const openDeleteConfirm = useCallback((row) => {

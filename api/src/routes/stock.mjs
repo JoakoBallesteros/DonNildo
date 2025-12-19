@@ -715,7 +715,7 @@ router.post(
 // ============================
 router.get(
   "/pesajes",
-  allowRoles(["ADMIN", "OPERADOR", "STOCK"]),
+  allowRoles(["ADMIN", "OPERADOR", "STOCK", "COMPRAS", "VENTAS"]),
   async (req, res, next) => {
     try {
       const { rows } = await pool.query(

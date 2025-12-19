@@ -52,7 +52,6 @@ export default function Ventas() {
     type: "",
   });
 
-
   const handleFilterSelect = (tipo) => setFiltroTipo(tipo);
 
   const aplicarFiltros = ({ buscar, desde, hasta, tipo }) => {
@@ -65,7 +64,6 @@ export default function Ventas() {
     setFiltroTipo("Todo");
     setResetSignal((n) => n + 1);
   };
-
 
   const loadVentas = useCallback(async () => {
     try {
@@ -86,7 +84,6 @@ export default function Ventas() {
     loadVentas();
   }, [loadVentas]);
 
-  
   const [selectedVenta, setSelectedVenta] = useState(null);
   const [isDetailOpen, setDetailOpen] = useState(false);
 
@@ -233,24 +230,39 @@ export default function Ventas() {
     }
   };
 
-  
-
   const ventasFiltradas = useMemo(() => {
     const tsel = TIPO_MAP[filtroTipo];
+
+    // Fechas como strings YYYY-MM-DD
+    const desdeStr = filtros.desde || "";
+    const hastaStr = filtros.hasta || "";
+
     return ventas.filter((v) => {
+      // 1) Filtro por tipo (tabs)
       if (tsel && v.tipo !== tsel) return false;
+
+      // 2) Filtro de búsqueda
       if (filtros.buscar) {
         const txt = filtros.buscar.toLowerCase();
+        const idStr = String(v.id_venta).toLowerCase();
+        const tipoStr = (v.tipo || "").toLowerCase();
+        const obsStr = (v.observaciones || "").toLowerCase();
+
         if (
-          !String(v.id_venta).includes(txt) &&
-          !v.tipo.toLowerCase().includes(txt) &&
-          !(v.observaciones || "").toLowerCase().includes(txt)
-        )
+          !idStr.includes(txt) &&
+          !tipoStr.includes(txt) &&
+          !obsStr.includes(txt)
+        ) {
           return false;
+        }
       }
-      const fecha = new Date(v.fecha);
-      if (filtros.desde && fecha < new Date(filtros.desde)) return false;
-      if (filtros.hasta && fecha > new Date(filtros.hasta)) return false;
+
+      // 3) Filtro por fecha (TOTALMENTE inclusivo)
+      const fechaStr = String(v.fecha).slice(0, 10); // "2025-11-25"
+
+      if (desdeStr && fechaStr < desdeStr) return false;
+      if (hastaStr && fechaStr > hastaStr) return false;
+
       return true;
     });
   }, [ventas, filtroTipo, filtros]);
@@ -269,7 +281,6 @@ export default function Ventas() {
       .replace(/\//g, "-"); // 25-11-2025
   };
 
- 
   const columns = [
     {
       id: "numero",
@@ -339,9 +350,7 @@ export default function Ventas() {
         const isAnulada = row.estado === "ANULADO";
 
         if (isAnulada) {
-          return (
-            <span className="text-sm italic text-red-700">Anulada</span>
-          );
+          return <span className="text-sm italic text-red-700">Anulada</span>;
         }
 
         return (
@@ -449,7 +458,6 @@ export default function Ventas() {
     },
   ];
 
- 
   return (
     <PageContainer
       title="Lista de Ventas"
@@ -658,7 +666,7 @@ export default function Ventas() {
                 : "bg-[#9b102e] text-white opacity-60 cursor-not-allowed"
             }`}
             >
-               Eliminar seleccionados
+              Eliminar seleccionados
             </button>
           </div>
 
@@ -681,7 +689,9 @@ export default function Ventas() {
 
                 <div className="bg-[#f2f7f5] p-4 rounded-lg">
                   <p className="text-xs text-slate-500">Fecha</p>
-                  <p className="font-semibold">{formatFecha(remitoSel.fecha)}</p>
+                  <p className="font-semibold">
+                    {formatFecha(remitoSel.fecha)}
+                  </p>
                 </div>
 
                 <div className="bg-[#f2f7f5] p-4 rounded-lg col-span-2">
@@ -708,15 +718,11 @@ export default function Ventas() {
                     {(remitoSel.productos ?? []).map((p, idx) => (
                       <tr key={idx} className="border-t">
                         <td className="px-4 py-3">{p.producto}</td>
-                        <td className="px-4 py-3 text-center">
-                          {p.cantidad}
-                        </td>
+                        <td className="px-4 py-3 text-center">{p.cantidad}</td>
                         <td className="px-4 py-3 text-center">
                           ${p.precio_unitario}
                         </td>
-                        <td className="px-4 py-3 text-center">
-                          ${p.subtotal}
-                        </td>
+                        <td className="px-4 py-3 text-center">${p.subtotal}</td>
                       </tr>
                     ))}
                   </tbody>

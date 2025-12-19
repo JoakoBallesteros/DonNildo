@@ -19,7 +19,6 @@ const fmtARS = new Intl.NumberFormat("es-AR", {
   maximumFractionDigits: 0,
 });
 
-
 function getNumericIdFromDisplay(id) {
   if (typeof id === "number") return id;
   const match = String(id).match(/(\d+)$/);
@@ -27,7 +26,6 @@ function getNumericIdFromDisplay(id) {
 }
 
 function mapCompraFromApi(c) {
-  
   const idRaw = c.id ?? c.id_compra ?? c.numero_oc;
   const id =
     typeof idRaw === "string"
@@ -36,7 +34,6 @@ function mapCompraFromApi(c) {
       ? `OC-${String(idRaw).padStart(4, "0")}`
       : "OC-S/N";
 
-  
   const dbId =
     typeof c.id_compra === "number"
       ? c.id_compra
@@ -57,7 +54,6 @@ function mapCompraFromApi(c) {
 
   const total = Number(c.total ?? 0);
   const obs = c.observaciones ?? c.obs ?? "—";
-
 
   const rawItems = c.items ?? c.detalles ?? c.detalle_compra ?? [];
 
@@ -108,7 +104,6 @@ export default function Compras() {
     type: "",
   });
 
- 
   useEffect(() => {
     async function fetchCompras() {
       try {
@@ -137,30 +132,44 @@ export default function Compras() {
   }, [mostrarAnuladas]);
 
   const filtered = useMemo(() => {
-    return rows
-      .filter((r) => {
-        // 1️⃣ Filtrar anuladas o no
-        if (mostrarAnuladas) return r.estado === "ANULADO";
-        else return r.estado !== "ANULADO";
-      })
-      .filter((r) => (tab === "Todo" ? true : r.tipo === tab))
-      .filter((r) => {
-        if (!q) return true;
+  // Normalizamos las fechas una sola vez
+  const fromDate = desde ? new Date(desde) : null;
+  const toDate = hasta ? new Date(hasta) : null;
 
-        const txt = q.toLowerCase();
-        return (
-          r.id.toLowerCase().includes(txt) ||
-          r.proveedor.toLowerCase().includes(txt) ||
-          (r.obs || "").toLowerCase().includes(txt)
-        );
-      })
-      .filter((r) => {
-        const d = new Date(r.fecha);
-        const okFrom = desde ? d >= new Date(desde) : true;
-        const okTo = hasta ? d <= new Date(hasta) : true;
-        return okFrom && okTo;
-      });
-  }, [rows, tab, q, desde, hasta, mostrarAnuladas]);
+  // Hacemos que "hasta" sea inclusivo (23:59:59.999)
+  if (toDate) {
+    toDate.setHours(23, 59, 59, 999);
+  }
+
+  return rows
+    // 1️⃣ Anuladas / activas
+    .filter((r) => {
+      if (mostrarAnuladas) return r.estado === "ANULADO";
+      return r.estado !== "ANULADO";
+    })
+    // 2️⃣ Pestaña (Todo / Materiales / Cajas / Mixtas)
+    .filter((r) => (tab === "Todo" ? true : r.tipo === tab))
+    // 3️⃣ Buscar
+    .filter((r) => {
+      if (!q) return true;
+      const txt = q.toLowerCase();
+      return (
+        r.id.toLowerCase().includes(txt) ||
+        r.proveedor.toLowerCase().includes(txt) ||
+        (r.obs || "").toLowerCase().includes(txt)
+      );
+    })
+    // 4️⃣ Rango de fechas
+    .filter((r) => {
+      const d = new Date(r.fecha);
+      if (Number.isNaN(d.getTime())) return true; // si no se puede parsear, no lo filtramos por fecha
+
+      if (fromDate && d < fromDate) return false;
+      if (toDate && d > toDate) return false;
+      return true;
+    });
+}, [rows, tab, q, desde, hasta, mostrarAnuladas]);
+
 
   /* Handlers filtros */
   function onApplyFilters(form) {
@@ -176,7 +185,6 @@ export default function Compras() {
     setResetSignal((x) => x + 1);
   }
 
- 
   const handleDownloadDetalleCompra = (compra) => {
     const doc = new jsPDF();
 
@@ -185,16 +193,13 @@ export default function Compras() {
       return;
     }
 
- 
     const compraCodigo = compra.id || "OC-S/N";
-
 
     const compraId = compra.dbId || compra.id_compra || null;
 
     const fecha = compra.fecha || new Date().toISOString().slice(0, 10);
     const proveedor = compra.proveedor || "—";
     const obs = compra.obs || "—";
-
 
     doc.setFontSize(16);
     doc.text(`Detalle de Compra ${compraId}`, 14, 20);
@@ -203,7 +208,6 @@ export default function Compras() {
     doc.text(`Proveedor: ${proveedor}`, 14, 30);
     doc.text(`Fecha: ${fecha}`, 14, 36);
     doc.text(`Observaciones: ${obs}`, 14, 42);
-
 
     const head = [
       ["Producto", "Cantidad", "Medida", "Precio Unit.", "Subtotal"],
@@ -223,7 +227,6 @@ export default function Compras() {
       body,
     });
 
-
     const finalY = doc.lastAutoTable.finalY + 10;
 
     doc.text(
@@ -231,7 +234,6 @@ export default function Compras() {
       14,
       finalY
     );
-
 
     setTimeout(() => {
       doc.save(`Detalle de ${compraCodigo}.pdf`);
@@ -245,7 +247,6 @@ export default function Compras() {
     setDetailRow(row);
     setDetailOpen(true);
   }
-
 
   async function confirmarAnulacion() {
     if (!compraIdToAnular) return;
@@ -371,9 +372,7 @@ export default function Compras() {
         const isAnulada = row.estado === "ANULADO";
 
         if (isAnulada) {
-          return (
-            <span className="text-sm italic text-red-700">Anulada</span>
-          );
+          return <span className="text-sm italic text-red-700">Anulada</span>;
         }
 
         return (
@@ -426,14 +425,10 @@ export default function Compras() {
   const computeTotal = (list) =>
     list.reduce((sum, it) => sum + Number(it.subtotal || 0), 0).toFixed(2);
 
- 
   async function onSaveEdit(updated) {
     const compraId =
-      updated.dbId ??
-      updated.id_compra ??
-      getNumericIdFromDisplay(updated.id);
+      updated.dbId ?? updated.id_compra ?? getNumericIdFromDisplay(updated.id);
 
-   
     setRows((prev) =>
       prev.map((r) => (r.id === updated.id ? { ...r, ...updated } : r))
     );
@@ -470,9 +465,7 @@ export default function Compras() {
 
       if (resp.compra) {
         const mapped = mapCompraFromApi(resp.compra);
-        setRows((prev) =>
-          prev.map((r) => (r.id === mapped.id ? mapped : r))
-        );
+        setRows((prev) => prev.map((r) => (r.id === mapped.id ? mapped : r)));
       }
     } catch (err) {
       console.error("Error de red modificando compra:", err);
@@ -546,7 +539,6 @@ export default function Compras() {
             columns={columns}
             data={filtered}
             zebra={false}
-         
             stickyHeader={true}
             wrapperClass="dn-table-wrapper overflow-y-auto shadow-sm"
             tableClass="w-full text-sm text-center border-collapse"
