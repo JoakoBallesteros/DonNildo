@@ -11,7 +11,7 @@ import Modals from "../components/modals/Modals.jsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-const TABS = ["Todo", "Materiales", "Cajas", "Mixtas"];
+const TABS = ["Todo", "Materiales", "Cajas", "Mixta"];
 
 const fmtARS = new Intl.NumberFormat("es-AR", {
   style: "currency",
@@ -38,6 +38,15 @@ function getNumericIdFromDisplay(id) {
   return match ? Number(match[1]) : null;
 }
 
+function normalizeTipo(tipo) {
+  const t = String(tipo || "").trim().toLowerCase();
+  if (!t) return "Mixta";
+  if (t === "mixtas" || t === "mixta") return "Mixta";
+  if (t === "materiales") return "Materiales";
+  if (t === "cajas") return "Cajas";
+  return String(tipo);
+}
+
 function mapCompraFromApi(c) {
   const idRaw = c.id ?? c.id_compra ?? c.numero_oc;
 
@@ -60,7 +69,8 @@ function mapCompraFromApi(c) {
 
   const estado = c.estado ?? c.estado_compra ?? "ACTIVO";
 
-  const tipo = c.tipo ?? c.tipo_compra ?? c.clase ?? "Mixtas";
+  const tipoRaw = c.tipo ?? c.tipo_compra ?? c.clase ?? "Mixta";
+  const tipo = normalizeTipo(tipoRaw);
 
   const fecha =
     c.fecha ??
@@ -73,7 +83,7 @@ function mapCompraFromApi(c) {
   const rawItems = c.items ?? c.detalles ?? c.detalle_compra ?? [];
 
   const items = rawItems.map((it, idx) => ({
-    tipo: c.tipo_compra || tipo || "—",
+    tipo,
     proveedor: proveedor || "—",
     producto:
       it.producto ?? it.nombre_producto ?? it.nombre ?? `Item ${idx + 1}`,
@@ -127,7 +137,6 @@ export default function Compras() {
         const resp = await api(`/api/compras${qs}`);
 
         if (!resp?.ok || !Array.isArray(resp.compras)) {
-          console.warn("Respuesta inesperada en GET /api/compras:", resp);
           setRows([]);
           return;
         }
@@ -135,7 +144,6 @@ export default function Compras() {
         const mapped = resp.compras.map(mapCompraFromApi);
         setRows(mapped);
       } catch (err) {
-        console.error("Error cargando compras:", err);
         setErrorMsg("No se pudieron cargar las compras desde el servidor.");
       } finally {
         setLoading(false);
@@ -186,7 +194,6 @@ export default function Compras() {
 
   const handleDownloadDetalleCompra = (compra) => {
     const doc = new jsPDF();
-
     if (!compra || !compra.items) return;
 
     const compraCodigo = compra.id || "OC-S/N";
@@ -220,7 +227,6 @@ export default function Compras() {
     autoTable(doc, { startY: 55, head, body });
 
     const finalY = doc.lastAutoTable.finalY + 10;
-
     doc.text(`Total: $${Number(compra.total).toLocaleString("es-AR")}`, 14, finalY);
 
     setTimeout(() => doc.save(`Detalle de ${compraCodigo}.pdf`), 100);
@@ -348,7 +354,6 @@ export default function Compras() {
       align: "center",
       render: (row) => {
         const isAnulada = row.estado === "ANULADO";
-
         if (isAnulada) {
           return <span className="text-sm italic text-red-700">Anulada</span>;
         }
