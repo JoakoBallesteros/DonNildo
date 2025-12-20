@@ -1,124 +1,72 @@
-import { useEffect, useMemo, useState } from "react";
-import { Plus, Filter, Download } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Plus } from "lucide-react";
+import { useParams } from "react-router-dom";
 import api from "../lib/apiClient";
+import MessageModal from "../components/modals/MessageModal";
 import PageContainer from "../components/pages/PageContainer.jsx";
-import FilterBar from "../components/forms/FilterBars.jsx";
+import PrimaryButton from "../components/buttons/PrimaryButton.jsx";
+import SecondaryButton from "../components/buttons/SecondaryButton.jsx";
 import DataTable from "../components/tables/DataTable.jsx";
-import Details from "../components/modals/Details.jsx";
+import ProductFormTabs from "../components/forms/ProductFormTabs.jsx";
+import Modal from "../components/modals/Modals.jsx";
 import Modified from "../components/modals/Modified.jsx";
-import Modals from "../components/modals/Modals.jsx";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import ProductoSelect from "../components/ui/ProductoSelect";
+import FormBuilder from "../components/forms/FormBuilder.jsx";
 
-const TABS = ["Todo", "Materiales", "Cajas", "Mixta"];
+const NEW_BUY_KEY = "dn_new_buy_items";
+const SESSION_KEY = "dn_pending_buy_items";
 
-const fmtARS = new Intl.NumberFormat("es-AR", {
+const fmt = new Intl.NumberFormat("es-AR", {
   style: "currency",
   currency: "ARS",
-  maximumFractionDigits: 0,
+  maximumFractionDigits: 2,
 });
 
-function toYMD(value) {
-  if (!value) return "";
-  return String(value).slice(0, 10);
-}
+const toNumber = (v) => {
+  if (v == null) return 0;
+  const s = String(v).trim();
+  if (!s) return 0;
 
-function formatDMY(value) {
-  const ymd = toYMD(value);
-  const m = ymd.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!m) return value ? String(value) : "—";
-  const [, yyyy, mm, dd] = m;
-  return `${dd}/${mm}/${yyyy}`;
-}
+  if (s.includes(",") && !s.includes(".")) {
+    const normalized = s.replace(/\./g, "").replace(",", ".");
+    return Number(normalized) || 0;
+  }
 
-function getNumericIdFromDisplay(id) {
-  if (typeof id === "number") return id;
-  const match = String(id).match(/(\d+)$/);
-  return match ? Number(match[1]) : null;
-}
+  const normalized = s.replace(/[^0-9.]/g, "");
+  return Number(normalized) || 0;
+};
 
-function normalizeTipo(tipo) {
-  const t = String(tipo || "").trim().toLowerCase();
-  if (!t) return "Mixta";
-  if (t === "mixtas" || t === "mixta") return "Mixta";
-  if (t === "materiales") return "Materiales";
-  if (t === "cajas") return "Cajas";
-  return String(tipo);
-}
+export default function RegistrarCompra() {
+  const { id } = useParams();
+  const isEditMode = Boolean(id);
 
-function mapCompraFromApi(c) {
-  const idRaw = c.id ?? c.id_compra ?? c.numero_oc;
+  const [productos, setProductos] = useState([]);
+  const [proveedores, setProveedores] = useState([]);
 
-  const id =
-    typeof idRaw === "string"
-      ? idRaw
-      : idRaw != null
-      ? `OC-${String(idRaw).padStart(4, "0")}`
-      : "OC-S/N";
+  const [producto, setProducto] = useState(null);
+  const [cantidad, setCantidad] = useState("");
+  const [precioUnit, setPrecioUnit] = useState("");
+  const [proveedor, setProveedor] = useState("");
+  const [fecha, setFecha] = useState("");
+  const [obs, setObs] = useState("");
 
-  const dbId =
-    typeof c.id_compra === "number"
-      ? c.id_compra
-      : typeof idRaw === "number"
-      ? idRaw
-      : null;
+  const [items, setItems] = useState(() => {
+    if (isEditMode) return [];
+    const saved = sessionStorage.getItem(NEW_BUY_KEY);
+    try {
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
 
-  const proveedor =
-    c.proveedor ?? c.proveedor_nombre ?? c.proveedorNombre ?? "—";
-
-  const estado = c.estado ?? c.estado_compra ?? "ACTIVO";
-
-  const tipoRaw = c.tipo ?? c.tipo_compra ?? c.clase ?? "Mixta";
-  const tipo = normalizeTipo(tipoRaw);
-
-  const fecha =
-    c.fecha ??
-    c.fecha_compra ??
-    c.fecha_emision ??
-    new Date().toISOString().slice(0, 10);
-
-  const total = Number(c.total ?? 0);
-  const obs = c.observaciones ?? c.obs ?? "—";
-  const rawItems = c.items ?? c.detalles ?? c.detalle_compra ?? [];
-
-  const items = rawItems.map((it, idx) => ({
-    tipo,
-    proveedor: proveedor || "—",
-    producto:
-      it.producto ?? it.nombre_producto ?? it.nombre ?? `Item ${idx + 1}`,
-    medida: it.medida ?? it.unidad ?? it.unidad_stock ?? "u",
-    cantidad: Number(it.cantidad ?? 0),
-    precio: Number(it.precio ?? it.precio_unitario ?? 0),
-    descuento: Number(it.descuento ?? 0),
-    subtotal: Number(it.subtotal ?? 0),
-  }));
-
-  return { id, dbId, proveedor, tipo, total, fecha, obs, items, estado };
-}
-
-export default function Compras() {
-  const navigate = useNavigate();
-
-  const [tab, setTab] = useState("Todo");
-  const [q, setQ] = useState("");
-  const [desde, setDesde] = useState("");
-  const [hasta, setHasta] = useState("");
-  const [resetSignal, setResetSignal] = useState(0);
-
-  const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState("");
-
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [detailRow, setDetailRow] = useState(null);
-
+  const [newProdOpen, setNewProdOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editRow, setEditRow] = useState(null);
+  const [isCancelConfirmOpen, setCancelConfirmOpen] = useState(false);
 
-  const [mostrarAnuladas, setMostrarAnuladas] = useState(false);
-  const [compraIdToAnular, setCompraIdToAnular] = useState(null);
-  const [isAnularConfirmOpen, setAnularConfirmOpen] = useState(false);
+  const [isItemDeleteConfirmOpen, setItemDeleteConfirmOpen] = useState(false);
+  const [itemToDeleteIndex, setItemToDeleteIndex] = useState(null);
 
   const [messageModal, setMessageModal] = useState({
     isOpen: false,
@@ -127,502 +75,753 @@ export default function Compras() {
     type: "",
   });
 
+  const cantRef = useRef(null);
+
+  const resetCompraForm = () => {
+    sessionStorage.removeItem(NEW_BUY_KEY);
+    sessionStorage.removeItem(SESSION_KEY);
+
+    setProducto(null);
+    setCantidad("");
+    setPrecioUnit("");
+    setProveedor("");
+    setFecha("");
+    setObs("");
+    setItems([]);
+  };
+
   useEffect(() => {
-    async function fetchCompras() {
+    if (!isEditMode) {
+      sessionStorage.setItem(NEW_BUY_KEY, JSON.stringify(items));
+    }
+  }, [items, isEditMode]);
+
+  useEffect(() => {
+    if (isEditMode) {
+      sessionStorage.removeItem(NEW_BUY_KEY);
+      setItems([]);
+    }
+  }, [isEditMode]);
+
+  useEffect(() => {
+    async function cargarCatalogos() {
       try {
-        setLoading(true);
-        setErrorMsg("");
+        const [resProd, resProv] = await Promise.all([
+          api("/api/compras/productos"),
+          api("/api/compras/proveedores"),
+        ]);
 
-        const qs = mostrarAnuladas ? "?only=anuladas" : "?only=activas";
-        const resp = await api(`/api/compras${qs}`);
+        if (resProd?.ok && Array.isArray(resProd.productos)) {
+          const mappedProd = resProd.productos.map((p) => {
+            const pid = p.id ?? p.id_producto;
+            const nombre = p.nombre;
+            const categoria = p.categoria ?? p.categoria_nombre;
+            const tipoDb = p.tipo ?? p.tipo_nombre;
 
-        if (!resp?.ok || !Array.isArray(resp.compras)) {
-          setRows([]);
+            const tipo = tipoDb ?? (categoria === "Cajas" ? "Cajas" : "Productos");
+
+            const medida = p.medida ?? p.unidad_stock ?? p.medida_simbolo ?? "u";
+            const precioRef = p.precioRef ?? p.precio_unitario ?? 0;
+
+            return { id: pid, nombre, tipo, medida, precioRef };
+          });
+
+          setProductos(mappedProd);
+        }
+
+        if (resProv?.ok && Array.isArray(resProv.proveedores)) {
+          const mappedProv = resProv.proveedores.map((p) => ({
+            id: p.id ?? p.id_proveedor,
+            nombre: p.nombre,
+            cuit: p.cuit,
+          }));
+          setProveedores(mappedProv);
+        }
+      } catch (err) {
+        console.error("Error cargando catálogos de compras:", err);
+      }
+    }
+
+    cargarCatalogos();
+  }, []);
+
+  useEffect(() => {
+    if (!isEditMode) return;
+
+    async function cargarCompra() {
+      try {
+        const res = await api(`/api/compras/${id}`);
+
+        if (!res.ok) {
+          console.error("No se pudo cargar la compra");
           return;
         }
 
-        const mapped = resp.compras.map(mapCompraFromApi);
-        setRows(mapped);
-      } catch (err) {
-        setErrorMsg("No se pudieron cargar las compras desde el servidor.");
-      } finally {
-        setLoading(false);
+        const c = res.compra;
+
+        setProveedor(c.id_proveedor ?? "");
+        setFecha(c.fecha ? new Date(c.fecha).toISOString().slice(0, 10) : "");
+        setObs(c.observaciones ?? "");
+
+        const adaptados = (res.items || []).map((it) => ({
+          id: crypto.randomUUID(),
+          prodId: it.id_producto,
+          producto: it.producto,
+          tipo: it.tipo,
+          medida: it.medida || "u",
+          cantidad: Number(it.cantidad),
+          precioUnit: Number(it.precio_unitario),
+          subtotal: Number(it.subtotal),
+        }));
+
+        setItems(adaptados);
+      } catch (e) {
+        console.error("Error cargando compra:", e);
       }
     }
 
-    fetchCompras();
-  }, [mostrarAnuladas]);
+    cargarCompra();
+  }, [id, isEditMode]);
 
-  const filtered = useMemo(() => {
-    const qLower = (q || "").trim().toLowerCase();
+  const subtotalCalc = useMemo(() => {
+    const q = toNumber(cantidad);
+    const p = toNumber(precioUnit);
+    return q && p ? q * p : 0;
+  }, [cantidad, precioUnit]);
 
-    return rows
-      .filter((r) =>
-        mostrarAnuladas ? r.estado === "ANULADO" : r.estado !== "ANULADO"
-      )
-      .filter((r) => (tab === "Todo" ? true : r.tipo === tab))
-      .filter((r) => {
-        if (!qLower) return true;
-        return (
-          String(r.id || "").toLowerCase().includes(qLower) ||
-          String(r.proveedor || "").toLowerCase().includes(qLower) ||
-          String(r.obs || "").toLowerCase().includes(qLower)
-        );
-      })
-      .filter((r) => {
-        const key = toYMD(r.fecha);
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) return true;
-        if (desde && key < desde) return false;
-        if (hasta && key > hasta) return false;
-        return true;
-      });
-  }, [rows, tab, q, desde, hasta, mostrarAnuladas]);
-
-  function onApplyFilters(form) {
-    setQ(form.buscar ?? "");
-    setDesde(form.fechaDesde ?? "");
-    setHasta(form.fechaHasta ?? "");
+  function onSelectProducto(p) {
+    setProducto(p);
+    if (!precioUnit) setPrecioUnit(String(p.precioRef ?? p.precio_unitario ?? ""));
+    setTimeout(() => cantRef.current?.focus(), 0);
   }
 
-  function onResetFilters() {
-    setQ("");
-    setDesde("");
-    setHasta("");
-    setTab("Todo");
-    setResetSignal((x) => x + 1);
+  function addItem() {
+    if (!producto) return;
+
+    const cant = toNumber(cantidad);
+    const pu = toNumber(precioUnit);
+
+    if (cant <= 0 || pu <= 0) return;
+
+    const existingIndex = items.findIndex((it) => it.prodId === producto.id);
+
+    if (existingIndex !== -1) {
+      setItems((prev) =>
+        prev.map((it, idx) => {
+          if (idx === existingIndex) {
+            const newCantidad = it.cantidad + cant;
+            return {
+              ...it,
+              cantidad: newCantidad,
+              subtotal: newCantidad * pu,
+            };
+          }
+          return it;
+        })
+      );
+    } else {
+      const nuevo = {
+        id: crypto.randomUUID(),
+        tipo: producto.tipo,
+        producto: producto.nombre,
+        medida: producto.medida,
+        cantidad: cant,
+        precioUnit: pu,
+        subtotal: cant * pu,
+        proveedor: proveedor || "",
+        fecha: fecha || "",
+        prodId: producto.id,
+      };
+
+      setItems((prev) => [...prev, nuevo]);
+    }
+
+    setCantidad("");
+    setPrecioUnit("");
+    setProducto(null);
   }
 
-  const handleDownloadDetalleCompra = (compra) => {
-    const doc = new jsPDF();
-    if (!compra || !compra.items) return;
+  const totalCompra = useMemo(
+    () => items.reduce((a, b) => a + (Number(b.subtotal) || 0), 0),
+    [items]
+  );
 
-    const compraCodigo = compra.id || "OC-S/N";
-    const compraId = compra.dbId ?? compra.id_compra ?? null;
-
-    const fecha = formatDMY(
-      compra.fecha || new Date().toISOString().slice(0, 10)
-    );
-    const proveedor = compra.proveedor || "—";
-    const obs = compra.obs || "—";
-
-    doc.setFontSize(16);
-    doc.text(`Detalle de Compra ${compraCodigo}`, 14, 20);
-
-    doc.setFontSize(12);
-    doc.text(`N° interno: ${compraId ?? "—"}`, 14, 28);
-    doc.text(`Proveedor: ${proveedor}`, 14, 34);
-    doc.text(`Fecha: ${fecha}`, 14, 40);
-    doc.text(`Observaciones: ${obs}`, 14, 46);
-
-    const head = [["Producto", "Cantidad", "Medida", "Precio Unit.", "Subtotal"]];
-
-    const body = compra.items.map((p) => [
-      p.producto,
-      p.cantidad,
-      p.medida,
-      `$${Number(p.precio).toLocaleString("es-AR")}`,
-      `$${Number(p.subtotal).toLocaleString("es-AR")}`,
-    ]);
-
-    autoTable(doc, { startY: 55, head, body });
-
-    const finalY = doc.lastAutoTable.finalY + 10;
-    doc.text(`Total: $${Number(compra.total).toLocaleString("es-AR")}`, 14, finalY);
-
-    setTimeout(() => doc.save(`Detalle de ${compraCodigo}.pdf`), 100);
-  };
-
-  function onViewDetail(row) {
-    setEditOpen(false);
-    setEditRow(null);
-    setDetailRow(row);
-    setDetailOpen(true);
-  }
-
-  async function confirmarAnulacion() {
-    if (!compraIdToAnular) return;
-
+  const handleGuardarCompra = async () => {
     try {
-      setAnularConfirmOpen(false);
-
-      const resp = await api(`/api/compras/${compraIdToAnular}/anular`, {
-        method: "PUT",
-      });
-
-      if (!resp?.ok) {
-        setMessageModal({
+      if (items.length === 0) {
+        return setMessageModal({
           isOpen: true,
-          title: "Error al anular",
-          text: resp?.message || "No se pudo anular la compra.",
+          title: "Aviso",
+          text: "No hay productos cargados en la venta.",
           type: "error",
         });
-        return;
+      }
+
+      const payload = {
+        id_proveedor: proveedor ? Number(proveedor) : null,
+        fecha: fecha || null,
+        observaciones: obs || null,
+        items: items.map((it) => ({
+          id_producto: it.prodId,
+          cantidad: it.cantidad,
+          precio_unitario: it.precioUnit,
+        })),
+      };
+
+      const response = await api("/api/compras", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        setMessageModal({
+          isOpen: true,
+          title: "¡Compra Registrada!",
+          text: `La compra N° ${response.id_compra} ha sido registrada correctamente y el stock actualizado.`,
+          type: "success",
+        });
+
+        resetCompraForm();
+      }
+    } catch (err) {
+      console.error("Error al guardar compra:", err.message);
+
+      let friendlyMsg = "Error al comunicarse con el servidor. Intente más tarde.";
+      let title = " Error al Guardar";
+
+      if (err.message.includes("STOCK_INSUFICIENTE")) {
+        const match = err.message.match(/STOCK_INSUFICIENTE: (.*)/);
+        if (match && match[1]) {
+          friendlyMsg = "No se puede completar la operación. " + match[1].trim().replace(/\.$/, "");
+        } else {
+          friendlyMsg =
+            "Stock insuficiente para uno o más productos. Por favor, verifique el inventario.";
+        }
+        title = " Stock Insuficiente";
+      } else if (err.message.includes("NETWORK_FAILURE") || err.message.includes("404")) {
+        friendlyMsg = "No se pudo conectar al sistema. Asegúrese de que el backend esté activo.";
+        title = " Error de Conexión";
+      } else if (err.message.includes("500")) {
+        friendlyMsg = "Ocurrió un error inesperado en el servidor. Revise el log de Express.";
       }
 
       setMessageModal({
         isOpen: true,
-        title: "Compra anulada",
-        text: `La compra ${compraIdToAnular} fue anulada correctamente.`,
-        type: "success",
-      });
-
-      setRows((prev) =>
-        prev.map((r) =>
-          r.dbId === compraIdToAnular ? { ...r, estado: "ANULADO" } : r
-        )
-      );
-    } catch (e) {
-      setMessageModal({
-        isOpen: true,
-        title: "❌ Error de red",
-        text: e.message,
+        title: title,
+        text: friendlyMsg,
         type: "error",
       });
-    } finally {
-      setCompraIdToAnular(null);
     }
+  };
+
+  const handleActualizarCompra = async () => {
+    try {
+      const payload = {
+        id_proveedor: proveedor ? Number(proveedor) : null,
+        fecha: fecha || null,
+        observaciones: obs || null,
+        items: items.map((it) => ({
+          id_producto: it.prodId,
+          cantidad: it.cantidad,
+          precio_unitario: it.precioUnit,
+        })),
+      };
+
+      const response = await api(`/api/compras/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      setMessageModal({
+        isOpen: true,
+        title: "Compra actualizada",
+        text: `La compra N° ${response.id_compra} fue modificada correctamente.`,
+        type: "success",
+      });
+    } catch (error) {
+      console.error(error);
+      setMessageModal({
+        isOpen: true,
+        title: "Error",
+        text: "No se pudo actualizar la compra.",
+        type: "error",
+      });
+    }
+  };
+
+  const handleCancelClick = () => {
+    if (items.length > 0) {
+      setCancelConfirmOpen(true);
+    } else {
+      resetCompraForm();
+    }
+  };
+
+  const handleCancelConfirm = () => {
+    setCancelConfirmOpen(false);
+    resetCompraForm();
+  };
+
+  const itemsConObs = items.map((item, idx) => ({
+    ...item,
+    obs: idx === 0 ? obs || "" : "",
+  }));
+
+  const handleNewProductSubmit = async (values) => {
+    try {
+      const row = await api("/api/stock/productos", {
+        method: "POST",
+        body: values,
+      });
+
+      const nuevoProducto = {
+        id: row.id_producto,
+        nombre: row.referencia,
+        tipo: row.tipo,
+        medida: row.medida || "u",
+        precioRef: Number(row.precio) || 0,
+      };
+
+      setProductos((prev) => [...prev, nuevoProducto]);
+      setNewProdOpen(false);
+
+      setMessageModal({
+        isOpen: true,
+        title: "Producto creado",
+        text: `El producto "${nuevoProducto.nombre}" fue agregado correctamente.`,
+        type: "success",
+      });
+    } catch (e) {
+      console.error(e);
+      setMessageModal({
+        isOpen: true,
+        title: "Error",
+        text: "No se pudo crear el producto.",
+        type: "error",
+      });
+    }
+  };
+
+  const editColumns = [
+    { key: "tipo", label: "Tipo", readOnly: true },
+    {
+      key: "producto",
+      label: "Producto / Material",
+      width: "220px",
+      type: "text",
+      readOnly: true,
+    },
+    { key: "cantidad", label: "Cantidad", width: "120px", type: "number" },
+    { key: "precio", label: "Precio unit.", width: "140px", type: "number", readOnly: true },
+    { key: "subtotal", label: "Subtotal", width: "140px", readOnly: true },
+  ];
+
+  const handleOpenItemDelete = (index) => {
+    setItemToDeleteIndex(index);
+    setItemDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmItemDelete = () => {
+    setItems((prev) => prev.filter((_, idx) => idx !== itemToDeleteIndex));
+    setItemDeleteConfirmOpen(false);
+    setItemToDeleteIndex(null);
+  };
+
+  const computeTotal = (list) =>
+    list.reduce((sum, r) => sum + Number(r.subtotal || 0), 0).toFixed(2);
+
+  function abrirEditar(row) {
+    const rowForEdit = { ...row, precio: row.precioUnit };
+    setEditRow(rowForEdit);
+    setEditOpen(true);
   }
 
+  function onSaveEdit(updatedObj) {
+    const edited = (updatedObj?.items && updatedObj.items[0]) || updatedObj;
+    const normalized = {
+      ...edited,
+      precioUnit: Number(edited.precio || 0),
+      subtotal: Number(edited.cantidad || 0) * Number(edited.precio || 0),
+    };
+    setItems((prev) =>
+      prev.map((it) => (it.id === normalized.id ? { ...it, ...normalized } : it))
+    );
+    setEditOpen(false);
+    setEditRow(null);
+  }
+
+  const subtotalCajas = items
+    .filter((v) => v.tipo === "Caja")
+    .reduce((a, v) => a + Number(v.subtotal), 0);
+
+  const subtotalProductos = items
+    .filter((v) => v.tipo === "Material")
+    .reduce((a, v) => a + Number(v.subtotal), 0);
+
+  const cantidadCajas = items
+    .filter((v) => v.tipo === "Caja")
+    .reduce((a, v) => a + Number(v.cantidad), 0);
+
+  const cantidadProductos = items
+    .filter((v) => v.tipo === "Material")
+    .reduce((a, v) => a + Number(v.cantidad), 0);
+
   const columns = [
-    {
-      id: "id",
-      header: "Orden",
-      accessor: (r) => r.id,
-      align: "center",
-      nowrap: true,
-      width: "120px",
-      sortable: true,
-    },
-    {
-      id: "proveedor",
-      header: "Proveedor",
-      accessor: (r) => r.proveedor,
-      align: "center",
-      sortable: true,
-    },
     {
       id: "tipo",
       header: "Tipo",
       accessor: (r) => r.tipo,
       align: "center",
       width: "110px",
-      sortable: true,
     },
     {
-      id: "fecha",
-      header: "Fecha",
-      accessor: (r) => toYMD(r.fecha),
-      render: (r) => formatDMY(r.fecha),
+      id: "producto",
+      header: "Producto",
+      accessor: (r) => r.producto,
       align: "center",
-      width: "120px",
-      sortable: true,
-      sortAccessor: (r) => toYMD(r.fecha),
     },
     {
-      id: "total",
-      header: "Total ($)",
-      render: (r) => fmtARS.format(r.total),
-      accessor: (r) => r.total,
+      id: "cantidad",
+      header: "Cant. (u/kg)",
+      render: (r) => Number(r.cantidad).toLocaleString("es-AR"),
+      align: "center",
+      width: "130px",
+    },
+    {
+      id: "precioUnit",
+      header: "Precio unit.",
+      render: (r) => Number(r.precioUnit).toLocaleString("es-AR"),
       align: "center",
       width: "140px",
-      sortable: true,
-      sortAccessor: (r) => Number(r.total || 0),
     },
     {
-      id: "detalle",
-      header: "Detalle",
+      id: "subtotal",
+      header: "Subtotal",
+      render: (r) => Number(r.subtotal).toLocaleString("es-AR"),
       align: "center",
-      render: (row) => (
-        <button
-          onClick={() => onViewDetail(row)}
-          className="border border-[#d8e4df] rounded-md px-4 py-1.5 text-[#154734] hover:bg-[#e8f4ef] transition"
-        >
-          Ver detalle
-        </button>
-      ),
       width: "140px",
     },
     {
       id: "obs",
-      header: "Observaciones",
-      accessor: (r) => r.obs,
+      header: "Observ. Gral",
+      render: (row) => row.obs || "—",
       align: "center",
     },
     {
       id: "acciones",
       header: "Acciones",
       align: "center",
+      width: "170px",
       render: (row) => {
-        const isAnulada = row.estado === "ANULADO";
-        if (isAnulada) {
-          return <span className="text-sm italic text-red-700">Anulada</span>;
-        }
-
-        const numericId =
-          row.dbId ?? row.id_compra ?? getNumericIdFromDisplay(row.id);
-
+        const i = items.findIndex((v) => v.id === row.id);
         return (
-          <div className="flex flex-wrap justify-center items-center gap-2">
-            <button
-              onClick={() => navigate(`/compras/editar/${numericId}`)}
-              className="bg-[#154734] text-white px-4 py-1.5 text-xs rounded-md hover:bg-[#1E5A3E]"
-            >
-              MODIFICAR
-            </button>
-
-            <button
-              onClick={() => {
-                setCompraIdToAnular(numericId);
-                setAnularConfirmOpen(true);
-              }}
-              className="bg-[#A30000] text-white px-6 py-1.5 text-xs rounded-md hover:bg-[#7A0000]"
-            >
-              ANULAR
-            </button>
-
-            <button
-              onClick={() => handleDownloadDetalleCompra(row)}
-              className="p-1 border border-[#d8e4df] rounded-md hover:bg-[#f7faf9] flex items-center justify-center"
-              title="Descargar Detalle de Compra"
-            >
-              <Download className="w-4 h-4 text-[#154734]" />
-            </button>
+          <div className="flex justify-center items-start gap-2">
+            <div className="flex flex-col gap-1">
+              <button
+                onClick={() => abrirEditar(row)}
+                className="bg-[#154734] text-white px-3 py-1 text-xs rounded-md hover:bg-[#1E5A3E]"
+              >
+                MODIFICAR
+              </button>
+              <button
+                onClick={() => handleOpenItemDelete(i)}
+                className="bg-[#A30000] text-white px-3 py-1 text-xs rounded-md hover:bg-[#7A0000]"
+              >
+                ELIMINAR
+              </button>
+            </div>
           </div>
         );
       },
     },
   ];
 
-  const editColumns = [
-    { key: "producto", label: "Producto / Material", width: "220px", type: "text" },
-    { key: "medida", label: "Medida/Estado", width: "140px", type: "text" },
-    { key: "cantidad", label: "Cantidad", width: "120px", type: "number" },
-    { key: "precio", label: "Precio Unitario", width: "140px", type: "number" },
-    { key: "descuento", label: "Desc. %", width: "110px", type: "number" },
-    { key: "subtotal", label: "Subtotal", width: "140px", readOnly: true },
-  ];
-
-  const computeTotal = (list) =>
-    list.reduce((sum, it) => sum + Number(it.subtotal || 0), 0).toFixed(2);
-
-  async function onSaveEdit(updated) {
-    const compraId =
-      updated.dbId ?? updated.id_compra ?? getNumericIdFromDisplay(updated.id);
-
-    setRows((prev) =>
-      prev.map((r) => (r.id === updated.id ? { ...r, ...updated } : r))
-    );
-    setEditOpen(false);
-    setEditRow(null);
-
-    if (!compraId) return;
-
-    try {
-      const payload = {
-        fecha: updated.fecha,
-        observaciones: updated.obs,
-        items: updated.items,
-      };
-
-      const resp = await api(`/api/compras/${compraId}`, {
-        method: "PUT",
-        body: payload,
-      });
-
-      if (!resp?.ok) return;
-
-      if (resp.compra) {
-        const mapped = mapCompraFromApi(resp.compra);
-        setRows((prev) => prev.map((r) => (r.id === mapped.id ? mapped : r)));
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  }
-
   return (
-    <PageContainer
-      title="Lista de Compras"
-      actions={
-        <button
-          onClick={() => navigate("/compras/nueva")}
-          className="flex items-center gap-2 bg-[#154734] text-white px-4 py-2 rounded-md hover:bg-[#103a2b] transition"
-        >
-          <Plus size={16} /> Añadir nueva compra
-        </button>
-      }
-    >
-      {errorMsg && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-5">
-          {errorMsg}
+    <PageContainer title={isEditMode ? "Modificar Compra" : "Registrar Compra"}>
+      <div className="flex flex-col h-full">
+        <div className="bg-[#f7fbf8] border border-[#e2ede8] rounded-2xl p-4 mb-4 flex-shrink-0">
+          <h2 className="text-[#154734] text-base font-semibold mb-3">Datos de la compra</h2>
+
+          <div className="grid grid-cols-[0.5fr_0.2fr] gap-4 mb-4 max-w-[700px]">
+            <div>
+              <label className="block text-sm text-slate-700 mb-1">Producto</label>
+              <ProductoSelect
+                productos={productos.map((p) => ({ ...p, id_producto: p.id }))}
+                value={producto}
+                onChange={(p) => {
+                  onSelectProducto(p);
+                  setTimeout(() => document.activeElement.blur(), 0);
+                }}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-slate-700 mb-1">Tipo</label>
+              <div className="h-10 w-full rounded-xl border border-[#d8e4df] bg-gray-100 px-3 text-sm flex items-center">
+                {producto ? producto.tipo : "—"}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4 mb-3 max-w-[700px]">
+            <FormBuilder
+              columns={1}
+              fields={[
+                {
+                  name: "cantidad",
+                  label: "Cant. (u/kg)",
+                  placeholder: "0",
+                },
+              ]}
+              values={{ cantidad }}
+              onChange={(name, v) => setCantidad(v)}
+            />
+
+            <FormBuilder
+              columns={1}
+              fields={[
+                {
+                  name: "precioUnit",
+                  label: "Precio unit.",
+                  placeholder: "0,00",
+                },
+              ]}
+              values={{ precioUnit }}
+              onChange={(name, v) => setPrecioUnit(v)}
+            />
+
+            <FormBuilder
+              columns={1}
+              fields={[
+                {
+                  name: "subtotal",
+                  label: "Subtotal",
+                  readOnly: true,
+                  inputClass: "bg-[#f2f2f2]",
+                },
+              ]}
+              values={{
+                subtotal: subtotalCalc ? fmt.format(subtotalCalc) : "—",
+              }}
+              onChange={() => {}}
+            />
+          </div>
+
+          <div className="grid grid-cols-5 gap-5 items-end w-full">
+            <FormBuilder
+              columns={1}
+              fields={[
+                {
+                  name: "proveedor",
+                  type: "select",
+                  label: "Proveedor (opcional)",
+                  options: proveedores.map((p) => ({
+                    value: p.id,
+                    label: p.nombre,
+                  })),
+                },
+              ]}
+              values={{ proveedor }}
+              onChange={(name, v) => setProveedor(v)}
+            />
+
+            <FormBuilder
+              columns={1}
+              fields={[
+                {
+                  name: "fecha",
+                  type: "date",
+                  label: "Fecha",
+                },
+              ]}
+              values={{ fecha }}
+              onChange={(name, v) => setFecha(v)}
+            />
+
+            <FormBuilder
+              columns={1}
+              fields={[
+                {
+                  name: "obs",
+                  label: "Observaciones generales",
+                  placeholder: "Opcional",
+                },
+              ]}
+              values={{ obs }}
+              onChange={(name, v) => setObs(v)}
+            />
+
+            <PrimaryButton
+              onClick={addItem}
+              text={
+                <span className="inline-flex items-center gap-2 justify-center">
+                  <Plus className="h-4 w-4" /> Añadir
+                </span>
+              }
+            />
+
+            <SecondaryButton
+              onClick={() => setNewProdOpen(true)}
+              text={
+                <span className="inline-flex items-center gap-2">
+                  <Plus className="h-4 w-4" /> Nuevo producto
+                </span>
+              }
+            />
+          </div>
         </div>
-      )}
 
-      <FilterBar
-        filters={TABS}
-        selectedFilter={tab}
-        onFilterSelect={setTab}
-        resetSignal={resetSignal}
-        onApply={onApplyFilters}
-        onReset={onResetFilters}
-        fields={[
-          {
-            name: "buscar",
-            label: "Buscar",
-            type: "text",
-            placeholder: "Proveedor, orden u observacion…",
-          },
-          { name: "fechaDesde", label: "Fecha desde", type: "date" },
-          { name: "fechaHasta", label: "Fecha hasta", type: "date" },
-        ]}
-        applyButton={(props) => (
-          <button
-            {...props}
-            className="flex items-center gap-2 bg-[#154734] text-white px-4 py-2 rounded-md hover:bg-[#103a2b] transition"
-          >
-            <Filter size={16} /> Aplicar Filtros
-          </button>
-        )}
-      />
+        <h3 className="text-[#154734] text-sm font-semibold mb-2">Próximos a confirmar</h3>
 
-      <div className="flex justify-end mb-4 gap-4">
-        <button
-          onClick={() => setMostrarAnuladas((prev) => !prev)}
-          className="border border-[#154734] text-[#154734] px-3 py-1 rounded-md hover:bg-[#e8f4ef] transition"
-        >
-          {mostrarAnuladas ? "Ocultar anuladas" : "Ver anuladas"}
-        </button>
-      </div>
-
-      <div className="mt-6">
-        {loading ? (
-          <p className="text-sm text-slate-600">Cargando…</p>
-        ) : (
+        <div className="flex-1 min-h-[150px] rounded-t-xl border-t border-[#e3e9e5]">
           <DataTable
             columns={columns}
-            data={filtered}
-            zebra={false}
+            data={itemsConObs}
+            rowKey={(row) => row.id}
             stickyHeader={true}
-            wrapperClass="dn-table-wrapper overflow-y-auto shadow-sm"
-            tableClass="w-full text-sm text-center border-collapse"
-            theadClass="bg-[#e8f4ef] text-[#154734]"
-            rowClass={(row) =>
-              `border-t border-[#edf2ef] ${
-                row.estado === "ANULADO"
-                  ? "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                  : "bg-white hover:bg-[#f6faf7]"
-              }`
-            }
-            headerClass="px-4 py-3 font-semibold text-center"
-            cellClass="px-4 py-2 text-center"
-            enableSort={true}
-            enablePagination={true}
-            pageSize={8}
+            wrapperClass="h-[250px]"
+            cellClass="px-3 py-2"
           />
+        </div>
+
+        {items.length > 0 && (
+          <div className="flex justify-between items-center text-[#154734] text-sm mt-3 mb-1 flex-shrink-0">
+            <div>
+              Subtotales: Cajas: {cantidadCajas} u — ${subtotalCajas.toLocaleString("es-AR")}
+              &nbsp;&nbsp;Materiales: {cantidadProductos} kg — $
+              {subtotalProductos.toLocaleString("es-AR")}
+            </div>
+            <p className="text-[#154734] font-semibold border border-[#e2ede8] bg-[#e8f4ef] px-3 py-1 rounded-md">
+              Total compra:&nbsp;
+              <span className="font-bold">${totalCompra.toLocaleString("es-AR")}</span>
+            </p>
+          </div>
         )}
-      </div>
 
-      <Details
-        isOpen={detailOpen}
-        onClose={() => setDetailOpen(false)}
-        title={detailRow ? `Detalle de Compra ${detailRow.id}` : "Detalle de Compra"}
-        data={detailRow}
-        itemsKey="items"
-        columns={[
-          { key: "tipo", label: "Tipo" },
-          { key: "proveedor", label: "Proveedor" },
-          { key: "producto", label: "Producto" },
-          { key: "cantidad", label: "Cantidad" },
-          { key: "precio", label: "Precio Unitario" },
-          { key: "subtotal", label: "Subtotal" },
-        ]}
-      />
+        <div className="flex justify-center gap-6 py-10">
+          <button
+            type="button"
+            onClick={handleCancelClick}
+            className="min-w-[160px] px-8 py-2.5 rounded-md border border-[#154734] text-[#154734] font-semibold hover:bg-[#e8f4ef] transition"
+          >
+            CANCELAR
+          </button>
 
-      {editOpen && editRow && (
-        <Modified
-          isOpen={editOpen}
-          onClose={() => setEditOpen(false)}
-          title={`Modificar productos de Compra ${editRow.id}`}
-          data={editRow}
-          itemsKey="items"
-          columns={editColumns}
-          computeTotal={computeTotal}
-          extraFooter={
-            <div className="flex justify-between items-center">
-              <div>
-                <label className="text-sm font-semibold text-[#154734] mr-2">
-                  Fecha:
-                </label>
-                <input
-                  type="text"
-                  value={formatDMY(editRow.fecha || "")}
-                  className="border border-slate-200 rounded-md px-3 py-1"
-                  readOnly
-                />
-              </div>
-              <p className="text-lg font-semibold text-[#154734]">
-                Total: {fmtARS.format(Number(editRow.total || 0))}
-              </p>
+          <button
+            type="button"
+            onClick={isEditMode ? handleActualizarCompra : handleGuardarCompra}
+            className="min-w-[160px] px-8 py-2.5 rounded-md font-semibold text-white bg-[#154734] hover:bg-[#103a2b] transition"
+          >
+            {isEditMode ? "ACTUALIZAR COMPRA" : "GUARDAR"}
+          </button>
+        </div>
+
+        {newProdOpen && (
+          <Modal
+            isOpen={newProdOpen}
+            title="Registrar nuevo producto"
+            onClose={() => setNewProdOpen(false)}
+            size="max-w-2xl"
+          >
+            <ProductFormTabs
+              mode="create"
+              initialValues={{
+                tipo: "Caja",
+                referencia: "",
+                categoria: "",
+                medidas: { l: "", a: "", h: "" },
+                unidad: "u",
+                cantidad: "",
+                precio: "",
+                notas: "",
+              }}
+              onSubmit={handleNewProductSubmit}
+              onCancel={() => setNewProdOpen(false)}
+            />
+          </Modal>
+        )}
+
+        <Modal
+          isOpen={isCancelConfirmOpen}
+          onClose={() => setCancelConfirmOpen(false)}
+          title="Confirmar Cancelación"
+          size="max-w-md"
+          footer={
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setCancelConfirmOpen(false)}
+                className="px-4 py-2 rounded-md font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
+              >
+                Volver
+              </button>
+              <button
+                onClick={handleCancelConfirm}
+                className="px-4 py-2 rounded-md font-semibold text-white bg-red-600 hover:bg-red-700 transition"
+              >
+                Sí, Cancelar
+              </button>
             </div>
           }
-          onSave={onSaveEdit}
-          size="max-w-5xl"
+        >
+          <p className="text-sm text-slate-700">
+            ¿Estás seguro de que quieres cancelar la compra? Se perderán todos los productos cargados.
+          </p>
+        </Modal>
+
+        <Modal
+          isOpen={isItemDeleteConfirmOpen}
+          onClose={() => setItemDeleteConfirmOpen(false)}
+          title="Confirmar Eliminación"
+          size="max-w-xs"
+          footer={
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setItemDeleteConfirmOpen(false)}
+                className="rounded-md border border-[#154734] text-[#154734] px-4 py-2 hover:bg-[#e8f4ef]"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmItemDelete}
+                className="bg-[#A30000] text-white px-6 py-2 rounded-md hover:bg-[#7A0000]"
+              >
+                Eliminar
+              </button>
+            </div>
+          }
+        >
+          <p className="text-sm text-slate-700">
+            ¿Estás seguro de eliminar este producto del borrador de la venta?
+          </p>
+        </Modal>
+
+        {editOpen && editRow && (
+          <Modified
+            isOpen={editOpen}
+            onClose={() => {
+              setEditOpen(false);
+              setEditRow(null);
+            }}
+            title={`Modificar ítem — ${editRow.producto ?? ""}`}
+            data={{ ...editRow, items: [{ ...editRow }] }}
+            itemsKey="items"
+            columns={editColumns}
+            computeTotal={computeTotal}
+            onSave={onSaveEdit}
+            size="max-w-4xl"
+          />
+        )}
+
+        <MessageModal
+          isOpen={messageModal.isOpen}
+          title={messageModal.title}
+          text={messageModal.text}
+          type={messageModal.type}
+          onClose={() => setMessageModal((prev) => ({ ...prev, isOpen: false }))}
         />
-      )}
-
-      <Modals
-        isOpen={isAnularConfirmOpen}
-        onClose={() => setAnularConfirmOpen(false)}
-        title="Confirmar Anulación"
-        size="max-w-md"
-        footer={
-          <div className="flex justify-end gap-3">
-            <button
-              onClick={() => setAnularConfirmOpen(false)}
-              className="px-4 py-2 rounded-md font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
-            >
-              Volver
-            </button>
-
-            <button
-              onClick={confirmarAnulacion}
-              className="px-4 py-2 rounded-md font-semibold text-white bg-red-600 hover:bg-red-700 transition"
-            >
-              Sí, Anular
-            </button>
-          </div>
-        }
-      >
-        <p className="text-sm text-slate-700">
-          ¿Seguro que querés anular la compra{" "}
-          <strong className="text-slate-900">N° {compraIdToAnular}</strong>?
-          <br />
-          Esta acción no se puede deshacer.
-        </p>
-      </Modals>
-
-      <Modals
-        isOpen={messageModal.isOpen}
-        onClose={() => setMessageModal({ isOpen: false, title: "", text: "", type: "" })}
-        title={messageModal.title}
-        size="max-w-md"
-        footer={
-          <div className="flex justify-end">
-            <button
-              onClick={() => setMessageModal({ isOpen: false, title: "", text: "", type: "" })}
-              className={`px-4 py-2 rounded-md font-semibold text-white transition ${
-                messageModal.type === "success"
-                  ? "bg-emerald-700 hover:bg-emerald-800"
-                  : "bg-red-700 hover:bg-red-800"
-              }`}
-            >
-              Aceptar
-            </button>
-          </div>
-        }
-      >
-        <p className="text-sm text-slate-700">{messageModal.text}</p>
-      </Modals>
+      </div>
     </PageContainer>
   );
 }
