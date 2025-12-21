@@ -2,15 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Plus, Search } from "lucide-react";
 
 import api from "../lib/apiClient";
-
-
 import PageContainer from "../components/pages/PageContainer.jsx";
-
 import DataTable from "../components/tables/DataTable.jsx";
-
 import Modal from "../components/modals/Modals.jsx";
-
-
 
 function mapProveedorFromApi(p) {
   return {
@@ -30,32 +24,42 @@ const emptyForm = {
 };
 
 function formatCuit(raw) {
-  const digits = raw.replace(/\D/g, "").slice(0, 11); 
-
+  const digits = String(raw || "").replace(/\D/g, "").slice(0, 11);
   if (digits.length <= 2) return digits;
-  if (digits.length <= 10) {
-    // 2 dígitos + guion + resto
-    return `${digits.slice(0, 2)}-${digits.slice(2)}`;
-  }
-  // 11 dígitos: 2 - 8 - 1
+  if (digits.length <= 10) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
   return `${digits.slice(0, 2)}-${digits.slice(2, 10)}-${digits.slice(10)}`;
 }
 
 export default function Proveedores() {
-
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
 
   const [search, setSearch] = useState("");
 
-  // modal ABM
   const [isFormOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
 
- 
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+
+  const [messageModal, setMessageModal] = useState({
+    isOpen: false,
+    title: "",
+    text: "",
+    type: "success",
+  });
+
+  function openMessage({ title, text, type = "success" }) {
+    setMessageModal({ isOpen: true, title, text, type });
+  }
+
+  function closeMessage() {
+    setMessageModal({ isOpen: false, title: "", text: "", type: "success" });
+  }
+
   useEffect(() => {
     async function fetchProveedores() {
       try {
@@ -64,7 +68,6 @@ export default function Proveedores() {
 
         const resp = await api("/api/proveedores");
         if (!resp?.ok || !Array.isArray(resp.proveedores)) {
-          console.warn("Respuesta inesperada en GET /api/proveedores:", resp);
           setRows([]);
           return;
         }
@@ -72,10 +75,7 @@ export default function Proveedores() {
         const mapped = resp.proveedores.map(mapProveedorFromApi);
         setRows(mapped);
       } catch (err) {
-        console.error("Error cargando proveedores:", err);
-        setErrorMsg(
-          "No se pudieron cargar los proveedores desde el servidor."
-        );
+        setErrorMsg("No se pudieron cargar los proveedores desde el servidor.");
         setRows([]);
       } finally {
         setLoading(false);
@@ -85,18 +85,15 @@ export default function Proveedores() {
     fetchProveedores();
   }, []);
 
-
   const filtered = useMemo(() => {
     if (!search.trim()) return rows;
     const q = search.trim().toLowerCase();
     return rows.filter(
       (r) =>
-        r.cuit.toLowerCase().includes(q) ||
-        r.nombre.toLowerCase().includes(q)
+        String(r.cuit || "").toLowerCase().includes(q) ||
+        String(r.nombre || "").toLowerCase().includes(q)
     );
   }, [rows, search]);
-
- 
 
   function openNew() {
     setEditing(null);
@@ -124,7 +121,6 @@ export default function Proveedores() {
 
   function handleChange(e) {
     const { name, value } = e.target;
-
     if (name === "cuit") {
       setForm((prev) => ({ ...prev, cuit: formatCuit(value) }));
     } else {
@@ -135,39 +131,47 @@ export default function Proveedores() {
   async function handleSubmit(e) {
     e.preventDefault();
 
-
-    const cuitDigits = form.cuit.replace(/\D/g, "");
+    const cuitDigits = String(form.cuit || "").replace(/\D/g, "");
     if (cuitDigits.length !== 11) {
-      alert("El CUIT debe tener 11 dígitos (formato XX-XXXXXXXX-X).");
+      openMessage({
+        type: "error",
+        title: "CUIT inválido",
+        text: "El CUIT debe tener 11 dígitos (formato XX-XXXXXXXX-X).",
+      });
       return;
     }
 
-    if (!form.cuit.trim() || !form.nombre.trim()) return;
+    if (!String(form.nombre || "").trim()) {
+      openMessage({
+        type: "error",
+        title: "Campos incompletos",
+        text: "Completá al menos el Nombre del proveedor.",
+      });
+      return;
+    }
 
     try {
       setSaving(true);
 
       const payload = {
-        cuit: form.cuit.trim(),
-        nombre: form.nombre.trim(),
-        contacto: form.contacto.trim(),
-        direccion: form.direccion.trim(),
+        cuit: String(form.cuit || "").trim(),
+        nombre: String(form.nombre || "").trim(),
+        contacto: String(form.contacto || "").trim(),
+        direccion: String(form.direccion || "").trim(),
       };
 
       const isEdit = Boolean(editing && editing.id);
-      const url = isEdit
-        ? `/api/proveedores/${editing.id}`
-        : "/api/proveedores";
+      const url = isEdit ? `/api/proveedores/${editing.id}` : "/api/proveedores";
       const method = isEdit ? "PUT" : "POST";
 
       const resp = await api(url, { method, body: payload });
 
       if (!resp?.ok) {
-        console.error("Error guardando proveedor:", resp);
-        alert(
-          resp?.message ||
-            "No se pudo guardar el proveedor. Revisá el servidor."
-        );
+        openMessage({
+          type: "error",
+          title: "Error al guardar",
+          text: resp?.message || "No se pudo guardar el proveedor. Revisá el servidor.",
+        });
         return;
       }
 
@@ -175,61 +179,77 @@ export default function Proveedores() {
       if (resp.proveedor) {
         updatedProveedor = mapProveedorFromApi(resp.proveedor);
       } else {
-        updatedProveedor = {
-          id: editing?.id ?? resp.id ?? null,
-          ...payload,
-        };
+        updatedProveedor = { id: editing?.id ?? resp.id ?? null, ...payload };
       }
 
       setRows((prev) => {
         if (isEdit) {
-          return prev.map((r) =>
-            r.id === updatedProveedor.id ? updatedProveedor : r
-          );
+          return prev.map((r) => (r.id === updatedProveedor.id ? updatedProveedor : r));
         }
         return [...prev, updatedProveedor];
       });
 
       closeForm();
+
+      openMessage({
+        type: "success",
+        title: isEdit ? "¡Proveedor actualizado!" : "¡Proveedor registrado!",
+        text: isEdit
+          ? `El proveedor "${updatedProveedor.nombre}" fue actualizado correctamente.`
+          : `El proveedor "${updatedProveedor.nombre}" fue registrado correctamente.`,
+      });
     } catch (err) {
-      console.error("Error de red guardando proveedor:", err);
-      alert("Ocurrió un error de red al guardar el proveedor.");
+      openMessage({
+        type: "error",
+        title: "❌ Error de red",
+        text: "Ocurrió un error de red al guardar el proveedor.",
+      });
     } finally {
       setSaving(false);
     }
   }
 
-  async function handleDelete(row) {
-    if (
-      !window.confirm(
-        `¿Seguro que querés eliminar el proveedor ${row.nombre} (${row.cuit})?`
-      )
-    ) {
-      return;
-    }
+  function requestDelete(row) {
+    setDeleteTarget(row);
+    setConfirmDeleteOpen(true);
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget?.id) return;
 
     try {
-      const resp = await api(`/api/proveedores/${row.id}`, {
+      setConfirmDeleteOpen(false);
+
+      const resp = await api(`/api/proveedores/${deleteTarget.id}`, {
         method: "DELETE",
       });
 
       if (!resp?.ok) {
-        console.error("Error eliminando proveedor:", resp);
-        alert(
-          resp?.message ||
-            "No se pudo eliminar el proveedor. Revisá el servidor."
-        );
+        openMessage({
+          type: "error",
+          title: "Error al eliminar",
+          text: resp?.message || "No se pudo eliminar el proveedor. Revisá el servidor.",
+        });
         return;
       }
 
-      setRows((prev) => prev.filter((r) => r.id !== row.id));
+      setRows((prev) => prev.filter((r) => r.id !== deleteTarget.id));
+
+      openMessage({
+        type: "success",
+        title: "¡Proveedor eliminado!",
+        text: `El proveedor "${deleteTarget.nombre}" fue eliminado correctamente.`,
+      });
     } catch (err) {
-      console.error("Error de red eliminando proveedor:", err);
-      alert("Ocurrió un error de red al eliminar el proveedor.");
+      openMessage({
+        type: "error",
+        title: "❌ Error de red",
+        text: "Ocurrió un error de red al eliminar el proveedor.",
+      });
+    } finally {
+      setDeleteTarget(null);
     }
   }
-
-  
 
   const columns = [
     {
@@ -273,7 +293,7 @@ export default function Proveedores() {
             MODIFICAR
           </button>
           <button
-            onClick={() => handleDelete(row)}
+            onClick={() => requestDelete(row)}
             className="bg-[#A30000] text-white px-4 py-1.5 text-xs rounded-md hover:bg-[#7A0000]"
           >
             ELIMINAR
@@ -283,21 +303,18 @@ export default function Proveedores() {
     },
   ];
 
-
   return (
     <PageContainer
       title="Proveedores"
       actions={
-          <button
-            onClick={openNew}
-            className="flex items-center justify-center gap-2 bg-[#154734] text-white px-6 py-2 rounded-full hover:bg-[#103a2b] transition"
-          >
-            <Plus size={16} /> Nuevo proveedor
-          </button>
-        }
-
+        <button
+          onClick={openNew}
+          className="flex items-center justify-center gap-2 bg-[#154734] text-white px-6 py-2 rounded-full hover:bg-[#103a2b] transition"
+        >
+          <Plus size={16} /> Nuevo proveedor
+        </button>
+      }
     >
-      {/* Buscador */}
       <div className="mb-4 max-w-xs">
         <label className="block text-sm font-medium text-[#154734] mb-1">
           Buscar
@@ -316,15 +333,9 @@ export default function Proveedores() {
         </div>
       </div>
 
-      {/* Mensajes de estado */}
-      {loading && (
-        <p className="mt-2 text-sm text-slate-600">Cargando proveedores…</p>
-      )}
-      {errorMsg && !loading && (
-        <p className="mt-2 text-sm text-red-600">{errorMsg}</p>
-      )}
+      {loading && <p className="mt-2 text-sm text-slate-600">Cargando proveedores…</p>}
+      {errorMsg && !loading && <p className="mt-2 text-sm text-red-600">{errorMsg}</p>}
 
-      {/* Tabla */}
       <div className="mt-6">
         <DataTable
           columns={columns}
@@ -332,7 +343,6 @@ export default function Proveedores() {
           zebra={false}
           stickyHeader={true}
           wrapperClass="dn-table-wrapper overflow-y-auto shadow-sm"
-
           tableClass="w-full text-sm text-center border-collapse"
           theadClass="bg-[#e8f4ef] text-[#154734]"
           rowClass="bg-white hover:bg-[#f6faf7] border-t border-[#edf2ef]"
@@ -343,7 +353,6 @@ export default function Proveedores() {
         />
       </div>
 
-      {/* Modal ABM Proveedores */}
       <Modal
         isOpen={isFormOpen}
         onClose={closeForm}
@@ -367,7 +376,6 @@ export default function Proveedores() {
             >
               {saving ? "Guardando…" : "Guardar"}
             </button>
-
           </div>
         }
       >
@@ -395,9 +403,7 @@ export default function Proveedores() {
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-[#154734]">
-              Contacto
-            </label>
+            <label className="text-sm font-medium text-[#154734]">Contacto</label>
             <input
               name="contacto"
               value={form.contacto}
@@ -407,9 +413,7 @@ export default function Proveedores() {
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-[#154734]">
-              Dirección
-            </label>
+            <label className="text-sm font-medium text-[#154734]">Dirección</label>
             <input
               name="direccion"
               value={form.direccion}
@@ -419,6 +423,75 @@ export default function Proveedores() {
             />
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        isOpen={confirmDeleteOpen}
+        onClose={() => {
+          if (saving) return;
+          setConfirmDeleteOpen(false);
+          setDeleteTarget(null);
+        }}
+        title="Confirmar eliminación"
+        size="max-w-md"
+        footer={
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => {
+                setConfirmDeleteOpen(false);
+                setDeleteTarget(null);
+              }}
+              className="px-4 py-2 rounded-md font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
+            >
+              Volver
+            </button>
+            <button
+              onClick={confirmDelete}
+              className="px-4 py-2 rounded-md font-semibold text-white bg-red-600 hover:bg-red-700 transition"
+            >
+              Sí, eliminar
+            </button>
+          </div>
+        }
+      >
+        <p className="text-sm text-slate-700">
+          ¿Seguro que querés eliminar el proveedor{" "}
+          <strong className="text-slate-900">
+            {deleteTarget?.nombre} ({deleteTarget?.cuit})
+          </strong>
+          ?
+          <br />
+          Esta acción no se puede deshacer.
+        </p>
+      </Modal>
+
+      <Modal
+        isOpen={messageModal.isOpen}
+        onClose={closeMessage}
+        title={messageModal.title}
+        size="max-w-md"
+        footer={
+          <div className="flex justify-end">
+            <button
+              onClick={closeMessage}
+              className={`px-4 py-2 rounded-md font-semibold text-white transition ${
+                messageModal.type === "success"
+                  ? "bg-[#154734] hover:bg-[#103a2b]"
+                  : "bg-red-700 hover:bg-red-800"
+              }`}
+            >
+              Aceptar
+            </button>
+          </div>
+        }
+      >
+        <p
+          className={`text-sm ${
+            messageModal.type === "success" ? "text-emerald-700" : "text-red-700"
+          }`}
+        >
+          {messageModal.text}
+        </p>
       </Modal>
     </PageContainer>
   );
