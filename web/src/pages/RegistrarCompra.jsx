@@ -119,11 +119,9 @@ export default function RegistrarCompra() {
             const categoria = p.categoria ?? p.categoria_nombre;
             const tipoDb = p.tipo ?? p.tipo_nombre;
 
-            const tipo =
-              tipoDb ?? (categoria === "Cajas" ? "Cajas" : "Productos");
+            const tipo = tipoDb ?? (categoria === "Cajas" ? "Cajas" : "Productos");
 
-            const medida =
-              p.medida ?? p.unidad_stock ?? p.medida_simbolo ?? "u";
+            const medida = p.medida ?? p.unidad_stock ?? p.medida_simbolo ?? "u";
             const precioRef = p.precioRef ?? p.precio_unitario ?? 0;
 
             return { id: pid, nombre, tipo, medida, precioRef };
@@ -155,10 +153,7 @@ export default function RegistrarCompra() {
       try {
         const res = await api(`/api/compras/${id}`);
 
-        if (!res.ok) {
-          console.error("No se pudo cargar la compra");
-          return;
-        }
+        if (!res.ok) return;
 
         const c = res.compra;
 
@@ -192,10 +187,16 @@ export default function RegistrarCompra() {
     return q && p ? q * p : 0;
   }, [cantidad, precioUnit]);
 
+  const itemsConObs = useMemo(() => {
+    return items.map((item, idx) => ({
+      ...item,
+      obs: idx === 0 ? (obs || "") : "",
+    }));
+  }, [items, obs]);
+
   function onSelectProducto(p) {
     setProducto(p);
-    if (!precioUnit)
-      setPrecioUnit(String(p.precioRef ?? p.precio_unitario ?? ""));
+    if (!precioUnit) setPrecioUnit(String(p.precioRef ?? p.precio_unitario ?? ""));
     setTimeout(() => cantRef.current?.focus(), 0);
   }
 
@@ -218,6 +219,7 @@ export default function RegistrarCompra() {
               ...it,
               cantidad: newCantidad,
               subtotal: newCantidad * pu,
+              precioUnit: pu,
             };
           }
           return it;
@@ -289,8 +291,6 @@ export default function RegistrarCompra() {
         resetCompraForm();
       }
     } catch (err) {
-      console.error("Error al guardar compra:", err.message);
-
       setMessageModal({
         isOpen: true,
         title: "Error al Guardar",
@@ -319,9 +319,7 @@ export default function RegistrarCompra() {
         body: JSON.stringify(payload),
       });
 
-      if (!response?.ok) {
-        throw new Error("UPDATE_FAILED");
-      }
+      if (!response?.ok) throw new Error("UPDATE_FAILED");
 
       setMessageModal({
         isOpen: true,
@@ -329,8 +327,7 @@ export default function RegistrarCompra() {
         text: `La compra N° ${response.id_compra ?? id} fue modificada correctamente.`,
         type: "success",
       });
-    } catch (error) {
-      console.error(error);
+    } catch {
       setMessageModal({
         isOpen: true,
         title: "Error",
@@ -340,7 +337,6 @@ export default function RegistrarCompra() {
     }
   };
 
-  // ✅ CAMBIO: cancelar en editMode vuelve a /compras
   const handleCancelClick = () => {
     if (isEditMode) {
       navigate("/compras");
@@ -349,9 +345,11 @@ export default function RegistrarCompra() {
 
     if (items.length > 0) {
       setCancelConfirmOpen(true);
-    } else {
-      resetCompraForm();
+      return;
     }
+
+    resetCompraForm();
+    navigate("/compras");
   };
 
   const handleCancelConfirm = () => {
@@ -363,12 +361,8 @@ export default function RegistrarCompra() {
     }
 
     resetCompraForm();
+    navigate("/compras");
   };
-
-  const itemsConObs = items.map((item, idx) => ({
-    ...item,
-    obs: idx === 0 ? obs || "" : "",
-  }));
 
   const handleNewProductSubmit = async (values) => {
     try {
@@ -394,8 +388,7 @@ export default function RegistrarCompra() {
         text: `El producto "${nuevoProducto.nombre}" fue agregado correctamente.`,
         type: "success",
       });
-    } catch (e) {
-      console.error(e);
+    } catch {
       setMessageModal({
         isOpen: true,
         title: "Error",
@@ -838,11 +831,12 @@ export default function RegistrarCompra() {
           type={messageModal.type}
           onClose={() => {
             setMessageModal((prev) => ({ ...prev, isOpen: false }));
-            if (messageModal.type === "success" && isEditMode) {
+            if (messageModal.type === "success") {
               navigate("/compras");
             }
           }}
         />
+
       </div>
     </PageContainer>
   );
