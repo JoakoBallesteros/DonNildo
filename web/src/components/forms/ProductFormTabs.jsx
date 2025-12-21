@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import MessageModal from "../modals/MessageModal";
-import { useNavigate } from "react-router-dom";
 import Modal from "../modals/Modals";
+
 export default function ProductFormTabs({
   mode = "create",
   initialValues = {
@@ -17,12 +17,14 @@ export default function ProductFormTabs({
   lockTipo = false,
   labels = { caja: "Caja", material: "Material" },
   onSubmit,
+  onCancel, // ✅ NUEVO: lo usamos para cerrar el modal sin navegar
 }) {
   const [form, setForm] = useState(initialValues);
   const [loading, setLoading] = useState(false);
   const [isCancelConfirmOpen, setCancelConfirmOpen] = useState(false);
+
   useEffect(() => setForm(initialValues), [initialValues]);
-  const navigate = useNavigate();
+
   const setField = (clave, valor) =>
     setForm((prev) => ({ ...prev, [clave]: valor }));
 
@@ -95,8 +97,16 @@ export default function ProductFormTabs({
         : undefined,
   });
 
+  const [messageModal, setMessageModal] = useState({
+    isOpen: false,
+    title: "",
+    text: "",
+    type: "",
+  });
+
   const submit = async (e) => {
     e.preventDefault();
+    e.stopPropagation?.();
     if (loading) return;
     setLoading(true);
 
@@ -104,7 +114,7 @@ export default function ProductFormTabs({
     if (err) {
       setMessageModal({
         isOpen: true,
-        title: " Error",
+        title: "Error",
         text: err,
         type: "error",
       });
@@ -118,13 +128,6 @@ export default function ProductFormTabs({
       setLoading(false);
     }
   };
-
-  const [messageModal, setMessageModal] = useState({
-    isOpen: false,
-    title: "",
-    text: "",
-    type: "",
-  });
 
   const inputCls =
     "border border-[#d8e4df] rounded-md px-3 py-2 w-full focus:outline-none focus:ring-1 focus:ring-[#154734]";
@@ -193,10 +196,7 @@ export default function ProductFormTabs({
               min={0}
               value={form.medidas?.[k] ?? ""}
               onChange={(e) =>
-                setMedida(
-                  k,
-                  e.target.value === "" ? "" : Number(e.target.value)
-                )
+                setMedida(k, e.target.value === "" ? "" : Number(e.target.value))
               }
               placeholder={["40", "30", "20"][i]}
               className={inputCls}
@@ -319,18 +319,25 @@ export default function ProductFormTabs({
       </div>
     </div>
   );
-  //
-  const handleCancelClick = () => {
-    if (JSON.stringify(form) !== JSON.stringify(initialValues)) {
+
+  // ✅ CAMBIO: Cancelar ya NO navega a /stock.
+  // Cierra el modal llamando onCancel().
+  const handleCancelClick = (e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+
+    const dirty = JSON.stringify(form) !== JSON.stringify(initialValues);
+
+    if (dirty) {
       setCancelConfirmOpen(true);
     } else {
-      navigate("/stock");
+      onCancel?.();
     }
   };
 
   const handleCancelConfirm = () => {
     setCancelConfirmOpen(false);
-    navigate("/stock");
+    onCancel?.();
   };
 
   return (
@@ -405,12 +412,14 @@ export default function ProductFormTabs({
         footer={
           <div className="flex justify-end gap-3">
             <button
+              type="button"
               onClick={() => setCancelConfirmOpen(false)}
               className="px-4 py-2 rounded-md font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
             >
               Volver
             </button>
             <button
+              type="button"
               onClick={handleCancelConfirm}
               className="px-4 py-2 rounded-md font-semibold text-white bg-red-600 hover:bg-red-700 transition"
             >
@@ -420,8 +429,7 @@ export default function ProductFormTabs({
         }
       >
         <p className="text-sm text-slate-700">
-          ¿Estás seguro de que querés cancelar? Se perderán los datos sin
-          guardar.
+          ¿Estás seguro de que querés cancelar? Se perderán los datos sin guardar.
         </p>
       </Modal>
     </>
