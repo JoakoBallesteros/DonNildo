@@ -17,7 +17,7 @@ export default function ProductFormTabs({
   lockTipo = false,
   labels = { caja: "Caja", material: "Material" },
   onSubmit,
-  onCancel, // ✅ NUEVO: lo usamos para cerrar el modal sin navegar
+  onCancel, 
 }) {
   const [form, setForm] = useState(initialValues);
   const [loading, setLoading] = useState(false);
@@ -320,8 +320,7 @@ export default function ProductFormTabs({
     </div>
   );
 
-  // ✅ CAMBIO: Cancelar ya NO navega a /stock.
-  // Cierra el modal llamando onCancel().
+  
   const handleCancelClick = (e) => {
     e?.preventDefault?.();
     e?.stopPropagation?.();
