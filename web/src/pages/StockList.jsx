@@ -230,7 +230,7 @@ export default function StockList() {
 
   const filterFields = [
     {
-      label: "Referencia / material",
+      label: "Referencia",
       type: "text",
       placeholder: "Buscar…",
       name: "buscar",

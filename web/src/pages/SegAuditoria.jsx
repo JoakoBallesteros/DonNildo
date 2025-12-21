@@ -12,8 +12,6 @@ const TABS = [
   "Seguridad",
 ];
 
-const PAGE_SIZE = 10; 
-
 export default function SegAuditoria() {
   const [q, setQ] = useState("");
   const [desde, setDesde] = useState("");
@@ -23,8 +21,6 @@ export default function SegAuditoria() {
   const [rawEvents, setRawEvents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
-
 
   const formatFechaHora = (value) => {
     if (!value) return "";
@@ -38,38 +34,38 @@ export default function SegAuditoria() {
     });
   };
 
+  // 🔹 Cargamos eventos (solo según TAB). El texto se filtra en el front.
   const loadEvents = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const queryString = `?q=${q}&tab=${tab === "Todo" ? "" : tab}`;
+      const queryString =
+        tab === "Todo" ? "" : `?tab=${encodeURIComponent(tab)}`;
       const data = await api(`/api/auditoria${queryString}`);
 
       setRawEvents(
-        data.eventos.map((e) => ({
+        (data.eventos || []).map((e) => ({
           ...e,
-          fechaOriginal: e.fecha,
+          fechaOriginal: e.fecha, // YYYY-MM-DDTHH:mm:ss...
           fecha: formatFechaHora(e.fecha),
           usuario: e.usuario || "N/A",
         }))
       );
-  
     } catch (e) {
       setError(e.message);
     } finally {
       setLoading(false);
     }
-  }, [q, tab]);
+  }, [tab]);
 
   useEffect(() => {
     loadEvents();
   }, [loadEvents]);
 
   const handleSetTab = (t) => {
-    setTab(t); 
+    setTab(t);
   };
 
-  
   const cols = useMemo(
     () => [
       {
@@ -85,11 +81,10 @@ export default function SegAuditoria() {
         id: "tipo",
         header: "Evento",
         accessor: "tipo",
-        width: 190, 
+        width: 190,
         nowrap: true,
         sortable: true,
       },
-
       {
         id: "fecha",
         header: "Fecha/Hora",
@@ -116,7 +111,6 @@ export default function SegAuditoria() {
         nowrap: true,
         sortable: true,
       },
-  
       {
         id: "det",
         header: "Descripción",
@@ -126,10 +120,11 @@ export default function SegAuditoria() {
     []
   );
 
-
+  // 🔹 Filtro en tiempo real: tab + texto + fechas (inclusive)
   const filtered = useMemo(() => {
     let out = rawEvents;
 
+    // 1) Filtro por pestaña (backup por si el backend no filtra)
     if (tab !== "Todo") {
       switch (tab) {
         case "Login/Logout":
@@ -156,26 +151,35 @@ export default function SegAuditoria() {
       }
     }
 
-    if (desde) {
-      out = out.filter((x) => new Date(x.fechaOriginal) >= new Date(desde));
-    }
+    const qTxt = q.trim().toLowerCase();
+    const desdeStr = desde || "";
+    const hastaStr = hasta || "";
 
-    if (hasta) {
-      const limite = new Date(hasta);
-      limite.setHours(23, 59, 59, 999);
-      out = out.filter((x) => new Date(x.fechaOriginal) <= limite);
-    }
+    return out.filter((ev) => {
+      // 2) Buscar por usuario / tipo / descripción
+      if (qTxt) {
+        const u = (ev.usuario || "").toLowerCase();
+        const t = (ev.tipo || "").toLowerCase();
+        const d = (ev.detalle || "").toLowerCase();
 
-    return out;
-  }, [rawEvents, tab, desde, hasta]);
+        if (!u.includes(qTxt) && !t.includes(qTxt) && !d.includes(qTxt)) {
+          return false;
+        }
+      }
 
+      // 3) Filtro de fecha inclusivo usando strings YYYY-MM-DD
+      const fechaStr = String(ev.fechaOriginal).slice(0, 10); // 2025-12-20
 
+      if (desdeStr && fechaStr < desdeStr) return false;
+      if (hastaStr && fechaStr > hastaStr) return false;
 
-
+      return true;
+    });
+  }, [rawEvents, tab, q, desde, hasta]);
 
   return (
     <PageContainer title="Auditoría del Sistema">
-      {/* filtros superiores */}
+      {/* Filtros superiores */}
       <div className="bg-white rounded-2xl border border-[#e3e9e5] p-5 md:p-6 mb-5">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
@@ -185,10 +189,7 @@ export default function SegAuditoria() {
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") loadEvents();
-              }}
-              placeholder="Usuario / tipo de evento"
+              placeholder="Usuario, evento o descripción…"
               className="w-full border border-[#d8e4df] rounded-md px-3 py-2"
             />
           </div>
@@ -216,7 +217,7 @@ export default function SegAuditoria() {
           </div>
         </div>
 
-     
+        {/* Tabs */}
         <div className="mt-5 flex gap-2 flex-wrap">
           {TABS.map((t) => (
             <button
@@ -244,20 +245,17 @@ export default function SegAuditoria() {
           Error: {error}
         </div>
       ) : (
-        <>
-          <DataTable
-            columns={cols}
-            data={filtered}
-            enableSort
-            wrapperClass="dn-table-wrapper overflow-y-auto"
-
-            tableClass="w-full text-sm border-collapse table-fixed"
-            theadClass="bg-[#e8f4ef] text-[#154734]"
-            rowClass="hover:bg-[#f6faf7] transition border-t border-[#edf2ef]"
-            headerClass="px-4 py-3 font-semibold border-r border-[#e3e9e5] last:border-none select-none text-center"
-            cellClass="px-4 py-3 border-r border-[#edf2ef] last:border-none align-top text-center"
-          />     
-        </>
+        <DataTable
+          columns={cols}
+          data={filtered}
+          enableSort
+          wrapperClass="dn-table-wrapper overflow-y-auto"
+          tableClass="w-full text-sm border-collapse table-fixed"
+          theadClass="bg-[#e8f4ef] text-[#154734]"
+          rowClass="hover:bg-[#f6faf7] transition border-t border-[#edf2ef]"
+          headerClass="px-4 py-3 font-semibold border-r border-[#e3e9e5] last:border-none select-none text-center"
+          cellClass="px-4 py-3 border-r border-[#edf2ef] last:border-none align-top text-center"
+        />
       )}
     </PageContainer>
   );

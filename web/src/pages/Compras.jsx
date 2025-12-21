@@ -143,6 +143,7 @@ export default function Compras() {
 
         const mapped = resp.compras.map(mapCompraFromApi);
         setRows(mapped);
+      // eslint-disable-next-line no-unused-vars
       } catch (err) {
         setErrorMsg("No se pudieron cargar las compras desde el servidor.");
       } finally {
