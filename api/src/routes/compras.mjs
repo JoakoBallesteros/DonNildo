@@ -1,4 +1,3 @@
-// api/src/routes/compras.mjs
 import { Router } from "express";
 import { pool } from "../db.mjs";
 import {
@@ -10,14 +9,8 @@ import { allowRoles } from "../middlewares/allowRoles.mjs";
 
 const router = Router();
 
-// Todas las rutas protegidas
-// Solo pueden usarlas ADMIN o COMPRAS
 router.use(requireAuth, allowRoles(["ADMIN", "COMPRAS"]));
 
-/* ============================================
- * GET /api/compras  → listado de compras
- * (montado en server como /api/v1/compras)
- * ============================================ */
 router.get("/", async (req, res) => {
   try {
     const sql = `
@@ -29,7 +22,6 @@ router.get("/", async (req, res) => {
         oc.observaciones,
         e.nombre AS estado,
 
-        -- tipo_compra optimizado sin COUNT(DISTINCT)
         CASE
           WHEN MIN(tp.id_tipo_producto) = MAX(tp.id_tipo_producto)
             THEN CASE
@@ -59,9 +51,7 @@ router.get("/", async (req, res) => {
       LEFT JOIN medida m ON m.id_medida = prod.id_medida
       LEFT JOIN estado e ON e.id_estado = oc.id_estado
 
-
       GROUP BY oc.id_compra, p.nombre, oc.total, oc.fecha, oc.observaciones, e.nombre
-
       ORDER BY oc.fecha DESC, oc.id_compra DESC;
     `;
 
@@ -81,9 +71,6 @@ router.get("/", async (req, res) => {
   }
 });
 
-/* ============================================
- * GET /api/compras/productos  → catálogo
- * ============================================ */
 router.get("/productos", async (req, res) => {
   try {
     const sql = `
@@ -123,9 +110,6 @@ router.get("/productos", async (req, res) => {
   }
 });
 
-/* ============================================
- * GET /api/compras/proveedores  → catálogo
- * ============================================ */
 router.get("/proveedores", async (req, res) => {
   try {
     const sql = `
@@ -154,9 +138,7 @@ router.get("/proveedores", async (req, res) => {
     });
   }
 });
-/* =====================================================
- * GET /api/compras/:id → obtener compra para editar
- * ===================================================== */
+
 router.get("/:id", async (req, res) => {
   const id = Number(req.params.id);
 
@@ -168,7 +150,6 @@ router.get("/:id", async (req, res) => {
   }
 
   try {
-    // 1️⃣ CABECERA (orden_compra)
     const cabeceraSql = `
       SELECT
         oc.id_compra,
@@ -194,7 +175,6 @@ router.get("/:id", async (req, res) => {
 
     const compra = compraRows[0];
 
-    // 2️⃣ DETALLES (detalle_compra)
     const detallesSql = `
       SELECT
         dc.id_producto,
@@ -232,7 +212,7 @@ router.get("/:id", async (req, res) => {
       items,
     });
   } catch (err) {
-    console.error("❌ Error en GET /api/compras/:id:", err);
+    console.error("Error en GET /api/compras/:id:", err);
     return res.status(500).json({
       ok: false,
       message: "Error al obtener la compra.",
@@ -240,14 +220,11 @@ router.get("/:id", async (req, res) => {
     });
   }
 });
-/* ============================================
- * POST /api/compras  → registrar compra
- * ============================================ */
+
 router.post("/", async (req, res) => {
   try {
     const { id_proveedor, fecha, observaciones, items } = req.body || {};
 
-    // ---- Validaciones básicas ----
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({
         ok: false,
@@ -255,7 +232,6 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // Normalizamos id_proveedor:
     const provId =
       id_proveedor !== undefined &&
       id_proveedor !== null &&
@@ -263,7 +239,6 @@ router.post("/", async (req, res) => {
         ? Number(id_proveedor)
         : null;
 
-    // ---- Normalizamos y validamos ítems ----
     let itemsForDb;
     try {
       itemsForDb = items.map((it, idx) => {
@@ -292,7 +267,7 @@ router.post("/", async (req, res) => {
 
     const itemsJson = JSON.stringify(itemsForDb);
 
-    console.log("▶ POST /api/compras body normalizado:", {
+    console.log("POST /api/compras body normalizado:", {
       provId,
       fecha,
       observaciones,
@@ -325,9 +300,8 @@ router.post("/", async (req, res) => {
     }
 
     const result = rows[0];
-    console.log("✅ Compra registrada en DB:", result);
+    console.log("Compra registrada en DB:", result);
 
-    // Auditoría
     try {
       const userId = await getUserIdFromToken(req.accessToken);
       await registrarAuditoria(
@@ -347,7 +321,7 @@ router.post("/", async (req, res) => {
       estado: result.estado_ret,
     });
   } catch (err) {
-    console.error("❌ Error en POST /api/compras:", err);
+    console.error("Error en POST /api/compras:", err);
 
     return res.status(500).json({
       ok: false,
@@ -360,7 +334,6 @@ router.post("/", async (req, res) => {
   }
 });
 
-// Anular compra con reposición de stock (similar a ventas)
 router.put("/:id/anular", async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id) || id <= 0) {
@@ -375,7 +348,6 @@ router.put("/:id/anular", async (req, res) => {
   try {
     await client.query("BEGIN");
 
-    // 1) Buscar estado ANULADO
     const { rows: estRows } = await client.query(
       `SELECT id_estado FROM estado WHERE nombre = 'ANULADO' LIMIT 1`
     );
@@ -384,7 +356,6 @@ router.put("/:id/anular", async (req, res) => {
     }
     const idEstadoAnulado = estRows[0].id_estado;
 
-    // 2) Buscar tipo_movimiento SALIDA para sacar stock
     const { rows: movRows } = await client.query(
       `SELECT id_tipo_movimiento
          FROM tipo_movimiento
@@ -396,7 +367,6 @@ router.put("/:id/anular", async (req, res) => {
     }
     const idTipoMovSalida = movRows[0].id_tipo_movimiento;
 
-    // 3) Obtener detalle de la compra
     const { rows: detalles } = await client.query(
       `
       SELECT id_producto, cantidad
@@ -408,19 +378,14 @@ router.put("/:id/anular", async (req, res) => {
     if (!movRows.length) throw new Error("Movimiento SALIDA no configurado.");
     const idTipoSalida = movRows[0].id_tipo_movimiento;
 
-    // Si no hay detalles, igualmente anulamos, pero avisamos
     if (!detalles.length) {
-      console.warn(
-        `[COMPRAS] Compra ${id} sin detalle; se anula solo cabecera`
-      );
+      console.warn(`[COMPRAS] Compra ${id} sin detalle; se anula solo cabecera`);
     }
 
-    // 4) Restar stock y dejar movimientos de SALIDA
     for (const det of detalles) {
       const cantNum = Number(det.cantidad) || 0;
       if (cantNum <= 0) continue;
 
-      // Restamos stock
       await client.query(
         `
         UPDATE stock
@@ -431,7 +396,6 @@ router.put("/:id/anular", async (req, res) => {
         [cantNum, det.id_producto]
       );
 
-      // Movimiento de salida por anulación
       await client.query(
         `
         INSERT INTO movimientos_stock (
@@ -459,7 +423,6 @@ router.put("/:id/anular", async (req, res) => {
       );
     }
 
-    // 5) Actualizar cabecera de la compra
     await client.query(
       `
       UPDATE orden_compra
@@ -471,7 +434,6 @@ router.put("/:id/anular", async (req, res) => {
       [idEstadoAnulado, id]
     );
 
-    // 6) Auditoría
     try {
       const userId = await getUserIdFromToken(req.accessToken);
       await registrarAuditoria(
@@ -482,7 +444,7 @@ router.put("/:id/anular", async (req, res) => {
       );
     } catch (errAud) {
       console.error(
-        "[COMPRAS] Error registrando auditoría de anulación:",
+        "Error registrando auditoría de anulación:",
         errAud.message
       );
     }
@@ -495,7 +457,7 @@ router.put("/:id/anular", async (req, res) => {
     });
   } catch (err) {
     await client.query("ROLLBACK");
-    console.error("❌ Error en PUT /api/compras/:id/anular:", err);
+    console.error("Error en PUT /api/compras/:id/anular:", err);
     return res.status(500).json({
       ok: false,
       message: "Error al anular compra",
@@ -505,18 +467,13 @@ router.put("/:id/anular", async (req, res) => {
     client.release();
   }
 });
-/* ============================================
- * PUT /api/compras/:id  → modificar compra
- * ============================================ */
+
 router.put("/:id", async (req, res) => {
   const id = Number(req.params.id);
-  const { items, observaciones } = req.body;
+  const { items, observaciones, id_proveedor, fecha } = req.body || {};
 
-  // Validaciones básicas
   if (!Number.isInteger(id) || id <= 0) {
-    return res
-      .status(400)
-      .json({ ok: false, message: "ID de compra inválido" });
+    return res.status(400).json({ ok: false, message: "ID de compra inválido" });
   }
 
   if (!Array.isArray(items) || items.length === 0) {
@@ -526,30 +483,70 @@ router.put("/:id", async (req, res) => {
     });
   }
 
+  const provId =
+    id_proveedor !== undefined &&
+    id_proveedor !== null &&
+    !Number.isNaN(Number(id_proveedor))
+      ? Number(id_proveedor)
+      : null;
+
+  let itemsForDb;
   try {
-    const itemsJson = JSON.stringify(items);
+    itemsForDb = items.map((it, idx) => {
+      const id_producto = Number(it.id_producto);
+      const cantidad = Number(it.cantidad);
+      const precio_unitario = Number(it.precio_unitario);
+
+      if (!Number.isInteger(id_producto) || id_producto <= 0) {
+        throw new Error(`Ítem ${idx + 1}: id_producto inválido`);
+      }
+      if (Number.isNaN(cantidad) || cantidad <= 0) {
+        throw new Error(`Ítem ${idx + 1}: cantidad inválida`);
+      }
+      if (Number.isNaN(precio_unitario) || precio_unitario <= 0) {
+        throw new Error(`Ítem ${idx + 1}: precio_unitario inválido`);
+      }
+
+      return { id_producto, cantidad, precio_unitario };
+    });
+  } catch (valErr) {
+    return res.status(400).json({ ok: false, message: valErr.message });
+  }
+
+  const itemsJson = JSON.stringify(itemsForDb);
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    await client.query(
+      `
+      UPDATE orden_compra
+         SET id_proveedor = $2,
+             fecha = COALESCE($3::date, fecha),
+             observaciones = $4
+       WHERE id_compra = $1
+      `,
+      [id, provId, fecha || null, observaciones ?? null]
+    );
 
     const sql = `
       SELECT id_compra_ret, total_ret, estado_ret
       FROM modificar_compra_transaccional($1, $2, $3)
     `;
 
-    const { rows } = await pool.query(sql, [
+    const { rows } = await client.query(sql, [
       id,
       observaciones ?? null,
       itemsJson,
     ]);
-    console.log("RAW SQL RESPONSE modificar_compra_transaccional:", rows);
+
     if (!rows || rows.length === 0) {
-      return res.status(500).json({
-        ok: false,
-        message: "La función no devolvió resultados",
-      });
+      throw new Error("La función no devolvió resultados");
     }
 
     const result = rows[0];
 
-    // Auditoría
     try {
       const userId = await getUserIdFromToken(req.accessToken);
       await registrarAuditoria(
@@ -565,7 +562,8 @@ router.put("/:id", async (req, res) => {
       );
     }
 
-    // Respuesta al front
+    await client.query("COMMIT");
+
     return res.json({
       ok: true,
       message: `Compra ${result.id_compra_ret} modificada correctamente.`,
@@ -574,12 +572,15 @@ router.put("/:id", async (req, res) => {
       estado: result.estado_ret,
     });
   } catch (err) {
-    console.error("❌ Error en PUT /api/compras/:id:", err);
+    await client.query("ROLLBACK");
+    console.error("Error en PUT /api/compras/:id:", err);
     return res.status(500).json({
       ok: false,
       message: "Error al modificar la compra",
       detail: err.message,
     });
+  } finally {
+    client.release();
   }
 });
 

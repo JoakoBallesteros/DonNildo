@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Plus } from "lucide-react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import api from "../lib/apiClient";
 import MessageModal from "../components/modals/MessageModal";
 import PageContainer from "../components/pages/PageContainer.jsx";
@@ -37,6 +37,7 @@ const toNumber = (v) => {
 };
 
 export default function RegistrarCompra() {
+  const navigate = useNavigate();
   const { id } = useParams();
   const isEditMode = Boolean(id);
 
@@ -118,9 +119,11 @@ export default function RegistrarCompra() {
             const categoria = p.categoria ?? p.categoria_nombre;
             const tipoDb = p.tipo ?? p.tipo_nombre;
 
-            const tipo = tipoDb ?? (categoria === "Cajas" ? "Cajas" : "Productos");
+            const tipo =
+              tipoDb ?? (categoria === "Cajas" ? "Cajas" : "Productos");
 
-            const medida = p.medida ?? p.unidad_stock ?? p.medida_simbolo ?? "u";
+            const medida =
+              p.medida ?? p.unidad_stock ?? p.medida_simbolo ?? "u";
             const precioRef = p.precioRef ?? p.precio_unitario ?? 0;
 
             return { id: pid, nombre, tipo, medida, precioRef };
@@ -159,7 +162,7 @@ export default function RegistrarCompra() {
 
         const c = res.compra;
 
-        setProveedor(c.id_proveedor ?? "");
+        setProveedor(c.id_proveedor != null ? String(c.id_proveedor) : "");
         setFecha(c.fecha ? new Date(c.fecha).toISOString().slice(0, 10) : "");
         setObs(c.observaciones ?? "");
 
@@ -191,7 +194,8 @@ export default function RegistrarCompra() {
 
   function onSelectProducto(p) {
     setProducto(p);
-    if (!precioUnit) setPrecioUnit(String(p.precioRef ?? p.precio_unitario ?? ""));
+    if (!precioUnit)
+      setPrecioUnit(String(p.precioRef ?? p.precio_unitario ?? ""));
     setTimeout(() => cantRef.current?.focus(), 0);
   }
 
@@ -287,29 +291,10 @@ export default function RegistrarCompra() {
     } catch (err) {
       console.error("Error al guardar compra:", err.message);
 
-      let friendlyMsg = "Error al comunicarse con el servidor. Intente más tarde.";
-      let title = " Error al Guardar";
-
-      if (err.message.includes("STOCK_INSUFICIENTE")) {
-        const match = err.message.match(/STOCK_INSUFICIENTE: (.*)/);
-        if (match && match[1]) {
-          friendlyMsg = "No se puede completar la operación. " + match[1].trim().replace(/\.$/, "");
-        } else {
-          friendlyMsg =
-            "Stock insuficiente para uno o más productos. Por favor, verifique el inventario.";
-        }
-        title = " Stock Insuficiente";
-      } else if (err.message.includes("NETWORK_FAILURE") || err.message.includes("404")) {
-        friendlyMsg = "No se pudo conectar al sistema. Asegúrese de que el backend esté activo.";
-        title = " Error de Conexión";
-      } else if (err.message.includes("500")) {
-        friendlyMsg = "Ocurrió un error inesperado en el servidor. Revise el log de Express.";
-      }
-
       setMessageModal({
         isOpen: true,
-        title: title,
-        text: friendlyMsg,
+        title: "Error al Guardar",
+        text: "Error al comunicarse con el servidor. Intente más tarde.",
         type: "error",
       });
     }
@@ -334,10 +319,14 @@ export default function RegistrarCompra() {
         body: JSON.stringify(payload),
       });
 
+      if (!response?.ok) {
+        throw new Error("UPDATE_FAILED");
+      }
+
       setMessageModal({
         isOpen: true,
         title: "Compra actualizada",
-        text: `La compra N° ${response.id_compra} fue modificada correctamente.`,
+        text: `La compra N° ${response.id_compra ?? id} fue modificada correctamente.`,
         type: "success",
       });
     } catch (error) {
@@ -351,7 +340,13 @@ export default function RegistrarCompra() {
     }
   };
 
+  // ✅ CAMBIO: cancelar en editMode vuelve a /compras
   const handleCancelClick = () => {
+    if (isEditMode) {
+      navigate("/compras");
+      return;
+    }
+
     if (items.length > 0) {
       setCancelConfirmOpen(true);
     } else {
@@ -361,6 +356,12 @@ export default function RegistrarCompra() {
 
   const handleCancelConfirm = () => {
     setCancelConfirmOpen(false);
+
+    if (isEditMode) {
+      navigate("/compras");
+      return;
+    }
+
     resetCompraForm();
   };
 
@@ -414,7 +415,13 @@ export default function RegistrarCompra() {
       readOnly: true,
     },
     { key: "cantidad", label: "Cantidad", width: "120px", type: "number" },
-    { key: "precio", label: "Precio unit.", width: "140px", type: "number", readOnly: true },
+    {
+      key: "precio",
+      label: "Precio unit.",
+      width: "140px",
+      type: "number",
+      readOnly: true,
+    },
     { key: "subtotal", label: "Subtotal", width: "140px", readOnly: true },
   ];
 
@@ -542,11 +549,15 @@ export default function RegistrarCompra() {
     <PageContainer title={isEditMode ? "Modificar Compra" : "Registrar Compra"}>
       <div className="flex flex-col h-full">
         <div className="bg-[#f7fbf8] border border-[#e2ede8] rounded-2xl p-4 mb-4 flex-shrink-0">
-          <h2 className="text-[#154734] text-base font-semibold mb-3">Datos de la compra</h2>
+          <h2 className="text-[#154734] text-base font-semibold mb-3">
+            Datos de la compra
+          </h2>
 
           <div className="grid grid-cols-[0.5fr_0.2fr] gap-4 mb-4 max-w-[700px]">
             <div>
-              <label className="block text-sm text-slate-700 mb-1">Producto</label>
+              <label className="block text-sm text-slate-700 mb-1">
+                Producto
+              </label>
               <ProductoSelect
                 productos={productos.map((p) => ({ ...p, id_producto: p.id }))}
                 value={producto}
@@ -618,7 +629,7 @@ export default function RegistrarCompra() {
                   type: "select",
                   label: "Proveedor (opcional)",
                   options: proveedores.map((p) => ({
-                    value: p.id,
+                    value: String(p.id),
                     label: p.nombre,
                   })),
                 },
@@ -673,7 +684,9 @@ export default function RegistrarCompra() {
           </div>
         </div>
 
-        <h3 className="text-[#154734] text-sm font-semibold mb-2">Próximos a confirmar</h3>
+        <h3 className="text-[#154734] text-sm font-semibold mb-2">
+          Próximos a confirmar
+        </h3>
 
         <div className="flex-1 min-h-[150px] rounded-t-xl border-t border-[#e3e9e5]">
           <DataTable
@@ -689,13 +702,16 @@ export default function RegistrarCompra() {
         {items.length > 0 && (
           <div className="flex justify-between items-center text-[#154734] text-sm mt-3 mb-1 flex-shrink-0">
             <div>
-              Subtotales: Cajas: {cantidadCajas} u — ${subtotalCajas.toLocaleString("es-AR")}
+              Subtotales: Cajas: {cantidadCajas} u — $
+              {subtotalCajas.toLocaleString("es-AR")}
               &nbsp;&nbsp;Materiales: {cantidadProductos} kg — $
               {subtotalProductos.toLocaleString("es-AR")}
             </div>
             <p className="text-[#154734] font-semibold border border-[#e2ede8] bg-[#e8f4ef] px-3 py-1 rounded-md">
               Total compra:&nbsp;
-              <span className="font-bold">${totalCompra.toLocaleString("es-AR")}</span>
+              <span className="font-bold">
+                ${totalCompra.toLocaleString("es-AR")}
+              </span>
             </p>
           </div>
         )}
@@ -766,7 +782,8 @@ export default function RegistrarCompra() {
           }
         >
           <p className="text-sm text-slate-700">
-            ¿Estás seguro de que quieres cancelar la compra? Se perderán todos los productos cargados.
+            ¿Estás seguro de que quieres cancelar la compra? Se perderán todos
+            los productos cargados.
           </p>
         </Modal>
 
@@ -819,7 +836,12 @@ export default function RegistrarCompra() {
           title={messageModal.title}
           text={messageModal.text}
           type={messageModal.type}
-          onClose={() => setMessageModal((prev) => ({ ...prev, isOpen: false }))}
+          onClose={() => {
+            setMessageModal((prev) => ({ ...prev, isOpen: false }));
+            if (messageModal.type === "success" && isEditMode) {
+              navigate("/compras");
+            }
+          }}
         />
       </div>
     </PageContainer>
