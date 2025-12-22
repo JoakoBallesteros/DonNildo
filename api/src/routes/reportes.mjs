@@ -156,7 +156,7 @@ router.delete("/", requireAuth, allowRoles(["ADMIN"]), async (req, res) => {
     // registrar auditoría
     const token = req.headers.authorization?.split(" ")[1];
     const userId = await getUserIdFromToken(token);
-    await registrarAuditoria(userId, "BORRAR_REPORTES", "Reportes", `Eliminados: ${rows.map(r => r.id_reporte).join(",")}`);
+    await registrarAuditoria(userId, "BORRAR_REPORTES", "SEGURIDAD", `Eliminado: ${rows.map(r => r.id_reporte).join(",")}`);
 
     return res.json({ success: true, deleted: rows.length, deletedIds: rows.map(r => r.id_reporte) });
   } catch (error) {
