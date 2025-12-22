@@ -158,61 +158,165 @@ export default function Ventas() {
     setCheckAll(false);
   };
 
-  const handleDownloadRemitoVenta = async (venta) => {
+ const handleDownloadRemitoVenta = async (venta) => {
     const doc = new jsPDF();
 
     if (!venta || !venta.productos) return;
 
-    const ventaId = venta.id_venta;
-    const fecha = venta.fecha;
+    // Datos generales
+    const ventaId = String(venta.id_venta).padStart(4, "0");
+    const fecha = new Date(venta.fecha).toLocaleDateString("es-AR");
     const tipo = venta.tipo;
     const productos = venta.productos;
     const obs = venta.observaciones ?? null;
-
-    doc.setFontSize(16);
-    doc.text(`Remito de Venta N° ${ventaId}`, 14, 20);
-
-    autoTable(doc, {
-      startY: 30,
-      head: [["Producto", "Cantidad", "Medida", "Precio Unit.", "Subtotal"]],
-      body: productos.map((p) => [
-        p.producto,
-        p.cantidad,
-        p.medida,
-        `$${Number(p.precio).toLocaleString("es-AR")}`,
-        `$${Number(p.subtotal).toLocaleString("es-AR")}`,
-      ]),
+    const total = Number(venta.total).toLocaleString("es-AR", {
+      minimumFractionDigits: 2,
     });
 
-    doc.text(
-      `Total: $${Number(venta.total).toLocaleString("es-AR")}`,
-      14,
-      doc.lastAutoTable.finalY + 10
-    );
+    // Colores corporativos
+    const primaryColor = [21, 71, 52];
+    const secondaryColor = [232, 244, 239];
 
+    // --- ENCABEZADO ---
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.setTextColor(...primaryColor);
+    doc.text("Reciclados Don Nildo", 14, 22);
+
+    // Subtítulo
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text("Gestión de Reciclaje y Ventas", 14, 28);
+
+    // Dirección y Teléfono (Datos Reales)
+    doc.setFontSize(9);
+    doc.setTextColor(80);
+    doc.text("Álvarez Condarco 2496, Córdoba Capital", 14, 34);
+    doc.text("Tel: +54 9 3513 23-2894", 14, 39);
+
+    // Cuadro Info Derecha (Remito N°)
+    doc.setDrawColor(...primaryColor);
+    doc.setFillColor(...secondaryColor);
+    doc.roundedRect(130, 12, 66, 24, 2, 2, "FD");
+
+    doc.setFontSize(14);
+    doc.setTextColor(...primaryColor);
+    doc.setFont("helvetica", "bold");
+    doc.text("REMITO DE VENTA", 163, 19, { align: "center" });
+
+    doc.setFontSize(10);
+    doc.setTextColor(0);
+    doc.setFont("helvetica", "normal");
+    doc.text(`N°: ${ventaId}`, 135, 26);
+    doc.text(`Fecha: ${fecha}`, 135, 31);
+
+    // Línea divisoria verde
+    doc.setDrawColor(...primaryColor);
+    doc.setLineWidth(0.5);
+    doc.line(14, 45, 196, 45);
+
+    // --- DATOS DEL CLIENTE Y VENTA ---
+    doc.setFontSize(10);
+    doc.setTextColor(60);
+    
+    // Tipo de Venta
+    doc.text(`Tipo de Venta: ${tipo}`, 14, 53);
+
+    // Cliente (Espacio punteado para completar a mano)
+    // Si en el futuro tenés el dato del cliente, cambiá las comillas por venta.cliente_nombre
+    const clienteTexto = venta.cliente_nombre || "............................................................."; 
+    doc.text(`Cliente:  ${clienteTexto}`, 100, 53);
+
+    if (obs) {
+      doc.text(`Observaciones: ${obs}`, 14, 59);
+    }
+
+    // --- TABLA DE PRODUCTOS ---
+    autoTable(doc, {
+      startY: obs ? 65 : 62,
+      head: [
+        [
+          "Producto",
+          "Cantidad",
+          "Medida / Detalle",
+          "Precio Unit.",
+          "Subtotal",
+        ],
+      ],
+      body: productos.map((p) => {
+        // 1. Unidad
+        const unidad = p.unidad || "u";
+
+        // 2. Cantidad concatenada
+        const cantidadFormateada = `${p.cantidad} ${unidad}`;
+
+        // 3. Medida (Limpieza de texto "Caja")
+        let medidaTexto = p.medida_detalle || p.medida || "-";
+        medidaTexto = medidaTexto.replace("Caja ", "").replace("caja ", "");
+
+        return [
+          p.producto,
+          cantidadFormateada,
+          medidaTexto,
+          `$${Number(p.precio).toLocaleString("es-AR")}`,
+          `$${Number(p.subtotal).toLocaleString("es-AR")}`,
+        ];
+      }),
+      theme: "grid",
+      headStyles: {
+        fillColor: primaryColor,
+        textColor: 255,
+        fontSize: 10,
+        halign: "center",
+      },
+      bodyStyles: {
+        fontSize: 10,
+        textColor: 50,
+      },
+      columnStyles: {
+        0: { halign: "left" },
+        1: { halign: "center" },
+        2: { halign: "center" },
+        3: { halign: "right" },
+        4: { halign: "right" },
+      },
+      alternateRowStyles: {
+        fillColor: [245, 245, 245],
+      },
+    });
+
+    // --- TOTAL ---
+    const finalY = doc.lastAutoTable.finalY + 10;
+    doc.setDrawColor(200);
+    doc.line(130, finalY - 2, 196, finalY - 2);
+
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...primaryColor);
+    doc.text("TOTAL:", 150, finalY + 5, { align: "right" });
+    doc.text(`$${total}`, 196, finalY + 5, { align: "right" });
+
+    // Guardar PDF
     setTimeout(() => {
-      doc.save(`Remito_Venta_${ventaId}.pdf`);
+      doc.save(`Remito_DonNildo_${ventaId}.pdf`);
     }, 100);
 
+    // Guardar en Backend
     try {
       const payload = {
-        id_venta: ventaId,
-        fecha,
-        tipo_venta: tipo,
+        id_venta: venta.id_venta,
+        fecha: venta.fecha,
+        tipo_venta: venta.tipo,
         productos,
         observaciones: obs,
       };
-
-      const resp = await api("/api/v1/remitos", {
+      await api("/api/v1/remitos", {
         method: "POST",
         body: payload,
       });
-
-      if (!resp.ok) {
-        console.error("Error registrando remito de venta:", resp);
-      }
     } catch (err) {
-      console.error("Error de red creando remito de venta:", err);
+      console.error("Error backend:", err);
     }
   };
 
