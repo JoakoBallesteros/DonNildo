@@ -11,11 +11,14 @@ import { createClient } from "@supabase/supabase-js";
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE;
 
-// Dominio de produccion
+// Dominio del FRONT (fallback producción)
 const APP_BASE_URL = (
   process.env.APP_BASE_URL ||
   "https://donnildo-production.up.railway.app"
 ).replace(/\/$/, "");
+
+// URL directa que esta en railway
+const RESET_REDIRECT_URL = process.env.RESET_REDIRECT_URL;
 
 const supaAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE, {
   auth: { persistSession: false, autoRefreshToken: false },
@@ -41,8 +44,9 @@ router.post("/password/reset", async (req, res) => {
       });
     }
 
-    // Ruta del FRONT donde mostrás el form para nueva contraseña
-    const redirectTo = `${APP_BASE_URL}/reset`;
+    // Manda al front a reset el mail
+    const redirectTo =
+      (RESET_REDIRECT_URL || `${APP_BASE_URL}/reset`).replace(/\/$/, "/reset");
 
     const { error } = await supaAdmin.auth.resetPasswordForEmail(email, {
       redirectTo,
