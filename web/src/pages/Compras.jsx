@@ -50,13 +50,13 @@ function normalizeTipo(tipo) {
 function normalizeItemTipo(it, compraTipo, productoNombre) {
   const raw = String(
     it?.tipo_item ??
-      it?.tipo ??
-      it?.tipo_producto ??
-      it?.tipoProducto ??
-      it?.categoria ??
-      it?.categoria_nombre ??
-      it?.categoriaNombre ??
-      ""
+    it?.tipo ??
+    it?.tipo_producto ??
+    it?.tipoProducto ??
+    it?.categoria ??
+    it?.categoria_nombre ??
+    it?.categoriaNombre ??
+    ""
   )
     .trim()
     .toLowerCase();
@@ -93,15 +93,15 @@ function mapCompraFromApi(c) {
     typeof idRaw === "string"
       ? idRaw
       : idRaw != null
-      ? `OC-${String(idRaw).padStart(4, "0")}`
-      : "OC-S/N";
+        ? `OC-${String(idRaw).padStart(4, "0")}`
+        : "OC-S/N";
 
   const dbId =
     typeof c.id_compra === "number"
       ? c.id_compra
       : typeof idRaw === "number"
-      ? idRaw
-      : null;
+        ? idRaw
+        : null;
 
   const proveedor =
     c.proveedor ?? c.proveedor_nombre ?? c.proveedorNombre ?? "—";
@@ -554,10 +554,9 @@ export default function Compras() {
             tableClass="w-full text-sm text-center border-collapse"
             theadClass="bg-[#e8f4ef] text-[#154734]"
             rowClass={(row) =>
-              `border-t border-[#edf2ef] ${
-                row.estado === "ANULADO"
-                  ? "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                  : "bg-white hover:bg-[#f6faf7]"
+              `border-t border-[#edf2ef] ${row.estado === "ANULADO"
+                ? "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                : "bg-white hover:bg-[#f6faf7]"
               }`
             }
             headerClass="px-4 py-3 font-semibold text-center"
@@ -663,11 +662,10 @@ export default function Compras() {
               onClick={() =>
                 setMessageModal({ isOpen: false, title: "", text: "", type: "" })
               }
-              className={`px-4 py-2 rounded-md font-semibold text-white transition ${
-                messageModal.type === "success"
-                  ? "bg-emerald-700 hover:bg-emerald-800"
-                  : "bg-red-700 hover:bg-red-800"
-              }`}
+              className={`px-4 py-2 rounded-md font-semibold text-white transition ${messageModal.type === "success"
+                ? "bg-emerald-700 hover:bg-emerald-800"
+                : "bg-red-700 hover:bg-red-800"
+                }`}
             >
               Aceptar
             </button>

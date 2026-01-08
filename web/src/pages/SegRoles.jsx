@@ -6,8 +6,8 @@ import { supa } from "../lib/supabaseClient";
 import MessageModal from "../components/modals/MessageModal";
 
 export default function SegRoles() {
-  const [roles, setRoles] = useState([]);         
-  const [usuarios, setUsuarios] = useState([]);   
+  const [roles, setRoles] = useState([]);
+  const [usuarios, setUsuarios] = useState([]);
   const [rolSel, setRolSel] = useState("");
   const [usrSel, setUsrSel] = useState("");
   const [rows, setRows] = useState([]);
@@ -31,9 +31,9 @@ export default function SegRoles() {
       setRoles(rolesData || []);
       setUsuarios(usuariosData || []);
 
-      
+
       const inicial = (usuariosData || [])
-        .filter((u) => u.id_rol) 
+        .filter((u) => u.id_rol)
         .map((u) => {
           const rol =
             rolesData?.find((r) => r.id_rol === u.id_rol)?.nombre || "";
@@ -44,82 +44,82 @@ export default function SegRoles() {
     fetchData();
   }, []);
 
- 
+
   const onAssign = async () => {
-  const rol = roles.find((r) => r.id_rol === parseInt(rolSel));
-  const usr = usuarios.find((u) => u.id_usuario === parseInt(usrSel));
-  if (!rol || !usr) {
-    setMessageModal({
-      isOpen: true,
-      title: "⚠️ Datos incompletos",
-      text: "Debés seleccionar un usuario y un rol.",
-      type: "error",
-    });
-    return;
-  }
-
-  try {
-   
-    await supa
-      .from("usuarios")
-      .update({ id_rol: rol.id_rol })
-      .eq("id_usuario", usr.id_usuario);
-
-    
-    setRows((prev) => {
-      const sinUsuario = prev.filter((r) => r.id !== usr.id_usuario);
-      return [
-        ...sinUsuario,
-        { id: usr.id_usuario, rol: rol.nombre, usuario: usr.nombre },
-      ];
-    });
-
-   
-    setMessageModal({
-      isOpen: true,
-      title: " Rol asignado",
-      text: `El usuario "${usr.nombre}" ahora tiene el rol "${rol.nombre}".`,
-      type: "success",
-    });
-
-  } catch (error) {
-    console.error("ERROR asignando rol:", error);
-    setMessageModal({
-      isOpen: true,
-      title: " Error",
-      text: "Ocurrió un error al asignar el rol. Intenta nuevamente.",
-      type: "error",
-    });
-  }
-};
-
-  
-const ID_ROL_SIN_ROL = 6; // o el que te haya quedado
-
-const onRemove = useCallback(
-  async (row) => {
-    const usuario = usuarios.find((u) => u.nombre === row.usuario);
-    if (!usuario) return;
-
-    const { error } = await supa
-      .from("usuarios")
-      .update({ id_rol: ID_ROL_SIN_ROL })
-      .eq("id_usuario", usuario.id_usuario);
-
-    if (error) {
-      alert("No se pudo remover el rol: " + error.message);
-      console.error(error);
+    const rol = roles.find((r) => r.id_rol === parseInt(rolSel));
+    const usr = usuarios.find((u) => u.id_usuario === parseInt(usrSel));
+    if (!rol || !usr) {
+      setMessageModal({
+        isOpen: true,
+        title: "⚠️ Datos incompletos",
+        text: "Debés seleccionar un usuario y un rol.",
+        type: "error",
+      });
       return;
     }
 
-    setRows((prev) =>
-      prev.map((r) =>
-        r.id === row.id ? { ...r, rol: "SIN_ROL" } : r
-      )
-    );
-  },
-  [usuarios]
-);
+    try {
+
+      await supa
+        .from("usuarios")
+        .update({ id_rol: rol.id_rol })
+        .eq("id_usuario", usr.id_usuario);
+
+
+      setRows((prev) => {
+        const sinUsuario = prev.filter((r) => r.id !== usr.id_usuario);
+        return [
+          ...sinUsuario,
+          { id: usr.id_usuario, rol: rol.nombre, usuario: usr.nombre },
+        ];
+      });
+
+
+      setMessageModal({
+        isOpen: true,
+        title: " Rol asignado",
+        text: `El usuario "${usr.nombre}" ahora tiene el rol "${rol.nombre}".`,
+        type: "success",
+      });
+
+    } catch (error) {
+      console.error("ERROR asignando rol:", error);
+      setMessageModal({
+        isOpen: true,
+        title: " Error",
+        text: "Ocurrió un error al asignar el rol. Intenta nuevamente.",
+        type: "error",
+      });
+    }
+  };
+
+
+  const ID_ROL_SIN_ROL = 6; // o el que te haya quedado
+
+  const onRemove = useCallback(
+    async (row) => {
+      const usuario = usuarios.find((u) => u.nombre === row.usuario);
+      if (!usuario) return;
+
+      const { error } = await supa
+        .from("usuarios")
+        .update({ id_rol: ID_ROL_SIN_ROL })
+        .eq("id_usuario", usuario.id_usuario);
+
+      if (error) {
+        alert("No se pudo remover el rol: " + error.message);
+        console.error(error);
+        return;
+      }
+
+      setRows((prev) =>
+        prev.map((r) =>
+          r.id === row.id ? { ...r, rol: "SIN_ROL" } : r
+        )
+      );
+    },
+    [usuarios]
+  );
 
   const cols = useMemo(
     () => [
