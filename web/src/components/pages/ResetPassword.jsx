@@ -2,13 +2,17 @@ import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import supa from "../../lib/supabaseClient";
 
+function hashParams() {
+  const raw = (window.location.hash || "").replace(/^#/, "");
+  return new URLSearchParams(raw);
+}
+
 export default function ResetPassword() {
   const navigate = useNavigate();
-  const [stage, setStage] = useState("checking"); 
+  const [stage, setStage] = useState("checking");
   const [error, setError] = useState(null);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-
 
   useEffect(() => {
     const run = async () => {
@@ -18,43 +22,84 @@ export default function ResetPassword() {
         const url = new URL(window.location.href);
         const code = url.searchParams.get("code");
 
+        // 0) Errores que vuelven en el hash (ej otp_expired)
+        const hp = hashParams();
+        const errCode = hp.get("error_code");
+        const errDesc = hp.get("error_description");
+        if (errCode) {
+          throw new Error(
+            decodeURIComponent(errDesc || "") ||
+              `Link inválido (${errCode}).`
+          );
+        }
+
+        // 1) PKCE flow (code)
         if (code) {
-          // Nuevo flujo: llega ?code=...
           const { error } = await supa.auth.exchangeCodeForSession(code);
           if (error) throw error;
-        } else if (window.location.hash.includes("access_token")) {
-          
+          window.history.replaceState({}, "", url.pathname);
+          setStage("ready");
+          return;
+        }
+
+        // 2) OTP flow (token_hash/type)
+        const tokenHash = url.searchParams.get("token_hash") || url.searchParams.get("token");
+        const type = url.searchParams.get("type");
+        if (tokenHash && type) {
+          const { error } = await supa.auth.verifyOtp({
+            token_hash: tokenHash,
+            type,
+          });
+          if (error) throw error;
+          window.history.replaceState({}, "", url.pathname);
+          setStage("ready");
+          return;
+        }
+
+        // 3) Implicit hash access_token
+        if ((window.location.hash || "").includes("access_token")) {
           const { data, error } = await supa.auth.getSession();
           if (error) throw error;
           if (!data?.session) throw new Error("No se pudo validar la sesión.");
-        } else {
-          throw new Error("Enlace inválido o expirado.");
+          setStage("ready");
+          return;
         }
 
-        setStage("ready");
+        // 4) Sesión ya existente
+        const { data } = await supa.auth.getSession();
+        if (data?.session) {
+          setStage("ready");
+          return;
+        }
+
+        throw new Error("Enlace inválido o expirado.");
       } catch (e) {
         console.error(e);
         setError(e?.message || "No se pudo validar el enlace.");
         setStage("ready");
       }
     };
+
     run();
   }, []);
 
- 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
 
-    if (!password || password.length < 8)
+    if (!password || password.length < 8) {
       return setError("La contraseña debe tener al menos 8 caracteres.");
-    if (password !== confirm) return setError("Las contraseñas no coinciden.");
+    }
+    if (password !== confirm) {
+      return setError("Las contraseñas no coinciden.");
+    }
 
     const { error } = await supa.auth.updateUser({ password });
     if (error) return setError(error.message);
 
+    await supa.auth.signOut();
     setStage("done");
-    setTimeout(() => navigate("/login"), 1200);
+    setTimeout(() => navigate("/login?reset=ok"), 1200);
   };
 
   return (
@@ -65,7 +110,7 @@ export default function ResetPassword() {
             DON<br/>NILDO
           </div>
           <p className="mt-2 text-emerald-900/70 text-sm">
-            Restablecé tu contraseña
+            Establecé / restablecé tu contraseña
           </p>
         </div>
 

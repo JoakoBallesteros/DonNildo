@@ -1,4 +1,3 @@
-
 import {
   BrowserRouter,
   Routes,
@@ -11,7 +10,6 @@ import Layout from "./components/pages/Layout.jsx";
 import Home from "./pages/Home.jsx";
 
 import LoginPage from "./pages/LoginPage.jsx";
-import AuthReset from "./pages/AuthReset.jsx";
 import AccountProfile from "./pages/AccountProfile.jsx";
 import ForgotPassword from "./components/pages/ForgotPassword.jsx";
 import ResetPassword from "./components/pages/ResetPassword.jsx";
@@ -21,16 +19,13 @@ import Compras from "./pages/Compras.jsx";
 import Proveedores from "./pages/Proveedores.jsx";
 import RegistrarCompra from "./pages/RegistrarCompra.jsx";
 
-
 import StockList from "./pages/StockList.jsx";
 import StockNuevoProducto from "./pages/StockNuevoProducto.jsx";
 import StockPesaje from "./pages/StockPesaje.jsx";
 import StockPesajesLista from "./pages/StockPesajeLista.jsx";
 
-
 import Ventas from "./pages/ListaVentas.jsx";
 import RegistrarVentas from "./pages/RegistrarVentas.jsx";
-
 
 import Reportes from "./pages/Reportes.jsx";
 
@@ -47,19 +42,19 @@ export default function App() {
       <Routes>
         {/* RUTAS PÚBLICAS */}
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/auth/reset" element={<AuthReset />} />
         <Route path="/forgot" element={<ForgotPassword />} />
+
+        {/* invite y recovery usan lo mismo*/}
         <Route path="/reset" element={<ResetPassword />} />
+        <Route path="/auth/reset" element={<ResetPassword />} />
 
         {/* RUTAS PROTEGIDAS POR SESIÓN */}
         <Route element={<ProtectedRoute />}>
-          
           <Route path="/account" element={<AccountProfile />} />
 
           <Route path="/" element={<Layout />}>
             <Route index element={<Home />} />
 
-            
             <Route
               path="compras"
               element={
@@ -74,7 +69,6 @@ export default function App() {
               <Route path="editar/:id" element={<RegistrarCompra />} />
             </Route>
 
-    
             <Route
               path="ventas"
               element={
@@ -84,32 +78,20 @@ export default function App() {
               }
             >
               <Route index element={<Ventas />} />
-              <Route
-                path="nueva"
-                element={<RegistrarVentas editMode={false} />}
-              />
-              <Route
-                path="editar/:id"
-                element={<RegistrarVentas editMode={true} />}
-              />
+              <Route path="nueva" element={<RegistrarVentas editMode={false} />} />
+              <Route path="editar/:id" element={<RegistrarVentas editMode={true} />} />
             </Route>
 
-           
-            
             <Route
               path="stock"
               element={
-                <RequireRoles
-                  allowed={["ADMIN", "STOCK", "COMPRAS", "VENTAS"]}
-                >
+                <RequireRoles allowed={["ADMIN", "STOCK", "COMPRAS", "VENTAS"]}>
                   <Outlet />
                 </RequireRoles>
               }
             >
-          
               <Route index element={<StockList />} />
 
-        
               <Route
                 path="nuevo-producto"
                 element={
@@ -119,7 +101,6 @@ export default function App() {
                 }
               />
 
-             
               <Route
                 path="pesaje"
                 element={
@@ -129,20 +110,16 @@ export default function App() {
                 }
               />
 
-             
               <Route
                 path="pesajes"
                 element={
-                  <RequireRoles
-                    allowed={["ADMIN", "STOCK", "COMPRAS", "VENTAS"]}
-                  >
+                  <RequireRoles allowed={["ADMIN", "STOCK", "COMPRAS", "VENTAS"]}>
                     <StockPesajesLista />
                   </RequireRoles>
                 }
               />
             </Route>
 
-          
             <Route
               path="reportes"
               element={
@@ -152,7 +129,6 @@ export default function App() {
               }
             />
 
-          
             <Route
               path="seguridad"
               element={
@@ -180,7 +156,6 @@ export default function App() {
           </Route>
         </Route>
 
-      
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
