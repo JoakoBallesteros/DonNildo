@@ -15,7 +15,7 @@ export default function FilterBar({
 
   const handleSelect = (filter) => onFilterSelect?.(filter);
 
- 
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
 
@@ -23,7 +23,7 @@ export default function FilterBar({
     setFormData(next);
 
     if (name === "buscar") {
-     
+
       onApply?.({
         ...next,
         tipo: current,
@@ -51,19 +51,18 @@ export default function FilterBar({
 
   return (
     <div className="mb-6">
-      
+
       {filters.length > 0 && (
-        <div className="flex gap-3 mb-4">
+        <div className="flex flex-wrap gap-3 mb-4">
           {filters.map((f) => (
             <button
               key={f}
               type="button"
               onClick={() => handleSelect(f)}
-              className={`px-4 py-1.5 rounded-full font-medium transition ${
-                current === f
+              className={`px-4 py-1.5 rounded-full font-medium transition ${current === f
                   ? "bg-[#154734] text-white shadow-sm"
                   : "bg-[#e8f4ef] text-[#154734] hover:bg-[#dbeee6]"
-              }`}
+                }`}
             >
               {f}
             </button>
@@ -71,10 +70,10 @@ export default function FilterBar({
         </div>
       )}
 
-      
+
       <div className="bg-[#f7fbf8] border border-[#e2ede8] rounded-2xl p-6">
         <div className="grid gap-5 items-end grid-cols-1 lg:grid-cols-[minmax(16rem,1.4fr)_minmax(10rem,1fr)_minmax(10rem,1fr)_minmax(10rem,1fr)_auto]">
-          
+
           {fields.map((field) => (
             <div
               key={field.name}
@@ -84,7 +83,7 @@ export default function FilterBar({
                 {field.label}
               </label>
 
-             
+
               {field.type === "select" ? (
                 <select
                   name={field.name}
@@ -99,7 +98,7 @@ export default function FilterBar({
                   ))}
                 </select>
               ) : (
-         
+
                 <input
                   type={field.type}
                   name={field.name}
@@ -112,7 +111,7 @@ export default function FilterBar({
             </div>
           ))}
 
-         
+
           <div className="flex items-center justify-end gap-4">
             <button
               type="button"

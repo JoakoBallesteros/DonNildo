@@ -8,13 +8,10 @@ import {
 } from "../utils/auditoriaService.mjs";
 
 const router = Router();
-
-// Middleware global para estas rutas
 router.use(requireAuth);
 router.use(allowRoles(["ADMIN", "VENTAS"]));
-
 // ====================
-// 1️⃣ Obtener ventas (LISTADO PRINCIPAL)
+// 1️⃣ Obtener ventas (OPTIMIZADO - PÚBLICO)
 // ====================
 router.get("/", async (req, res) => {
   try {
@@ -25,7 +22,6 @@ router.get("/", async (req, res) => {
     else if (only === "anuladas") estadoFiltro = "ANULADO";
     else if (estado) estadoFiltro = estado;
 
-    // Llama a la función SQL 'listar_ventas_optimizada' 
     const query = `SELECT * FROM listar_ventas_optimizada($1);`;
     const { rows: ventas } = await pool.query(query, [estadoFiltro]);
 
@@ -35,21 +31,38 @@ router.get("/", async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
-
 // ====================
-// 2️⃣ Obtener venta por ID
+// 1️ Obtener ventas por ID para modificar
 // ====================
 router.get("/:id", requireAuth, async (req, res) => {
+  // 💡 Asegurate de usar requireAuth si es necesario
   const id = Number(req.params.id);
-  if (!id) return res.status(400).json({ error: "ID inválido." });
+
+  if (!id) {
+    return res.status(400).json({ error: "ID de venta inválido." });
+  }
 
   try {
-    // 1. Cabecera (sin cambios)
-    const ventaQuery = `SELECT v.id_venta, v.fecha, v.total, v.observaciones, v.id_cliente FROM venta v WHERE v.id_venta = $1 LIMIT 1;`;
-    const { rows: ventaRows } = await pool.query(ventaQuery, [id]);
-    if (ventaRows.length === 0) return res.status(404).json({ error: "Venta no encontrada." });
+    // 1. CABECERA DE LA VENTA
+    const ventaQuery = `
+      SELECT 
+        v.id_venta,
+        v.fecha,
+        v.total,
+        v.observaciones
+      FROM venta v
+      WHERE v.id_venta = $1
+      LIMIT 1;
+    `;
 
-    // 2. Detalles (OPTIMIZADO)
+    const { rows: ventaRows } = await pool.query(ventaQuery, [id]);
+
+    if (ventaRows.length === 0) {
+      return res.status(404).json({ error: "Venta no encontrada." });
+    }
+
+    // 2. DETALLES DE LA VENTA
+    // Corregido el JOIN a 'medida' (singular) y usando tp.nombre para el tipo
     const productosQuery = `
       SELECT 
         dv.id_producto,
@@ -58,41 +71,38 @@ router.get("/:id", requireAuth, async (req, res) => {
         dv.cantidad,
         dv.precio_unitario,
         dv.subtotal,
-        
-        m.nombre AS medida_detalle,
-        
-        -- 🔥 LEEMOS LA UNIDAD DIRECTAMENTE DE LA TABLA 'tipo_producto'
-        COALESCE(tp.unidad_stock, 'u') AS unidad
-
+        COALESCE(m.simbolo, 'u') AS medida
       FROM detalle_venta dv
       JOIN productos p ON p.id_producto = dv.id_producto
       LEFT JOIN tipo_producto tp ON tp.id_tipo_producto = p.id_tipo_producto
-      LEFT JOIN medida m ON m.id_medida = p.id_medida
+      LEFT JOIN medida m ON m.id_medida = p.id_medida  -- 💡 CORREGIDO: tabla 'medida' (singular)
       WHERE dv.id_venta = $1;
     `;
 
     const { rows: productosRows } = await pool.query(productosQuery, [id]);
 
-    // 3. Formatear
+    // 3. FORMATEAR RESPUESTA (Coincide con lo que espera RegistrarVentas.jsx)
     const productos = productosRows.map((p) => ({
       id_producto: p.id_producto,
-      producto: p.producto, 
-      tipo: p.tipo_producto, 
-      tipo_producto: p.tipo_producto,
+      producto: p.producto, // Nombre del producto
+      tipo: p.tipo_producto, // "Caja" o "Producto terminado"
+      tipo_producto: p.tipo_producto, // Duplicado para asegurar compatibilidad con tu front
       cantidad: Number(p.cantidad),
-      precio_unitario: Number(p.precio_unitario),
-      precio: Number(p.precio_unitario),
+      precio_unitario: Number(p.precio_unitario), // Tu front espera precio_unitario o precio
+      precio: Number(p.precio_unitario), // Enviamos ambos por seguridad
       subtotal: Number(p.subtotal),
-      medida: p.medida_detalle,
-      unidad: p.unidad, // Ahora es dinámico según la BD
+      medida: p.medida,
       descuento: 0,
     }));
 
-    res.json({ venta: ventaRows[0], productos, success: true });
-
+    res.json({
+      venta: ventaRows[0],
+      productos, // Array de items
+      success: true,
+    });
   } catch (error) {
-    console.error("❌ Error:", error);
-    res.status(500).json({ error: error.message });
+    console.error("❌ Error cargando venta:", error);
+    res.status(500).json({ error: "Error al obtener la venta." });
   }
 });
 // ====================

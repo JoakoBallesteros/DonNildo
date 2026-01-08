@@ -337,20 +337,70 @@ export default function Proveedores() {
       {errorMsg && !loading && <p className="mt-2 text-sm text-red-600">{errorMsg}</p>}
 
       <div className="mt-6">
-        <DataTable
-          columns={columns}
-          data={filtered}
-          zebra={false}
-          stickyHeader={true}
-          wrapperClass="dn-table-wrapper overflow-y-auto shadow-sm"
-          tableClass="w-full text-sm text-center border-collapse"
-          theadClass="bg-[#e8f4ef] text-[#154734]"
-          rowClass="bg-white hover:bg-[#f6faf7] border-t border-[#edf2ef]"
-          headerClass="px-4 py-3 font-semibold text-center"
-          cellClass="px-4 py-2 text-center"
-          enableSort={true}
-          enablePagination={false}
-        />
+        {/* Desktop Table */}
+        <div className="hidden md:block">
+          <DataTable
+            columns={columns}
+            data={filtered}
+            zebra={false}
+            stickyHeader={true}
+            wrapperClass="dn-table-wrapper overflow-y-auto shadow-sm"
+            tableClass="w-full text-sm text-center border-collapse"
+            theadClass="bg-[#e8f4ef] text-[#154734]"
+            rowClass="bg-white hover:bg-[#f6faf7] border-t border-[#edf2ef]"
+            headerClass="px-4 py-3 font-semibold text-center"
+            cellClass="px-4 py-2 text-center"
+            enableSort={true}
+            enablePagination={false}
+          />
+        </div>
+
+        {/* Mobile Card List */}
+        <div className="md:hidden space-y-3">
+          {filtered.length === 0 && (
+            <p className="text-center text-gray-500 py-4 text-sm">No se encontraron proveedores.</p>
+          )}
+          {filtered.map((row) => (
+            <div key={row.id} className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm">
+              <div className="flex justify-between items-start mb-2">
+                <div className="flex flex-col">
+                  <h3 className="font-bold text-[#154734] text-base">{row.nombre}</h3>
+                  <span className="text-sm text-gray-600">CUIT: {row.cuit}</span>
+                </div>
+              </div>
+
+              <div className="text-sm text-gray-600 space-y-1 mb-3">
+                {row.contacto && (
+                  <div className="flex gap-2">
+                    <span className="font-semibold w-20">Contacto:</span>
+                    <span className="flex-1">{row.contacto}</span>
+                  </div>
+                )}
+                {row.direccion && (
+                  <div className="flex gap-2">
+                    <span className="font-semibold w-20">Dirección:</span>
+                    <span className="flex-1">{row.direccion}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2 mt-2 pt-2 border-t border-slate-100">
+                <button
+                  onClick={() => openEdit(row)}
+                  className="flex-1 bg-[#154734] text-white text-xs py-2 rounded hover:bg-[#1E5A3E]"
+                >
+                  MODIFICAR
+                </button>
+                <button
+                  onClick={() => requestDelete(row)}
+                  className="flex-1 bg-[#A30000] text-white text-xs py-2 rounded hover:bg-[#7A0000]"
+                >
+                  ELIMINAR
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       <Modal
@@ -474,11 +524,10 @@ export default function Proveedores() {
           <div className="flex justify-end">
             <button
               onClick={closeMessage}
-              className={`px-4 py-2 rounded-md font-semibold text-white transition ${
-                messageModal.type === "success"
+              className={`px-4 py-2 rounded-md font-semibold text-white transition ${messageModal.type === "success"
                   ? "bg-[#154734] hover:bg-[#103a2b]"
                   : "bg-red-700 hover:bg-red-800"
-              }`}
+                }`}
             >
               Aceptar
             </button>
@@ -486,9 +535,8 @@ export default function Proveedores() {
         }
       >
         <p
-          className={`text-sm ${
-            messageModal.type === "success" ? "text-emerald-700" : "text-red-700"
-          }`}
+          className={`text-sm ${messageModal.type === "success" ? "text-emerald-700" : "text-red-700"
+            }`}
         >
           {messageModal.text}
         </p>

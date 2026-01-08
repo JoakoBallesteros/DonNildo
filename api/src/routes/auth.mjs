@@ -1,3 +1,4 @@
+// api/src/routes/auth.mjs
 import { Router } from "express";
 import { supaAsUser } from "../lib/supabaseUserClient.mjs";
 import { requireAuth } from "../middlewares/requireAuth.mjs";
@@ -6,22 +7,14 @@ import {
   getUserIdFromToken,
 } from "../utils/auditoriaService.mjs";
 
+// ✅ Cliente admin (service role) para operaciones server-side de Auth
 import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE;
-
-// Dominio del FRONT (fallback producción)
-const APP_BASE_URL = (
-  process.env.APP_BASE_URL ||
-  "https://donnildo-production.up.railway.app"
-).replace(/\/$/, "");
-
-// URL directa que esta en railway
-const RESET_REDIRECT_URL = process.env.RESET_REDIRECT_URL;
-
+const APP_BASE_URL = (process.env.APP_BASE_URL || "http://localhost:5173").replace(/\/$/, "");
 const supaAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE, {
-  auth: { persistSession: false, autoRefreshToken: false },
+  auth: { persistSession: false },
 });
 
 const router = Router();
@@ -29,6 +22,9 @@ const router = Router();
 /**
  * POST /v1/auth/password/reset
  * Body: { email: string }
+ * Env:
+ *  - APP_BASE_URL: base del front (ej. http://localhost:5173)
+ *  - SUPABASE_URL / SUPABASE_SERVICE_ROLE
  */
 router.post("/password/reset", async (req, res) => {
   try {
@@ -44,16 +40,13 @@ router.post("/password/reset", async (req, res) => {
       });
     }
 
-    // Manda al front a reset el mail
-    const redirectTo =
-      (RESET_REDIRECT_URL || `${APP_BASE_URL}/reset`).replace(/\/$/, "/reset");
+    // Adónde redirige el link del correo (ruta del front que muestra el form de nueva contraseña)
+    const redirectTo = `${APP_BASE_URL}/reset`;
 
     const { error } = await supaAdmin.auth.resetPasswordForEmail(email, {
       redirectTo,
     });
-
     if (error) {
-      console.error("[auth/password/reset] Supabase error:", error);
       return res.status(400).json({ message: error.message });
     }
 
@@ -67,7 +60,6 @@ router.post("/password/reset", async (req, res) => {
     return res.status(500).json({ message: "Error interno" });
   }
 });
-
 
 // --- TOUCH-SESSION: se llama DESPUÉS de un login exitoso ---
 router.post("/touch-session", requireAuth, async (req, res) => {

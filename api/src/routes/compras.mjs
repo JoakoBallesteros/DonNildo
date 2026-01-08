@@ -428,11 +428,7 @@ router.put("/:id/anular", async (req, res) => {
       UPDATE orden_compra
          SET id_estado = $1,
              observaciones = COALESCE(observaciones, '') ||
-               E'\n-- ANULADA: ' 
-               || TO_CHAR(
-                    NOW() AT TIME ZONE 'America/Argentina/Cordoba',
-                    'YYYY-MM-DD HH24:MI:SS'
-                )
+               E'\n-- ANULADA: ' || now()
        WHERE id_compra = $2
     `,
       [idEstadoAnulado, id]

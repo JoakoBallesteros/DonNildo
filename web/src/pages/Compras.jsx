@@ -42,48 +42,9 @@ function normalizeTipo(tipo) {
   const t = String(tipo || "").trim().toLowerCase();
   if (!t) return "Mixta";
   if (t === "mixtas" || t === "mixta") return "Mixta";
-  if (t === "materiales" || t === "material") return "Materiales";
-  if (t === "cajas" || t === "caja") return "Cajas";
+  if (t === "materiales") return "Materiales";
+  if (t === "cajas") return "Cajas";
   return String(tipo);
-}
-
-function normalizeItemTipo(it, compraTipo, productoNombre) {
-  const raw = String(
-    it?.tipo_item ??
-    it?.tipo ??
-    it?.tipo_producto ??
-    it?.tipoProducto ??
-    it?.categoria ??
-    it?.categoria_nombre ??
-    it?.categoriaNombre ??
-    ""
-  )
-    .trim()
-    .toLowerCase();
-
-  if (raw.includes("caja")) return "Caja";
-  if (raw.includes("material")) return "Material";
-
-  const prod = String(
-    productoNombre ?? it?.producto ?? it?.nombre_producto ?? it?.nombre ?? ""
-  )
-    .trim()
-    .toLowerCase();
-
-  if (prod.includes("caja")) return "Caja";
-
-  const unidad = String(it?.medida ?? it?.unidad ?? it?.unidad_stock ?? "")
-    .trim()
-    .toLowerCase();
-
-  if (unidad.includes("kg")) return "Material";
-  if (unidad === "u" || unidad.includes("un")) return "Caja";
-
-  const compra = String(compraTipo || "").trim().toLowerCase();
-  if (compra.includes("caja")) return "Caja";
-  if (compra.includes("material")) return "Material";
-
-  return "Material";
 }
 
 function mapCompraFromApi(c) {
@@ -121,21 +82,17 @@ function mapCompraFromApi(c) {
   const obs = c.observaciones ?? c.obs ?? "—";
   const rawItems = c.items ?? c.detalles ?? c.detalle_compra ?? [];
 
-  const items = rawItems.map((it, idx) => {
-    const producto =
-      it.producto ?? it.nombre_producto ?? it.nombre ?? `Item ${idx + 1}`;
-
-    return {
-      tipo: normalizeItemTipo(it, tipo, producto),
-      proveedor: proveedor || "—",
-      producto,
-      medida: it.medida ?? it.unidad ?? it.unidad_stock ?? "u",
-      cantidad: Number(it.cantidad ?? 0),
-      precio: Number(it.precio ?? it.precio_unitario ?? 0),
-      descuento: Number(it.descuento ?? 0),
-      subtotal: Number(it.subtotal ?? 0),
-    };
-  });
+  const items = rawItems.map((it, idx) => ({
+    tipo,
+    proveedor: proveedor || "—",
+    producto:
+      it.producto ?? it.nombre_producto ?? it.nombre ?? `Item ${idx + 1}`,
+    medida: it.medida ?? it.unidad ?? it.unidad_stock ?? "u",
+    cantidad: Number(it.cantidad ?? 0),
+    precio: Number(it.precio ?? it.precio_unitario ?? 0),
+    descuento: Number(it.descuento ?? 0),
+    subtotal: Number(it.subtotal ?? 0),
+  }));
 
   return { id, dbId, proveedor, tipo, total, fecha, obs, items, estado };
 }
@@ -170,6 +127,10 @@ export default function Compras() {
     type: "",
   });
 
+  // Paginación manual para mobile (Estado en top-level)
+  const PAGE_SIZE_MOBILE = 8;
+  const [pageMobile, setPageMobile] = useState(1);
+
   useEffect(() => {
     async function fetchCompras() {
       try {
@@ -186,7 +147,8 @@ export default function Compras() {
 
         const mapped = resp.compras.map(mapCompraFromApi);
         setRows(mapped);
-      } catch {
+        // eslint-disable-next-line no-unused-vars
+      } catch (err) {
         setErrorMsg("No se pudieron cargar las compras desde el servidor.");
       } finally {
         setLoading(false);
@@ -220,6 +182,16 @@ export default function Compras() {
         return true;
       });
   }, [rows, tab, q, desde, hasta, mostrarAnuladas]);
+
+  // Resetear página mobile al cambiar filtros
+  useEffect(() => {
+    setPageMobile(1);
+  }, [filtered]);
+
+  // Cálculo de filas visibles para mobile
+  const totalPagesMobile = Math.ceil(filtered.length / PAGE_SIZE_MOBILE);
+  const startMobile = (pageMobile - 1) * PAGE_SIZE_MOBILE;
+  const visibleRowsMobile = filtered.slice(startMobile, startMobile + PAGE_SIZE_MOBILE);
 
   function onApplyFilters(form) {
     setQ(form.buscar ?? "");
@@ -270,11 +242,7 @@ export default function Compras() {
     autoTable(doc, { startY: 55, head, body });
 
     const finalY = doc.lastAutoTable.finalY + 10;
-    doc.text(
-      `Total: $${Number(compra.total).toLocaleString("es-AR")}`,
-      14,
-      finalY
-    );
+    doc.text(`Total: $${Number(compra.total).toLocaleString("es-AR")}`, 14, finalY);
 
     setTimeout(() => doc.save(`Detalle de ${compraCodigo}.pdf`), 100);
   };
@@ -545,35 +513,162 @@ export default function Compras() {
         {loading ? (
           <p className="text-sm text-slate-600">Cargando…</p>
         ) : (
-          <DataTable
-            columns={columns}
-            data={filtered}
-            zebra={false}
-            stickyHeader={true}
-            wrapperClass="dn-table-wrapper overflow-y-auto shadow-sm"
-            tableClass="w-full text-sm text-center border-collapse"
-            theadClass="bg-[#e8f4ef] text-[#154734]"
-            rowClass={(row) =>
-              `border-t border-[#edf2ef] ${row.estado === "ANULADO"
-                ? "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                : "bg-white hover:bg-[#f6faf7]"
-              }`
-            }
-            headerClass="px-4 py-3 font-semibold text-center"
-            cellClass="px-4 py-2 text-center"
-            enableSort={true}
-            enablePagination={true}
-            pageSize={8}
-          />
+          <>
+            {/* VISTA DESKTOP */}
+            <div className="hidden md:block">
+              <DataTable
+                columns={columns}
+                data={filtered}
+                zebra={false}
+                stickyHeader={true}
+                wrapperClass="dn-table-wrapper overflow-y-auto shadow-sm"
+                tableClass="w-full text-sm text-center border-collapse"
+                theadClass="bg-[#e8f4ef] text-[#154734]"
+                rowClass={(row) =>
+                  `border-t border-[#edf2ef] ${row.estado === "ANULADO"
+                    ? "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                    : "bg-white hover:bg-[#f6faf7]"
+                  }`
+                }
+                headerClass="px-4 py-3 font-semibold text-center"
+                cellClass="px-4 py-2 text-center"
+                enableSort={true}
+                enablePagination={true}
+                pageSize={8}
+              />
+            </div>
+
+            {/* VISTA MOBILE */}
+            <div className="md:hidden space-y-3">
+              {!filtered.length && (
+                <div className="text-center p-4 bg-gray-50 rounded-lg border border-dashed text-gray-500 text-sm">
+                  No se encontraron compras.
+                </div>
+              )}
+              {visibleRowsMobile.map((row) => {
+                const isAnulada = row.estado === "ANULADO";
+                const formattedDate = formatDMY(row.fecha);
+                const formattedTotal = Number(row.total || 0).toLocaleString("es-AR", {
+                  style: "currency",
+                  currency: "ARS",
+                  maximumFractionDigits: 0
+                });
+                const numericId = row.dbId ?? row.id_compra ?? getNumericIdFromDisplay(row.id);
+
+                return (
+                  <div
+                    key={row.id}
+                    className={`border rounded-lg p-3 shadow-sm ${isAnulada ? "bg-gray-100 border-gray-200" : "bg-white border-[#e3e9e5]"
+                      }`}
+                  >
+                    {/* Cabecera: ID y Fecha */}
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-[#154734] bg-[#e8f4ef] px-2 py-0.5 rounded w-fit">
+                          {row.id}
+                        </span>
+                        <span className="text-xs text-gray-500 mt-1">{formattedDate}</span>
+                      </div>
+                      <div className="text-right">
+                        {isAnulada ? (
+                          <span className="text-xs font-bold text-red-600 uppercase border border-red-200 bg-red-50 px-2 py-1 rounded">
+                            Anulada
+                          </span>
+                        ) : (
+                          <span className="text-lg font-bold text-[#154734]">
+                            {formattedTotal}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Cuerpo: Proveedor y Obs */}
+                    <div className="space-y-1 text-sm mb-3">
+                      <div className="flex justify-between">
+                        <span className="text-gray-500 font-medium">Proveedor:</span>
+                        <span className="font-semibold text-gray-800">{row.proveedor || "—"}</span>
+                      </div>
+                      {row.obs && (
+                        <div className="text-xs text-gray-500 italic border-t pt-1 mt-1">
+                          {row.obs}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Botones de acción mobile */}
+                    {!isAnulada && (
+                      <div className="flex gap-2 mt-2 pt-2 border-t border-gray-100">
+                        <button
+                          onClick={() => onViewDetail(row)}
+                          className="flex-1 text-xs text-[#154734] font-medium py-2 bg-gray-50 rounded hover:bg-gray-100"
+                        >
+                          Detalle
+                        </button>
+                        <button
+                          onClick={() => navigate(`/compras/editar/${numericId}`)}
+                          className="flex-1 text-xs text-[#154734] font-medium py-2 bg-gray-50 rounded hover:bg-gray-100"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => handleDownloadDetalleCompra(row)}
+                          className="w-10 flex items-center justify-center text-[#154734] bg-gray-50 rounded hover:bg-gray-100"
+                          title="Descargar PDF"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Boton anular separado si no esta anulada */}
+                    {!isAnulada && (
+                      <div className="mt-2">
+                        <button
+                          onClick={() => {
+                            setCompraIdToAnular(numericId);
+                            setAnularConfirmOpen(true);
+                          }}
+                          className="w-full text-xs text-red-600 border border-red-100 py-1.5 rounded hover:bg-red-50"
+                        >
+                          Anular Compra
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Controles de paginación mobile */}
+              {filtered.length > PAGE_SIZE_MOBILE && (
+                <div className="flex justify-center items-center gap-4 pt-2 pb-4">
+                  <button
+                    onClick={() => setPageMobile(p => Math.max(1, p - 1))}
+                    disabled={pageMobile === 1}
+                    className="px-3 py-1 text-sm border rounded bg-white disabled:opacity-50"
+                  >
+                    Anterior
+                  </button>
+                  <span className="text-sm text-gray-600">
+                    Página {pageMobile} de {totalPagesMobile}
+                  </span>
+                  <button
+                    onClick={() => setPageMobile(p => Math.min(totalPagesMobile, p + 1))}
+                    disabled={pageMobile === totalPagesMobile}
+                    className="px-3 py-1 text-sm border rounded bg-white disabled:opacity-50"
+                  >
+                    Siguiente
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
         )}
       </div>
 
       <Details
         isOpen={detailOpen}
         onClose={() => setDetailOpen(false)}
-        title={
-          detailRow ? `Detalle de Compra ${detailRow.id}` : "Detalle de Compra"
-        }
+        title={detailRow ? `Detalle de Compra ${detailRow.id}` : "Detalle de Compra"}
         data={detailRow}
         itemsKey="items"
         columns={[
@@ -651,17 +746,13 @@ export default function Compras() {
 
       <Modals
         isOpen={messageModal.isOpen}
-        onClose={() =>
-          setMessageModal({ isOpen: false, title: "", text: "", type: "" })
-        }
+        onClose={() => setMessageModal({ isOpen: false, title: "", text: "", type: "" })}
         title={messageModal.title}
         size="max-w-md"
         footer={
           <div className="flex justify-end">
             <button
-              onClick={() =>
-                setMessageModal({ isOpen: false, title: "", text: "", type: "" })
-              }
+              onClick={() => setMessageModal({ isOpen: false, title: "", text: "", type: "" })}
               className={`px-4 py-2 rounded-md font-semibold text-white transition ${messageModal.type === "success"
                 ? "bg-emerald-700 hover:bg-emerald-800"
                 : "bg-red-700 hover:bg-red-800"
