@@ -9,16 +9,16 @@ import {
 } from "recharts";
 import api from "../../lib/apiClient";
 
-const COLORS = ["#6A9CE3", 
-  "#E28A3A", 
-  "#73C2A1", 
-  "#C47AC0", 
-  "#F2C14E", 
-  "#8CC0DE", 
-  "#D96A1F", 
-  "#4ABB88", 
-  "#B08FCC", 
-  "#A4D4AE"  ];
+const COLORS = ["#6A9CE3",
+  "#E28A3A",
+  "#73C2A1",
+  "#C47AC0",
+  "#F2C14E",
+  "#8CC0DE",
+  "#D96A1F",
+  "#4ABB88",
+  "#B08FCC",
+  "#A4D4AE"];
 
 export default function StockMaterialChart() {
   const [data, setData] = useState([]);
@@ -68,7 +68,7 @@ export default function StockMaterialChart() {
   };
 
   return (
-    <div className="p-6 bg-white rounded-2xl shadow">
+    <div className="p-4 md:p-6 bg-white rounded-2xl shadow">
       <h2 className="text-lg font-bold mb-4">Distribución de Stock por Material</h2>
 
       <ResponsiveContainer width="100%" height={340}>
@@ -79,11 +79,11 @@ export default function StockMaterialChart() {
             cy="50%"
             dataKey="cantidad"
             nameKey="material"
-            outerRadius={120}
+            outerRadius="70%"
             label={(entry) => `${entry.material} (${entry.porcentaje}%)`}
           >
             {data.map((_, index) => (
-            <Cell key={index} fill={COLORS[index % COLORS.length]} 
+              <Cell key={index} fill={COLORS[index % COLORS.length]}
               />
             ))}
           </Pie>

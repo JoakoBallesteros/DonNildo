@@ -9,7 +9,6 @@ import DetailModal from "../components/modals/Details";
 import Modal from "../components/modals/Modals.jsx";
 import { useNavigate } from "react-router-dom";
 import api from "../lib/apiClient";
-import ReportDetail from "../components/modals/DetallesReporte.jsx";
 
 const TIPO_MAP = {
   Todo: null,
@@ -52,6 +51,17 @@ export default function Ventas() {
     type: "",
   });
 
+  const [selectedVenta, setSelectedVenta] = useState(null);
+  const [isDetailOpen, setDetailOpen] = useState(false);
+
+  /* 
+    PAGINACIÓN MANUAL PARA MOBILE:
+    Se define el estado y efecto aquí (bucle principal) 
+    para cumplir con Rules of Hooks.
+  */
+  const PAGE_SIZE_MOBILE = 8;
+  const [pageMobile, setPageMobile] = useState(1);
+
   const handleFilterSelect = (tipo) => setFiltroTipo(tipo);
 
   const aplicarFiltros = ({ buscar, desde, hasta, tipo }) => {
@@ -84,8 +94,53 @@ export default function Ventas() {
     loadVentas();
   }, [loadVentas]);
 
-  const [selectedVenta, setSelectedVenta] = useState(null);
-  const [isDetailOpen, setDetailOpen] = useState(false);
+  const ventasFiltradas = useMemo(() => {
+    const tsel = TIPO_MAP[filtroTipo];
+
+    // Fechas como strings YYYY-MM-DD
+    const desdeStr = filtros.desde || "";
+    const hastaStr = filtros.hasta || "";
+
+    return ventas.filter((v) => {
+      // 1) Filtro por tipo (tabs)
+      if (tsel && v.tipo !== tsel) return false;
+
+      // 2) Filtro de búsqueda
+      if (filtros.buscar) {
+        const txt = filtros.buscar.toLowerCase();
+        const idStr = String(v.id_venta).toLowerCase();
+        const tipoStr = (v.tipo || "").toLowerCase();
+        const obsStr = (v.observaciones || "").toLowerCase();
+
+        if (
+          !idStr.includes(txt) &&
+          !tipoStr.includes(txt) &&
+          !obsStr.includes(txt)
+        ) {
+          return false;
+        }
+      }
+
+      // 3) Filtro por fecha (TOTALMENTE inclusivo)
+      const fechaStr = String(v.fecha).slice(0, 10); // "2025-11-25"
+
+      if (desdeStr && fechaStr < desdeStr) return false;
+      if (hastaStr && fechaStr > hastaStr) return false;
+
+      return true;
+    });
+  }, [ventas, filtroTipo, filtros]);
+
+  // Resetear página al cambiar los filtros (ventasFiltradas cambia)
+  useEffect(() => {
+    setPageMobile(1);
+  }, [ventasFiltradas]);
+
+  // Cálculo de filas visibles para mobile
+  const totalPagesMobile = Math.ceil(ventasFiltradas.length / PAGE_SIZE_MOBILE);
+  const startMobile = (pageMobile - 1) * PAGE_SIZE_MOBILE;
+  const visibleRowsMobile = ventasFiltradas.slice(startMobile, startMobile + PAGE_SIZE_MOBILE);
+
 
   const handleVerDetalle = (venta) => {
     setSelectedVenta(venta);
@@ -334,43 +389,6 @@ export default function Ventas() {
     }
   };
 
-  const ventasFiltradas = useMemo(() => {
-    const tsel = TIPO_MAP[filtroTipo];
-
-    // Fechas como strings YYYY-MM-DD
-    const desdeStr = filtros.desde || "";
-    const hastaStr = filtros.hasta || "";
-
-    return ventas.filter((v) => {
-      // 1) Filtro por tipo (tabs)
-      if (tsel && v.tipo !== tsel) return false;
-
-      // 2) Filtro de búsqueda
-      if (filtros.buscar) {
-        const txt = filtros.buscar.toLowerCase();
-        const idStr = String(v.id_venta).toLowerCase();
-        const tipoStr = (v.tipo || "").toLowerCase();
-        const obsStr = (v.observaciones || "").toLowerCase();
-
-        if (
-          !idStr.includes(txt) &&
-          !tipoStr.includes(txt) &&
-          !obsStr.includes(txt)
-        ) {
-          return false;
-        }
-      }
-
-      // 3) Filtro por fecha (TOTALMENTE inclusivo)
-      const fechaStr = String(v.fecha).slice(0, 10); // "2025-11-25"
-
-      if (desdeStr && fechaStr < desdeStr) return false;
-      if (hastaStr && fechaStr > hastaStr) return false;
-
-      return true;
-    });
-  }, [ventas, filtroTipo, filtros]);
-
   const formatFecha = (value) => {
     if (!value) return "";
     const d = new Date(value);
@@ -548,11 +566,10 @@ export default function Ventas() {
             }
           }}
           className={`px-3 py-1.5 rounded-md border text-sm 
-          ${
-            selected.includes(Number(r.id_remito))
+          ${selected.includes(Number(r.id_remito))
               ? "bg-[#0f7a4e] text-white hover:bg-[#0d6843]"
               : "border-[#154734] text-[#154734] hover:bg-[#e8f4ef]"
-          }`}
+            }`}
         >
           {selected.includes(Number(r.id_remito))
             ? "Seleccionado"
@@ -629,27 +646,158 @@ export default function Ventas() {
         {loading ? (
           <p className="text-sm text-slate-600">Cargando…</p>
         ) : (
-          <DataTable
-            columns={columns}
-            data={ventasFiltradas}
-            zebra={false}
-            stickyHeader={true}
-            wrapperClass="dn-table-wrapper overflow-y-auto shadow-sm"
-            tableClass="w-full text-sm text-center border-collapse"
-            theadClass="bg-[#e8f4ef] text-[#154734]"
-            rowClass={(row) =>
-              `border-t border-[#edf2ef] ${
-                row.estado === "ANULADO"
-                  ? "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                  : "bg-white hover:bg-[#f6faf7]"
-              }`
-            }
-            headerClass="px-4 py-3 font-semibold text-center"
-            cellClass="px-4 py-2 text-center"
-            enableSort={true}
-            enablePagination={true}
-            pageSize={8}
-          />
+          <>
+            {/* VISTA DESKTOP */}
+            <div className="hidden md:block">
+              <DataTable
+                columns={columns}
+                data={ventasFiltradas}
+                zebra={false}
+                stickyHeader={true}
+                wrapperClass="dn-table-wrapper overflow-y-auto shadow-sm"
+                tableClass="w-full text-sm text-center border-collapse"
+                theadClass="bg-[#e8f4ef] text-[#154734]"
+                rowClass={(row) =>
+                  `border-t border-[#edf2ef] ${row.estado === "ANULADO"
+                    ? "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                    : "bg-white hover:bg-[#f6faf7]"
+                  }`
+                }
+                headerClass="px-4 py-3 font-semibold text-center"
+                cellClass="px-4 py-2 text-center"
+                enableSort={true}
+                enablePagination={true}
+                pageSize={8}
+              />
+            </div>
+
+            {/* VISTA MOBILE */}
+            <div className="md:hidden space-y-3">
+              {!ventasFiltradas.length && (
+                <div className="text-center p-4 bg-gray-50 rounded-lg border border-dashed text-gray-500 text-sm">
+                  No se encontraron ventas.
+                </div>
+              )}
+              {visibleRowsMobile.map((row) => {
+                const isAnulada = row.estado === "ANULADO";
+                const formattedDate = formatFecha(row.fecha);
+                const formattedTotal = Number(row.total || 0).toLocaleString("es-AR", {
+                  style: "currency",
+                  currency: "ARS",
+                  maximumFractionDigits: 0
+                });
+
+                return (
+                  <div
+                    key={row.id_venta}
+                    className={`border rounded-lg p-3 shadow-sm ${isAnulada ? "bg-gray-100 border-gray-200" : "bg-white border-[#e3e9e5]"
+                      }`}
+                  >
+                    {/* Cabecera: ID y Fecha */}
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-[#154734] bg-[#e8f4ef] px-2 py-0.5 rounded w-fit">
+                          #{row.id_venta}
+                        </span>
+                        <span className="text-xs text-gray-500 mt-1">{formattedDate}</span>
+                      </div>
+                      <div className="text-right">
+                        {isAnulada ? (
+                          <span className="text-xs font-bold text-red-600 uppercase border border-red-200 bg-red-50 px-2 py-1 rounded">
+                            Anulada
+                          </span>
+                        ) : (
+                          <span className="text-lg font-bold text-[#154734]">
+                            {formattedTotal}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Cuerpo: Tipo y Obs */}
+                    <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                      <div>
+                        <span className="text-xs text-gray-400 block">Tipo</span>
+                        <span className="font-medium text-gray-700">
+                          {TIPO_LABEL[row.tipo] || row.tipo}
+                        </span>
+                      </div>
+                      <div>
+                        {row.observaciones && (
+                          <>
+                            <span className="text-xs text-gray-400 block">Observaciones</span>
+                            <span className="text-gray-600 truncate block">
+                              {row.observaciones}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Botones de acción mobile */}
+                    {!isAnulada && (
+                      <div className="flex gap-2 mt-2 pt-2 border-t border-gray-100">
+                        <button
+                          onClick={() => handleVerDetalle(row)}
+                          className="flex-1 text-xs text-[#154734] font-medium py-2 bg-gray-50 rounded hover:bg-gray-100"
+                        >
+                          Detalle
+                        </button>
+                        <button
+                          onClick={() => handleModificar(row)}
+                          className="flex-1 text-xs text-[#154734] font-medium py-2 bg-gray-50 rounded hover:bg-gray-100"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => handleDownloadRemitoVenta(row)}
+                          className="w-10 flex items-center justify-center text-[#154734] bg-gray-50 rounded hover:bg-gray-100"
+                          title="Descargar Remito"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Boton anular separado si no esta anulada */}
+                    {!isAnulada && (
+                      <div className="mt-2">
+                        <button
+                          onClick={() => handleOpenAnularConfirm(row.id_venta)}
+                          className="w-full text-xs text-red-600 border border-red-100 py-1.5 rounded hover:bg-red-50"
+                        >
+                          Anular Venta
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Controles de paginación mobile */}
+              {ventasFiltradas.length > PAGE_SIZE_MOBILE && (
+                <div className="flex justify-center items-center gap-4 pt-2 pb-4">
+                  <button
+                    onClick={() => setPageMobile(p => Math.max(1, p - 1))}
+                    disabled={pageMobile === 1}
+                    className="px-3 py-1 text-sm border rounded bg-white disabled:opacity-50"
+                  >
+                    Anterior
+                  </button>
+                  <span className="text-sm text-gray-600">
+                    Página {pageMobile} de {totalPagesMobile}
+                  </span>
+                  <button
+                    onClick={() => setPageMobile(p => Math.min(totalPagesMobile, p + 1))}
+                    disabled={pageMobile === totalPagesMobile}
+                    className="px-3 py-1 text-sm border rounded bg-white disabled:opacity-50"
+                  >
+                    Siguiente
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
         )}
       </div>
 
@@ -721,11 +869,10 @@ export default function Ventas() {
                   type: "",
                 })
               }
-              className={`px-4 py-2 rounded-md font-semibold text-white transition ${
-                messageModal.type === "success"
-                  ? "bg-emerald-700 hover:bg-emerald-800"
-                  : "bg-red-700 hover:bg-red-800"
-              }`}
+              className={`px-4 py-2 rounded-md font-semibold text-white transition ${messageModal.type === "success"
+                ? "bg-emerald-700 hover:bg-emerald-800"
+                : "bg-red-700 hover:bg-red-800"
+                }`}
             >
               Aceptar
             </button>
@@ -747,127 +894,169 @@ export default function Ventas() {
         <div className="max-h-[50vh] overflow-y-auto pr-2">
           {/* LISTA DE REMITOS */}
           <div className="overflow-x-auto max-h-[400px] border rounded-lg shadow-sm">
-            <DataTable
-              columns={columnsRemitos}
-              data={remitos}
-              zebra={false}
-              stickyHeader={true}
-              enableSort={true}
-              enablePagination={false}
-              wrapperClass="dn-table-wrapper-sm overflow-y-auto"
-            />
+            {/* Desktop Table */}
+            <div className="hidden md:block">
+              <DataTable
+                columns={columnsRemitos}
+                data={remitos}
+                zebra={false}
+                stickyHeader={true}
+                enableSort={true}
+                enablePagination={false}
+                wrapperClass="dn-table-wrapper-sm overflow-y-auto"
+              />
+            </div>
+
+            {/* Mobile Card List */}
+            <div className="md:hidden space-y-3 p-2 bg-slate-50">
+              {remitos.length === 0 && (
+                <p className="text-center text-gray-500 py-4 text-sm">No hay remitos.</p>
+              )}
+              {remitos.map((remito) => {
+                // Determine if selected
+                const isSelected = selected.includes(Number(remito.id_remito));
+                return (
+                  <div key={remito.id_remito} className={`bg-white border rounded-lg p-3 shadow-sm ${isSelected ? 'border-emerald-500 ring-1 ring-emerald-500' : 'border-slate-200'}`}>
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <p className="font-bold text-[#154734]">Remito: {remito.id_remito}</p>
+                        <span className="text-xs text-gray-600">Venta: {remito.id_venta}</span>
+                      </div>
+                      <span className="text-sm font-semibold">{formatFecha(remito.fecha)}</span>
+                    </div>
+
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        onClick={() => {
+                          const isActive = remitoSel?.id_remito === remito.id_remito;
+                          if (isActive) {
+                            setRemitoSel(null);
+                          } else {
+                            setRemitoSel(remito);
+                            fetchDetalleRemito(remito.id_remito);
+                          }
+                        }}
+                        className={`flex-1 px-2 py-1.5 rounded text-xs transition ${remitoSel?.id_remito === remito.id_remito
+                            ? "bg-[#154734] text-white hover:bg-[#103a2b]"
+                            : "text-[#154734] border border-[#154734] hover:bg-[#e8f4ef]"
+                          }`}
+                      >
+                        {remitoSel?.id_remito === remito.id_remito ? "Viendo" : "Ver detalle"}
+                      </button>
+                      <button
+                        onClick={() => {
+                          const id = Number(remito.id_remito);
+                          if (selected.includes(id)) {
+                            setSelected((prev) => prev.filter((x) => x !== id));
+                          } else {
+                            setSelected((prev) => [...prev, id]);
+                          }
+                        }}
+                        className={`flex-1 px-2 py-1.5 rounded text-xs text-white transition ${isSelected ? 'bg-red-600 hover:bg-red-700' : 'bg-[#154734] hover:bg-[#103a2b]'}`}
+                      >
+                        {isSelected ? "Deseleccionar" : "Seleccionar"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          {/* BOTÓN ELIMINAR SELECCIONADOS */}
-          <div className="flex justify-end mt-4">
+          <div className="mt-4 flex gap-2">
             <button
-              onClick={() => setConfirmOpen(true)}
-              disabled={selected.length === 0}
-              className={`rounded-full px-6 py-3 ml-2 flex items-center justify-center
-            ${
-              selected.length > 0
-                ? "bg-[#9b102e] text-white hover:bg-[#630924]"
-                : "bg-[#9b102e] text-white opacity-60 cursor-not-allowed"
-            }`}
+              onClick={() => {
+                if (selected.length === 0) {
+                  const allIds = remitos.map((r) => Number(r.id_remito));
+                  setSelected(allIds);
+                  setCheckAll(true);
+                } else {
+                  setSelected([]);
+                  setCheckAll(false);
+                }
+              }}
+              className="text-[#154734] border border-[#154734] px-4 py-2 rounded-md text-sm hover:bg-[#e8f4ef]"
             >
-              Eliminar seleccionados
+              {selected.length === remitos.length && remitos.length > 0
+                ? "Deseleccionar todos"
+                : "Seleccionar todos"}
             </button>
+
+            {selected.length > 0 && (
+              <button
+                onClick={deleteSelectedRemitos}
+                className="bg-red-600 text-white px-4 py-2 rounded-md text-sm hover:bg-red-700 transition"
+              >
+                Eliminar seleccionados ({selected.length})
+              </button>
+            )}
           </div>
 
-          {/* DETALLE DEL REMITO */}
           {remitoSel && (
-            <div className="mt-6 ">
-              <h3 className="text-xl font-semibold text-[#154734] mb-4">
-                Detalle del Remito V-
-                {String(remitoSel.id_venta).padStart(4, "0")}
-              </h3>
-
-              {/* HEADER DEL REMITO */}
-              <div className="grid grid-cols-2 gap-4 mb-4 overflow-y-auto">
-                <div className="bg-[#f2f7f5] p-4 rounded-lg">
-                  <p className="text-xs text-slate-500">ID Remito</p>
-                  <p className="font-semibold">{`Rm-${String(
-                    remitoSel.id_remito
-                  ).padStart(4, "0")}`}</p>
+            <div className="mt-6 border-t pt-4">
+              <h4 className="font-bold text-[#154734] mb-3">
+                Detalle del Remito N° {remitoSel.id_remito}
+              </h4>
+              <div className="grid grid-cols-2 gap-4 text-sm mb-4 bg-gray-50 p-3 rounded">
+                <div>
+                  <span className="block text-gray-500">Venta:</span>
+                  <span className="font-medium">#{remitoSel.id_venta}</span>
                 </div>
-
-                <div className="bg-[#f2f7f5] p-4 rounded-lg">
-                  <p className="text-xs text-slate-500">Fecha</p>
-                  <p className="font-semibold">
+                <div>
+                  <span className="block text-gray-500">Fecha:</span>
+                  <span className="font-medium">
                     {formatFecha(remitoSel.fecha)}
-                  </p>
+                  </span>
                 </div>
-
-                <div className="bg-[#f2f7f5] p-4 rounded-lg col-span-2">
-                  <p className="text-xs text-slate-500">Observaciones</p>
-                  <p>{remitoSel.observaciones || "—"}</p>
+                <div>
+                  <span className="block text-gray-500">Tipo:</span>
+                  <span className="font-medium">
+                    {TIPO_LABEL[remitoSel.tipo_venta || remitoSel.tipo] ||
+                      remitoSel.tipo_venta ||
+                      remitoSel.tipo ||
+                      "—"}
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-gray-500">Observaciones:</span>
+                  <span className="font-medium">
+                    {remitoSel.observaciones || "—"}
+                  </span>
                 </div>
               </div>
 
-              {/* PRODUCTOS */}
-              <h4 className="text-lg font-semibold mb-2">Productos</h4>
-
-              <div className="border rounded-lg overflow-hidden">
-                <table className="w-full text-sm">
+              <div className="overflow-x-auto border rounded-lg">
+                <table className="w-full text-sm text-left">
                   <thead className="bg-[#e8f4ef] text-[#154734]">
                     <tr>
-                      <th className="px-4 py-3 text-left">Producto</th>
-                      <th className="px-4 py-3 text-center">Cantidad</th>
-                      <th className="px-4 py-3 text-center">Precio Unit.</th>
-                      <th className="px-4 py-3 text-center">Subtotal</th>
+                      <th className="px-4 py-2 font-semibold">Producto</th>
+                      <th className="px-4 py-2 font-semibold text-center">
+                        Cant
+                      </th>
+                      <th className="px-4 py-2 font-semibold text-center">
+                        Medida
+                      </th>
                     </tr>
                   </thead>
-
                   <tbody>
-                    {(remitoSel.productos ?? []).map((p, idx) => (
-                      <tr key={idx} className="border-t">
-                        <td className="px-4 py-3">{p.producto}</td>
-                        <td className="px-4 py-3 text-center">{p.cantidad}</td>
-                        <td className="px-4 py-3 text-center">
-                          ${p.precio_unitario}
-                        </td>
-                        <td className="px-4 py-3 text-center">${p.subtotal}</td>
-                      </tr>
-                    ))}
+                    {remitoSel.productos &&
+                      remitoSel.productos.map((item, idx) => (
+                        <tr key={idx} className="border-t border-gray-100">
+                          <td className="px-4 py-2">{item.producto}</td>
+                          <td className="px-4 py-2 text-center">
+                            {item.cantidad}
+                          </td>
+                          <td className="px-4 py-2 text-center">
+                            {item.medida || "—"}
+                          </td>
+                        </tr>
+                      ))}
                   </tbody>
                 </table>
               </div>
             </div>
           )}
         </div>
-      </Modal>
-
-      <Modal
-        isOpen={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
-        title="Confirmar eliminación"
-        size="max-w-md"
-        footer={
-          <div className="flex justify-end gap-3">
-            <button
-              onClick={() => setConfirmOpen(false)}
-              className="px-4 py-2 rounded-md font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
-            >
-              Cancelar
-            </button>
-
-            <button
-              onClick={async () => {
-                await deleteSelectedRemitos();
-                setConfirmOpen(false);
-              }}
-              className="px-4 py-2 rounded-md font-semibold text-white bg-red-600 hover:bg-red-700 transition"
-            >
-              Sí, eliminar
-            </button>
-          </div>
-        }
-      >
-        <p className="text-sm text-slate-700">
-          ¿Eliminar <strong>{selected.length}</strong> remito(s) seleccionados?
-          <br />
-          Esta acción no se puede deshacer.
-        </p>
       </Modal>
     </PageContainer>
   );

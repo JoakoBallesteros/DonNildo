@@ -177,10 +177,28 @@ export default function SegAuditoria() {
     });
   }, [rawEvents, tab, q, desde, hasta]);
 
+  /* Paginación Mobile Manual */
+  const [mobilePage, setMobilePage] = useState(1);
+  const MOBILE_PAGE_SIZE = 10;
+
+  useEffect(() => {
+    setMobilePage(1);
+  }, [filtered]);
+
+  const maxMobilePages = Math.ceil(filtered.length / MOBILE_PAGE_SIZE) || 1;
+  const mobileEvents = filtered.slice(
+    (mobilePage - 1) * MOBILE_PAGE_SIZE,
+    mobilePage * MOBILE_PAGE_SIZE
+  );
+
+  const prevMobile = () => setMobilePage((p) => Math.max(1, p - 1));
+  const nextMobile = () => setMobilePage((p) => Math.min(maxMobilePages, p + 1));
+
+
   return (
     <PageContainer title="Auditoría del Sistema">
       {/* Filtros superiores */}
-      <div className="bg-white rounded-2xl border border-[#e3e9e5] p-5 md:p-6 mb-5">
+      <div className="bg-white rounded-2xl border border-[#e3e9e5] p-4 md:p-6 mb-5">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="text-sm font-semibold text-[#154734] mb-1 block">
@@ -193,18 +211,31 @@ export default function SegAuditoria() {
               className="w-full border border-[#d8e4df] rounded-md px-3 py-2"
             />
           </div>
-          <div>
-            <label className="text-sm font-semibold text-[#154734] mb-1 block">
-              Desde
-            </label>
-            <input
-              type="date"
-              value={desde}
-              onChange={(e) => setDesde(e.target.value)}
-              className="w-full border border-[#d8e4df] rounded-md px-3 py-2"
-            />
+          <div className="grid grid-cols-2 gap-2 md:block">
+            <div className="md:mb-0">
+              <label className="text-sm font-semibold text-[#154734] mb-1 block">
+                Desde
+              </label>
+              <input
+                type="date"
+                value={desde}
+                onChange={(e) => setDesde(e.target.value)}
+                className="w-full border border-[#d8e4df] rounded-md px-3 py-2"
+              />
+            </div>
+            <div className="md:hidden">
+              <label className="text-sm font-semibold text-[#154734] mb-1 block">
+                Hasta
+              </label>
+              <input
+                type="date"
+                value={hasta}
+                onChange={(e) => setHasta(e.target.value)}
+                className="w-full border border-[#d8e4df] rounded-md px-3 py-2"
+              />
+            </div>
           </div>
-          <div>
+          <div className="hidden md:block">
             <label className="text-sm font-semibold text-[#154734] mb-1 block">
               Hasta
             </label>
@@ -224,11 +255,10 @@ export default function SegAuditoria() {
               key={t}
               type="button"
               onClick={() => handleSetTab(t)}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition ${
-                tab === t
+              className={`px-3 py-1.5 rounded-full text-xs md:text-sm font-medium transition ${tab === t
                   ? "bg-[#154734] text-white"
                   : "bg-[#e8f4ef] text-[#154734] hover:bg-[#dbeee6]"
-              }`}
+                }`}
             >
               {t}
             </button>
@@ -245,17 +275,81 @@ export default function SegAuditoria() {
           Error: {error}
         </div>
       ) : (
-        <DataTable
-          columns={cols}
-          data={filtered}
-          enableSort
-          wrapperClass="dn-table-wrapper overflow-y-auto"
-          tableClass="w-full text-sm border-collapse table-fixed"
-          theadClass="bg-[#e8f4ef] text-[#154734]"
-          rowClass="hover:bg-[#f6faf7] transition border-t border-[#edf2ef]"
-          headerClass="px-4 py-3 font-semibold border-r border-[#e3e9e5] last:border-none select-none text-center"
-          cellClass="px-4 py-3 border-r border-[#edf2ef] last:border-none align-top text-center"
-        />
+        <div>
+          {/* Desktop Table (con paginación interna activada) */}
+          <div className="hidden md:block">
+            <DataTable
+              columns={cols}
+              data={filtered}
+              enableSort
+              enablePagination={true}
+              pageSize={10}
+              wrapperClass="dn-table-wrapper overflow-y-auto"
+              tableClass="w-full text-sm border-collapse table-fixed"
+              theadClass="bg-[#e8f4ef] text-[#154734]"
+              rowClass="hover:bg-[#f6faf7] transition border-t border-[#edf2ef]"
+              headerClass="px-4 py-3 font-semibold border-r border-[#e3e9e5] last:border-none select-none text-center"
+              cellClass="px-4 py-3 border-r border-[#edf2ef] last:border-none align-top text-center"
+            />
+          </div>
+
+          {/* Mobile Card List + Pagination */}
+          <div className="md:hidden space-y-3">
+            {filtered.length === 0 && (
+              <p className="text-center text-gray-500 py-8">No se encontraron eventos.</p>
+            )}
+            {mobileEvents.map((ev) => (
+              <div key={ev.id} className="bg-white border border-slate-200 p-4 rounded-lg shadow-sm">
+                <div className="flex justify-between items-start mb-2">
+                  <span className={`text-xs font-bold px-2 py-1 rounded ${ev.modulo === "SEGURIDAD" ? "bg-red-100 text-red-800" :
+                      ev.modulo === "VENTAS" ? "bg-emerald-100 text-emerald-800" :
+                        ev.modulo === "COMPRAS" ? "bg-blue-100 text-blue-800" :
+                          "bg-gray-100 text-gray-800"
+                    }`}>
+                    {ev.modulo}
+                  </span>
+                  <span className="text-xs text-gray-400">{ev.fecha}</span>
+                </div>
+                <h4 className="font-bold text-[#154734] text-base mb-1">
+                  {ev.tipo}
+                </h4>
+                <p className="text-sm text-gray-600 mb-2 italic">
+                  {ev.usuario}
+                </p>
+                {ev.detalle && (
+                  <div className="text-sm bg-slate-50 p-2 rounded text-slate-700 border border-slate-100 break-words">
+                    {ev.detalle}
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {/* Mobile Pagination Controls */}
+            {filtered.length > MOBILE_PAGE_SIZE && (
+              <div className="flex justify-between items-center pt-4">
+                <button
+                  onClick={prevMobile}
+                  disabled={mobilePage === 1}
+                  className={`px-4 py-2 rounded-lg border text-sm font-medium ${mobilePage === 1 ? "bg-slate-100 text-slate-400 border-slate-200" : "bg-white text-[#154734] border-[#154734]"
+                    }`}
+                >
+                  Anterior
+                </button>
+                <span className="text-sm text-slate-600">
+                  Pág. {mobilePage} / {maxMobilePages}
+                </span>
+                <button
+                  onClick={nextMobile}
+                  disabled={mobilePage === maxMobilePages}
+                  className={`px-4 py-2 rounded-lg border text-sm font-medium ${mobilePage === maxMobilePages ? "bg-slate-100 text-slate-400 border-slate-200" : "bg-white text-[#154734] border-[#154734]"
+                    }`}
+                >
+                  Siguiente
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </PageContainer>
   );
