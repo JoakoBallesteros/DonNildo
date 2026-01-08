@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Download } from "lucide-react";
+import { Download, Send } from "lucide-react"; // <--- 1. Agregado icono Send
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -108,6 +108,15 @@ export default function StockList() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
+  // Estado para controlar el modal de confirmación de precios
+  const [isMassUpdateConfirmOpen, setMassUpdateConfirmOpen] = useState(false);
+
+  // --- 2. Nuevo estado para actualización masiva ---
+  const [massUpdate, setMassUpdate] = useState({
+    tipo: "Caja", // Valor por defecto
+    porcentaje: "",
+  });
+
   const [filtroTipo, setFiltroTipo] = useState("Todo");
   const [filtros, setFiltros] = useState({
     buscar: "",
@@ -164,6 +173,62 @@ export default function StockList() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // 1. Botón del triangulito: Valida y abre el modal de pregunta
+  const openMassUpdateModal = () => {
+    const pct = Number(massUpdate.porcentaje);
+
+    // Validaciones básicas
+    if (!massUpdate.porcentaje || isNaN(pct) || pct === 0) {
+      setMessageModal({
+        isOpen: true,
+        title: "Dato inválido",
+        text: "Por favor ingresa un porcentaje válido (distinto de 0).",
+        type: "error",
+      });
+      return;
+    }
+
+    // Si pasa la validación, abrimos el modal de confirmación
+    setMassUpdateConfirmOpen(true);
+  };
+
+  // 2. Acción de confirmar: Se ejecuta al dar "Sí" en el modal
+  const executeMassUpdate = async () => {
+    try {
+      setMassUpdateConfirmOpen(false); // Cerramos el modal de pregunta
+
+      const pct = Number(massUpdate.porcentaje);
+
+      const res = await apiFetch("/api/stock/actualizar-precios-masivo", {
+        method: "POST",
+        body: JSON.stringify({
+          tipo: massUpdate.tipo,
+          porcentaje: pct,
+        }),
+      });
+
+      // Modal de Éxito
+      setMessageModal({
+        isOpen: true,
+        title: "Precios Actualizados",
+        text: res.message || "Los precios se han actualizado correctamente.",
+        type: "success",
+      });
+
+      // Limpiar input y recargar datos
+      setMassUpdate((prev) => ({ ...prev, porcentaje: "" }));
+      loadData();
+    } catch (error) {
+      console.error(error);
+      setMessageModal({
+        isOpen: true,
+        title: "Error",
+        text: error.message || "No se pudieron actualizar los precios.",
+        type: "error",
+      });
+    }
+  };
 
   const categoriaOptions = useMemo(
     () => [
@@ -778,6 +843,51 @@ export default function StockList() {
         selectedFilter={filtroTipo}
       />
 
+      {/* --- 4. SECCIÓN UI: Actualización de Precios --- */}
+      <div className="mt-4 flex flex-wrap items-center gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <h3 className="text-sm font-bold text-[#154734] underline decoration-2 underline-offset-4">
+          Actualizar precios
+        </h3>
+
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-semibold text-slate-700">Tipo</label>
+          <select
+            value={massUpdate.tipo}
+            onChange={(e) =>
+              setMassUpdate({ ...massUpdate, tipo: e.target.value })
+            }
+            className="rounded border border-slate-300 px-2 py-1 text-sm focus:border-[#154734] focus:outline-none focus:ring-1 focus:ring-[#154734]"
+          >
+            <option value="Caja">Caja</option>
+            <option value="Material">Material</option>
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-semibold text-slate-700">
+            Precio(%)
+          </label>
+          <input
+            type="number"
+            placeholder="0"
+            value={massUpdate.porcentaje}
+            onChange={(e) =>
+              setMassUpdate({ ...massUpdate, porcentaje: e.target.value })
+            }
+            className="w-20 rounded border border-slate-300 px-2 py-1 text-sm focus:border-[#154734] focus:outline-none focus:ring-1 focus:ring-[#154734]"
+          />
+        </div>
+
+        <button
+          onClick={openMassUpdateModal} // <--- Cambiado aquí
+          className="flex h-8 w-8 items-center justify-center rounded bg-[#154734] text-white hover:bg-[#103a2b] transition-colors"
+          title="Aplicar actualización"
+        >
+          <Send size={16} />
+        </button>
+      </div>
+      {/* --------------------------------------------- */}
+
       {err && (
         <div className="mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
           {err}
@@ -1089,6 +1199,22 @@ export default function StockList() {
         text={messageModal.text}
         type={messageModal.type}
         onClose={() => setMessageModal((prev) => ({ ...prev, isOpen: false }))}
+      />
+      {/* Modal de confirmación para actualización masiva */}
+      <MessageModal
+        isOpen={isMassUpdateConfirmOpen}
+        title="Confirmar actualización de precios"
+        text={`¿Estás seguro de realizar un ${
+          Number(massUpdate.porcentaje) > 0 ? "AUMENTO" : "DESCUENTO"
+        } del ${Math.abs(
+          Number(massUpdate.porcentaje)
+        )}% a todos los productos de tipo "${massUpdate.tipo.toUpperCase()}"?`}
+        type="warning"
+        confirm
+        onClose={() => setMassUpdateConfirmOpen(false)}
+        onConfirm={executeMassUpdate}
+        confirmText="Sí, actualizar"
+        cancelText="Cancelar"
       />
     </PageContainer>
   );

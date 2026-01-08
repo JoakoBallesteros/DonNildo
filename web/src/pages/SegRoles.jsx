@@ -99,15 +99,30 @@ export default function SegRoles() {
       const usuario = usuarios.find((u) => u.nombre === row.usuario);
       if (!usuario) return;
 
-      await supa
-        .from("usuarios")
-        .update({ id_rol: null })
-        .eq("id_usuario", usuario.id_usuario);
+const onRemove = useCallback(
+  async (row) => {
+    const usuario = usuarios.find((u) => u.nombre === row.usuario);
+    if (!usuario) return;
 
-      setRows((prev) => prev.filter((r) => r.id !== row.id));
-    },
-    [usuarios]
-  );
+    const { error } = await supa
+      .from("usuarios")
+      .update({ id_rol: ID_ROL_SIN_ROL })
+      .eq("id_usuario", usuario.id_usuario);
+
+    if (error) {
+      alert("No se pudo remover el rol: " + error.message);
+      console.error(error);
+      return;
+    }
+
+    setRows((prev) =>
+      prev.map((r) =>
+        r.id === row.id ? { ...r, rol: "SIN_ROL" } : r
+      )
+    );
+  },
+  [usuarios]
+);
 
   const cols = useMemo(
     () => [
