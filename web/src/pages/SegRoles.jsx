@@ -192,47 +192,16 @@ export default function SegRoles() {
         </div>
       </div>
 
-      <div>
-        <div className="hidden md:block">
-          <DataTable
-            columns={cols}
-            data={rows}
-            enableSort
-            tableClass="w-full text-sm border-collapse table-fixed"
-            theadClass="bg-[#e8f4ef] text-[#154734]"
-            rowClass="hover:bg-[#f6faf7] transition border-t border-[#edf2ef]"
-            headerClass="px-4 py-3 font-semibold border-r border-[#e3e9e5] last:border-none select-none"
-            cellClass="px-4 py-3 border-r border-[#edf2ef] last:border-none"
-          />
-        </div>
-
-        <div className="md:hidden space-y-3">
-          {rows.length === 0 && (
-            <p className="text-center text-gray-500 py-6">No hay asignaciones.</p>
-          )}
-          {rows.map((row) => (
-            <div key={row.id} className="bg-white border p-4 rounded-lg shadow-sm border-slate-200">
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <span className="block text-xs text-gray-400 uppercase font-semibold">Rol</span>
-                  <span className="font-bold text-[#154734] text-lg">{row.rol}</span>
-                </div>
-                <div className="text-right">
-                  <span className="block text-xs text-gray-400 uppercase font-semibold">Usuario</span>
-                  <span className="text-gray-800 font-medium">{row.usuario}</span>
-                </div>
-              </div>
-
-              <button
-                className="w-full py-2 rounded-lg bg-[#a30000] text-white text-sm font-medium hover:bg-[#8a0000] transition-colors"
-                onClick={() => onRemove(row)}
-              >
-                Remover asignación
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
+      <DataTable
+        columns={cols}
+        data={rows}
+        enableSort
+        tableClass="w-full text-sm border-collapse table-fixed"
+        theadClass="bg-[#e8f4ef] text-[#154734]"
+        rowClass="hover:bg-[#f6faf7] transition border-t border-[#edf2ef]"
+        headerClass="px-4 py-3 font-semibold border-r border-[#e3e9e5] last:border-none select-none"
+        cellClass="px-4 py-3 border-r border-[#edf2ef] last:border-none"
+      />
 
       <div className="mt-6 flex justify-center gap-2">
         <a
