@@ -742,4 +742,68 @@ router.get(
   }
 );
 
+/* ============================================================
+ * POST /api/stock/actualizar-precios-masivo
+ * -> Actualiza precios masivamente por porcentaje
+ * Roles: ADMIN, COMPRAS
+ * ============================================================ */
+router.post(
+  "/actualizar-precios-masivo",
+  allowRoles(["ADMIN", "COMPRAS"]),
+  async (req, res) => {
+    const { tipo, porcentaje } = req.body;
+
+    // 1. Validaciones
+    if (!tipo || porcentaje === undefined || isNaN(porcentaje)) {
+      return res.status(400).json({ 
+        error: "Faltan datos obligatorios o el porcentaje no es válido." 
+      });
+    }
+
+    const client = await pool.connect();
+
+    try {
+      await client.query("BEGIN");
+
+      // 2. Llamada a la función SQL
+      // Nota: Asume que creaste la función 'ajustar_precios_productos' que recibe (text, numeric)
+      const result = await client.query(
+        "SELECT ajustar_precios_productos($1, $2) as afectados",
+        [tipo, porcentaje]
+      );
+
+      await client.query("COMMIT");
+
+      const cantidadAfectada = result.rows[0]?.afectados || 0;
+
+      // 3. Auditoría
+      try {
+        const idUsuario = await getUserIdFromToken(req.accessToken);
+        const accion = Number(porcentaje) > 0 ? "Aumento" : "Descuento";
+        
+        registrarAuditoria(
+          idUsuario,
+          "ACTUALIZAR_PRECIOS_MASIVO",
+          "STOCK",
+          `${accion} del ${porcentaje}% aplicado a '${tipo}'. Productos afectados: ${cantidadAfectada}.`
+        );
+      } catch (errAud) {
+        console.error("⚠️ Error auditando actualización masiva:", errAud.message);
+      }
+
+      res.status(200).json({ 
+        success: true, 
+        message: `Se actualizaron ${cantidadAfectada} productos correctamente.` 
+      });
+
+    } catch (err) {
+      await client.query("ROLLBACK");
+      console.error("Error en actualización masiva:", err);
+      res.status(500).json({ error: "Error interno al actualizar precios." });
+    } finally {
+      client.release();
+    }
+  }
+);
+
 export default router;

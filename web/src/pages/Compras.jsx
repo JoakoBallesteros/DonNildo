@@ -42,9 +42,48 @@ function normalizeTipo(tipo) {
   const t = String(tipo || "").trim().toLowerCase();
   if (!t) return "Mixta";
   if (t === "mixtas" || t === "mixta") return "Mixta";
-  if (t === "materiales") return "Materiales";
-  if (t === "cajas") return "Cajas";
+  if (t === "materiales" || t === "material") return "Materiales";
+  if (t === "cajas" || t === "caja") return "Cajas";
   return String(tipo);
+}
+
+function normalizeItemTipo(it, compraTipo, productoNombre) {
+  const raw = String(
+    it?.tipo_item ??
+    it?.tipo ??
+    it?.tipo_producto ??
+    it?.tipoProducto ??
+    it?.categoria ??
+    it?.categoria_nombre ??
+    it?.categoriaNombre ??
+    ""
+  )
+    .trim()
+    .toLowerCase();
+
+  if (raw.includes("caja")) return "Caja";
+  if (raw.includes("material")) return "Material";
+
+  const prod = String(
+    productoNombre ?? it?.producto ?? it?.nombre_producto ?? it?.nombre ?? ""
+  )
+    .trim()
+    .toLowerCase();
+
+  if (prod.includes("caja")) return "Caja";
+
+  const unidad = String(it?.medida ?? it?.unidad ?? it?.unidad_stock ?? "")
+    .trim()
+    .toLowerCase();
+
+  if (unidad.includes("kg")) return "Material";
+  if (unidad === "u" || unidad.includes("un")) return "Caja";
+
+  const compra = String(compraTipo || "").trim().toLowerCase();
+  if (compra.includes("caja")) return "Caja";
+  if (compra.includes("material")) return "Material";
+
+  return "Material";
 }
 
 function mapCompraFromApi(c) {
@@ -82,17 +121,21 @@ function mapCompraFromApi(c) {
   const obs = c.observaciones ?? c.obs ?? "—";
   const rawItems = c.items ?? c.detalles ?? c.detalle_compra ?? [];
 
-  const items = rawItems.map((it, idx) => ({
-    tipo,
-    proveedor: proveedor || "—",
-    producto:
-      it.producto ?? it.nombre_producto ?? it.nombre ?? `Item ${idx + 1}`,
-    medida: it.medida ?? it.unidad ?? it.unidad_stock ?? "u",
-    cantidad: Number(it.cantidad ?? 0),
-    precio: Number(it.precio ?? it.precio_unitario ?? 0),
-    descuento: Number(it.descuento ?? 0),
-    subtotal: Number(it.subtotal ?? 0),
-  }));
+  const items = rawItems.map((it, idx) => {
+    const producto =
+      it.producto ?? it.nombre_producto ?? it.nombre ?? `Item ${idx + 1}`;
+
+    return {
+      tipo: normalizeItemTipo(it, tipo, producto),
+      proveedor: proveedor || "—",
+      producto,
+      medida: it.medida ?? it.unidad ?? it.unidad_stock ?? "u",
+      cantidad: Number(it.cantidad ?? 0),
+      precio: Number(it.precio ?? it.precio_unitario ?? 0),
+      descuento: Number(it.descuento ?? 0),
+      subtotal: Number(it.subtotal ?? 0),
+    };
+  });
 
   return { id, dbId, proveedor, tipo, total, fecha, obs, items, estado };
 }
@@ -147,8 +190,7 @@ export default function Compras() {
 
         const mapped = resp.compras.map(mapCompraFromApi);
         setRows(mapped);
-        // eslint-disable-next-line no-unused-vars
-      } catch (err) {
+      } catch {
         setErrorMsg("No se pudieron cargar las compras desde el servidor.");
       } finally {
         setLoading(false);
@@ -242,7 +284,11 @@ export default function Compras() {
     autoTable(doc, { startY: 55, head, body });
 
     const finalY = doc.lastAutoTable.finalY + 10;
-    doc.text(`Total: $${Number(compra.total).toLocaleString("es-AR")}`, 14, finalY);
+    doc.text(
+      `Total: $${Number(compra.total).toLocaleString("es-AR")}`,
+      14,
+      finalY
+    );
 
     setTimeout(() => doc.save(`Detalle de ${compraCodigo}.pdf`), 100);
   };
@@ -668,7 +714,9 @@ export default function Compras() {
       <Details
         isOpen={detailOpen}
         onClose={() => setDetailOpen(false)}
-        title={detailRow ? `Detalle de Compra ${detailRow.id}` : "Detalle de Compra"}
+        title={
+          detailRow ? `Detalle de Compra ${detailRow.id}` : "Detalle de Compra"
+        }
         data={detailRow}
         itemsKey="items"
         columns={[
@@ -746,13 +794,17 @@ export default function Compras() {
 
       <Modals
         isOpen={messageModal.isOpen}
-        onClose={() => setMessageModal({ isOpen: false, title: "", text: "", type: "" })}
+        onClose={() =>
+          setMessageModal({ isOpen: false, title: "", text: "", type: "" })
+        }
         title={messageModal.title}
         size="max-w-md"
         footer={
           <div className="flex justify-end">
             <button
-              onClick={() => setMessageModal({ isOpen: false, title: "", text: "", type: "" })}
+              onClick={() =>
+                setMessageModal({ isOpen: false, title: "", text: "", type: "" })
+              }
               className={`px-4 py-2 rounded-md font-semibold text-white transition ${messageModal.type === "success"
                 ? "bg-emerald-700 hover:bg-emerald-800"
                 : "bg-red-700 hover:bg-red-800"

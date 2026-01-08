@@ -94,17 +94,29 @@ export default function SegRoles() {
   };
 
 
+  const ID_ROL_SIN_ROL = 6; // o el que te haya quedado
+
   const onRemove = useCallback(
     async (row) => {
       const usuario = usuarios.find((u) => u.nombre === row.usuario);
       if (!usuario) return;
 
-      await supa
+      const { error } = await supa
         .from("usuarios")
-        .update({ id_rol: null })
+        .update({ id_rol: ID_ROL_SIN_ROL })
         .eq("id_usuario", usuario.id_usuario);
 
-      setRows((prev) => prev.filter((r) => r.id !== row.id));
+      if (error) {
+        alert("No se pudo remover el rol: " + error.message);
+        console.error(error);
+        return;
+      }
+
+      setRows((prev) =>
+        prev.map((r) =>
+          r.id === row.id ? { ...r, rol: "SIN_ROL" } : r
+        )
+      );
     },
     [usuarios]
   );
