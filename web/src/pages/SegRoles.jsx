@@ -6,8 +6,8 @@ import { supa } from "../lib/supabaseClient";
 import MessageModal from "../components/modals/MessageModal";
 
 export default function SegRoles() {
-  const [roles, setRoles] = useState([]);
-  const [usuarios, setUsuarios] = useState([]);
+  const [roles, setRoles] = useState([]);         
+  const [usuarios, setUsuarios] = useState([]);   
   const [rolSel, setRolSel] = useState("");
   const [usrSel, setUsrSel] = useState("");
   const [rows, setRows] = useState([]);
@@ -31,9 +31,9 @@ export default function SegRoles() {
       setRoles(rolesData || []);
       setUsuarios(usuariosData || []);
 
-
+      
       const inicial = (usuariosData || [])
-        .filter((u) => u.id_rol)
+        .filter((u) => u.id_rol) 
         .map((u) => {
           const rol =
             rolesData?.find((r) => r.id_rol === u.id_rol)?.nombre || "";
@@ -44,60 +44,57 @@ export default function SegRoles() {
     fetchData();
   }, []);
 
-
+ 
   const onAssign = async () => {
-    const rol = roles.find((r) => r.id_rol === parseInt(rolSel));
-    const usr = usuarios.find((u) => u.id_usuario === parseInt(usrSel));
-    if (!rol || !usr) {
-      setMessageModal({
-        isOpen: true,
-        title: "⚠️ Datos incompletos",
-        text: "Debés seleccionar un usuario y un rol.",
-        type: "error",
-      });
-      return;
-    }
+  const rol = roles.find((r) => r.id_rol === parseInt(rolSel));
+  const usr = usuarios.find((u) => u.id_usuario === parseInt(usrSel));
+  if (!rol || !usr) {
+    setMessageModal({
+      isOpen: true,
+      title: "⚠️ Datos incompletos",
+      text: "Debés seleccionar un usuario y un rol.",
+      type: "error",
+    });
+    return;
+  }
 
-    try {
+  try {
+   
+    await supa
+      .from("usuarios")
+      .update({ id_rol: rol.id_rol })
+      .eq("id_usuario", usr.id_usuario);
 
-      await supa
-        .from("usuarios")
-        .update({ id_rol: rol.id_rol })
-        .eq("id_usuario", usr.id_usuario);
+    
+    setRows((prev) => {
+      const sinUsuario = prev.filter((r) => r.id !== usr.id_usuario);
+      return [
+        ...sinUsuario,
+        { id: usr.id_usuario, rol: rol.nombre, usuario: usr.nombre },
+      ];
+    });
 
+   
+    setMessageModal({
+      isOpen: true,
+      title: " Rol asignado",
+      text: `El usuario "${usr.nombre}" ahora tiene el rol "${rol.nombre}".`,
+      type: "success",
+    });
 
-      setRows((prev) => {
-        const sinUsuario = prev.filter((r) => r.id !== usr.id_usuario);
-        return [
-          ...sinUsuario,
-          { id: usr.id_usuario, rol: rol.nombre, usuario: usr.nombre },
-        ];
-      });
+  } catch (error) {
+    console.error("ERROR asignando rol:", error);
+    setMessageModal({
+      isOpen: true,
+      title: " Error",
+      text: "Ocurrió un error al asignar el rol. Intenta nuevamente.",
+      type: "error",
+    });
+  }
+};
 
-
-      setMessageModal({
-        isOpen: true,
-        title: " Rol asignado",
-        text: `El usuario "${usr.nombre}" ahora tiene el rol "${rol.nombre}".`,
-        type: "success",
-      });
-
-    } catch (error) {
-      console.error("ERROR asignando rol:", error);
-      setMessageModal({
-        isOpen: true,
-        title: " Error",
-        text: "Ocurrió un error al asignar el rol. Intenta nuevamente.",
-        type: "error",
-      });
-    }
-  };
-
-
-  const onRemove = useCallback(
-    async (row) => {
-      const usuario = usuarios.find((u) => u.nombre === row.usuario);
-      if (!usuario) return;
+  
+const ID_ROL_SIN_ROL = 6; // o el que te haya quedado
 
 const onRemove = useCallback(
   async (row) => {
@@ -195,47 +192,16 @@ const onRemove = useCallback(
         </div>
       </div>
 
-      <div>
-        <div className="hidden md:block">
-          <DataTable
-            columns={cols}
-            data={rows}
-            enableSort
-            tableClass="w-full text-sm border-collapse table-fixed"
-            theadClass="bg-[#e8f4ef] text-[#154734]"
-            rowClass="hover:bg-[#f6faf7] transition border-t border-[#edf2ef]"
-            headerClass="px-4 py-3 font-semibold border-r border-[#e3e9e5] last:border-none select-none"
-            cellClass="px-4 py-3 border-r border-[#edf2ef] last:border-none"
-          />
-        </div>
-
-        <div className="md:hidden space-y-3">
-          {rows.length === 0 && (
-            <p className="text-center text-gray-500 py-6">No hay asignaciones.</p>
-          )}
-          {rows.map((row) => (
-            <div key={row.id} className="bg-white border p-4 rounded-lg shadow-sm border-slate-200">
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <span className="block text-xs text-gray-400 uppercase font-semibold">Rol</span>
-                  <span className="font-bold text-[#154734] text-lg">{row.rol}</span>
-                </div>
-                <div className="text-right">
-                  <span className="block text-xs text-gray-400 uppercase font-semibold">Usuario</span>
-                  <span className="text-gray-800 font-medium">{row.usuario}</span>
-                </div>
-              </div>
-
-              <button
-                className="w-full py-2 rounded-lg bg-[#a30000] text-white text-sm font-medium hover:bg-[#8a0000] transition-colors"
-                onClick={() => onRemove(row)}
-              >
-                Remover asignación
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
+      <DataTable
+        columns={cols}
+        data={rows}
+        enableSort
+        tableClass="w-full text-sm border-collapse table-fixed"
+        theadClass="bg-[#e8f4ef] text-[#154734]"
+        rowClass="hover:bg-[#f6faf7] transition border-t border-[#edf2ef]"
+        headerClass="px-4 py-3 font-semibold border-r border-[#e3e9e5] last:border-none select-none"
+        cellClass="px-4 py-3 border-r border-[#edf2ef] last:border-none"
+      />
 
       <div className="mt-6 flex justify-center gap-2">
         <a

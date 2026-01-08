@@ -113,7 +113,7 @@ export default function RegistrarVentas() {
     fetchVenta();
   }, [isEditMode, id]);
 
-
+  
   useEffect(() => {
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(ventas));
   }, [ventas]);
@@ -149,7 +149,7 @@ export default function RegistrarVentas() {
     fetchProductos();
   }, []);
 
-
+  
   const handleChange = (name, value) => {
     if (["cantidad", "precio", "descuento"].includes(name)) {
       const n = Number(value);
@@ -409,7 +409,7 @@ export default function RegistrarVentas() {
     }
   };
 
-
+  
   const totalVenta = ventas.reduce(
     (acc, v) => acc + Number(v.subtotal || 0),
     0
@@ -521,16 +521,16 @@ export default function RegistrarVentas() {
   // RENDER PRINCIPAL
   // =========================
   return (
-    <PageContainer title={isEditMode ? "Modificar Venta" : "Registrar Venta"} extraHeight>
+    <PageContainer title={isEditMode ? "Modificar Venta" : "Registrar Venta"}  extraHeight>
       <div className="flex flex-col h-full">
-
+        
         <div className="flex-1 flex flex-col">
           <div className="bg-[#f7fbf8] border border-[#e2ede8] rounded-2xl p-4 mb-4 flex-shrink-0">
             <h2 className="text-[#154734] text-base font-semibold mb-3">
               Datos de la venta
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-[0.5fr_0.2fr] gap-4 mb-4 max-w-[700px]">
+            <div className="grid grid-cols-[0.5fr_0.2fr] gap-4 mb-4 max-w-[700px]">
               <div>
                 <label className="block text-sm text-slate-700 mb-1">
                   Producto
@@ -566,7 +566,7 @@ export default function RegistrarVentas() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-3 md:gap-5 items-end">
+            <div className="grid grid-cols-6 gap-5 items-end">
               <FormBuilder
                 fields={[
                   {
@@ -602,7 +602,7 @@ export default function RegistrarVentas() {
               <FormBuilder
                 fields={[
                   {
-                    label: "Descuento",
+                    label: "Descuento aplicado",
                     name: "descuento",
                     type: "number",
                     placeholder: "%",
@@ -613,39 +613,35 @@ export default function RegistrarVentas() {
                 errors={errors}
                 columns={1}
               />
-              <div className="md:col-span-1">
-                <FormBuilder
-                  fields={[
-                    {
-                      label: "Observaciones",
-                      name: "observaciones",
-                      type: "text",
-                      placeholder: "Opcional",
-                    },
-                  ]}
-                  values={formData}
-                  onChange={handleChange}
-                  errors={errors}
-                  columns={1}
-                />
-              </div>
+              <FormBuilder
+                fields={[
+                  {
+                    label: "Observaciones generales",
+                    name: "observaciones",
+                    type: "text",
+                    placeholder: "Opcional",
+                  },
+                ]}
+                values={formData}
+                onChange={handleChange}
+                errors={errors}
+                columns={1}
+              />
 
-              <div className="flex flex-col md:flex-row gap-2 md:col-span-2">
-                <button
-                  onClick={handleAgregarProducto}
-                  className="bg-[#154734] text-white px-4 py-2 rounded-md hover:bg-[#103a2b] transition w-full"
-                >
-                  + Añadir
-                </button>
+              <button
+                onClick={handleAgregarProducto}
+                className="bg-[#154734] text-white px-4 py-2 rounded-md hover:bg-[#103a2b] transition w-full mb-0.2 ml-1.5"
+              >
+                + Añadir
+              </button>
 
-                <button
-                  type="button"
-                  onClick={() => setNewOpen(true)}
-                  className="rounded-md border border-[#154734] text-[#154734] px-4 py-2 hover:bg-[#e8f4ef] transition w-full"
-                >
-                  + Nuevo
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => setNewOpen(true)}
+                className="rounded-md border border-[#154734] text-[#154734] px-4 py-2 hover:bg-[#e8f4ef] transition w-full"
+              >
+                + Nuevo producto
+              </button>
             </div>
           </div>
 
@@ -654,71 +650,26 @@ export default function RegistrarVentas() {
           </h3>
 
           <div className="flex-1 min-h-[150px] rounded-t-xl border-t border-[#e3e9e5]">
-            {/* Desktop Table */}
-            <div className="hidden md:block">
-              <DataTable
-                columns={columns}
-                data={ventasConObservacion}
-                stickyHeader={true}
-                cellClass="px-4 py-2"
-                wrapperClass="dn-table-wrapper overflow-y-auto"
-                enablePagination={true}
-              />
-            </div>
-
-            {/* Mobile Card List */}
-            <div className="md:hidden space-y-3 mt-2">
-              {ventasConObservacion.length === 0 && (
-                <p className="text-center text-gray-500 py-4 text-sm">No hay productos agregados.</p>
-              )}
-              {ventasConObservacion.map((row) => {
-                const i = ventas.findIndex((v) => v.id_producto === row.id_producto);
-                return (
-                  <div key={i} className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <p className="font-bold text-[#154734]">{row.producto}</p>
-                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{row.tipo}</span>
-                      </div>
-                      <p className="font-bold text-[#154734] text-lg">
-                        ${Number(row.subtotal).toLocaleString("es-AR")}
-                      </p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-sm text-gray-600 mb-2">
-                      <div>Cant: <span className="font-semibold">{row.cantidad}</span></div>
-                      {/* <div>Desc: {row.descuento}%</div> */}
-                    </div>
-                    {row.observaciones && (
-                      <p className="text-xs text-gray-500 italic mb-2 border-t pt-1">{row.observaciones}</p>
-                    )}
-                    <div className="flex gap-2 mt-2">
-                      <button
-                        onClick={() => handleEditar(row, i)}
-                        className="flex-1 bg-[#154734] text-white text-xs py-2 rounded hover:bg-[#1E5A3E]"
-                      >
-                        MODIFICAR
-                      </button>
-                      <button
-                        onClick={() => handleOpenItemDelete(i)}
-                        className="flex-1 bg-[#A30000] text-white text-xs py-2 rounded hover:bg-[#7A0000]"
-                      >
-                        ELIMINAR
-                      </button>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+            <DataTable
+              columns={columns}
+              data={ventasConObservacion}
+              stickyHeader={true}
+              cellClass="px-4 py-2"
+             
+              wrapperClass="dn-table-wrapper overflow-y-auto"
+              enablePagination={true}
+            />
           </div>
 
           {ventas.length > 0 && (
-            <div className="flex flex-col md:flex-row justify-between items-center text-[#154734] text-sm mt-3 mb-1 flex-shrink-0 gap-2">
-              <div className="text-center md:text-left">
-                Subtotales: Cajas: {cantidadCajas} u — ${subtotalCajas.toLocaleString("es-AR")}
-                <br className="md:hidden" />
-                &nbsp;&nbsp;Materiales: {cantidadProductos} kg — ${subtotalProductos.toLocaleString("es-AR")}
+            <div className="flex justify-between items-center text-[#154734] text-sm mt-3 mb-1 flex-shrink-0">
+              <div>
+                Subtotales: Cajas: {cantidadCajas} u — $
+                {subtotalCajas.toLocaleString("es-AR")}
+                &nbsp;&nbsp;Materiales: {cantidadProductos} kg — $
+                {subtotalProductos.toLocaleString("es-AR")}
               </div>
-              <p className="text-[#154734] font-semibold border border-[#e2ede8] bg-[#e8f4ef] px-3 py-1 rounded-md w-full md:w-auto text-center">
+              <p className="text-[#154734] font-semibold border border-[#e2ede8] bg-[#e8f4ef] px-3 py-1 rounded-md">
                 Total venta:&nbsp;
                 <span className="font-bold">
                   ${totalVenta.toLocaleString("es-AR")}
@@ -728,25 +679,25 @@ export default function RegistrarVentas() {
           )}
         </div>
 
+       
+<div className="flex flex-wrap justify-center gap-3 mt-4 pb-2">
+  <button
+    onClick={handleCancelClick}
+    className="border border-[#154734] text-[#154734] px-6 py-2 rounded-md hover:bg-[#f0f7f3] transition w-full sm:w-auto"
+  >
+    CANCELAR
+  </button>
 
-        <div className="flex flex-wrap justify-center gap-3 mt-4 pb-2">
-          <button
-            onClick={handleCancelClick}
-            className="border border-[#154734] text-[#154734] px-6 py-2 rounded-md hover:bg-[#f0f7f3] transition w-full sm:w-auto"
-          >
-            CANCELAR
-          </button>
-
-          <button
-            onClick={isEditMode ? handleActualizarVenta : handleGuardarVenta}
-            className="bg-[#154734] text-white px-6 py-2 rounded-lg hover:bg-[#103a2b] transition w-full sm:w-auto"
-          >
-            {isEditMode ? "ACTUALIZAR VENTA" : "GUARDAR"}
-          </button>
-        </div>
+  <button
+    onClick={isEditMode ? handleActualizarVenta : handleGuardarVenta}
+    className="bg-[#154734] text-white px-6 py-2 rounded-lg hover:bg-[#103a2b] transition w-full sm:w-auto"
+  >
+    {isEditMode ? "ACTUALIZAR VENTA" : "GUARDAR"}
+  </button>
+</div>
 
 
-
+      
         <Modal
           isOpen={isItemDeleteConfirmOpen}
           onClose={() => setItemDeleteConfirmOpen(false)}
@@ -848,10 +799,11 @@ export default function RegistrarVentas() {
                   });
                   if (messageModal.type === "success") navigate("/ventas");
                 }}
-                className={`px-4 py-2 rounded-md font-semibold text-white transition ${messageModal.type === "success"
+                className={`px-4 py-2 rounded-md font-semibold text-white transition ${
+                  messageModal.type === "success"
                     ? "bg-emerald-700 hover:bg-emerald-800"
                     : "bg-red-700 hover:bg-red-800"
-                  }`}
+                }`}
               >
                 Aceptar
               </button>
@@ -865,8 +817,9 @@ export default function RegistrarVentas() {
           <Modified
             isOpen={isEditOpen}
             onClose={() => setEditOpen(false)}
-            title={`Modificando ${selectedVenta.productos?.[0]?.producto || ""
-              }`}
+            title={`Modificando ${
+              selectedVenta.productos?.[0]?.producto || ""
+            }`}
             data={selectedVenta}
             itemsKey="productos"
             columns={[
