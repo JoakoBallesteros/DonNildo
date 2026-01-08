@@ -546,7 +546,7 @@ export default function RegistrarCompra() {
             Datos de la compra
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-[0.5fr_0.2fr] gap-4 mb-4 max-w-[700px]">
+          <div className="grid grid-cols-[0.5fr_0.2fr] gap-4 mb-4 max-w-[700px]">
             <div>
               <label className="block text-sm text-slate-700 mb-1">
                 Producto
@@ -569,7 +569,7 @@ export default function RegistrarCompra() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-3 max-w-[700px]">
+          <div className="grid grid-cols-3 gap-4 mb-3 max-w-[700px]">
             <FormBuilder
               columns={1}
               fields={[
@@ -609,11 +609,11 @@ export default function RegistrarCompra() {
               values={{
                 subtotal: subtotalCalc ? fmt.format(subtotalCalc) : "—",
               }}
-              onChange={() => { }}
+              onChange={() => {}}
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-3 md:gap-5 items-end w-full">
+          <div className="grid grid-cols-5 gap-5 items-end w-full">
             <FormBuilder
               columns={1}
               fields={[
@@ -657,27 +657,23 @@ export default function RegistrarCompra() {
               onChange={(name, v) => setObs(v)}
             />
 
-            <div className="flex flex-col md:flex-row gap-2 md:col-span-2">
-              <PrimaryButton
-                onClick={addItem}
-                text={
-                  <span className="inline-flex items-center gap-2 justify-center w-full">
-                    <Plus className="h-4 w-4" /> Añadir
-                  </span>
-                }
-                className="w-full"
-              />
+            <PrimaryButton
+              onClick={addItem}
+              text={
+                <span className="inline-flex items-center gap-2 justify-center">
+                  <Plus className="h-4 w-4" /> Añadir
+                </span>
+              }
+            />
 
-              <SecondaryButton
-                onClick={() => setNewProdOpen(true)}
-                text={
-                  <span className="inline-flex items-center gap-2 w-full justify-center">
-                    <Plus className="h-4 w-4" /> Nuevo
-                  </span>
-                }
-                className="w-full"
-              />
-            </div>
+            <SecondaryButton
+              onClick={() => setNewProdOpen(true)}
+              text={
+                <span className="inline-flex items-center gap-2">
+                  <Plus className="h-4 w-4" /> Nuevo producto
+                </span>
+              }
+            />
           </div>
         </div>
 
@@ -686,73 +682,25 @@ export default function RegistrarCompra() {
         </h3>
 
         <div className="flex-1 min-h-[150px] rounded-t-xl border-t border-[#e3e9e5]">
-          {/* Desktop Table */}
-          <div className="hidden md:block">
-            <DataTable
-              columns={columns}
-              data={itemsConObs}
-              rowKey={(row) => row.id}
-              stickyHeader={true}
-              wrapperClass="h-[250px]"
-              cellClass="px-3 py-2"
-            />
-          </div>
-
-          {/* Mobile Card List */}
-          <div className="md:hidden space-y-3 mt-2">
-            {itemsConObs.length === 0 && (
-              <p className="text-center text-gray-500 py-4 text-sm">No hay items agregados.</p>
-            )}
-            {itemsConObs.map((row) => {
-              const i = items.findIndex((v) => v.id === row.id);
-              return (
-                <div key={row.id} className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <p className="font-bold text-[#154734]">{row.producto}</p>
-                      <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{row.tipo}</span>
-                    </div>
-                    <p className="font-bold text-[#154734] text-lg">
-                      ${Number(row.subtotal).toLocaleString("es-AR")}
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-sm text-gray-600 mb-2">
-                    <div>Cant: <span className="font-semibold">{Number(row.cantidad).toLocaleString("es-AR")} {row.medida}</span></div>
-                    <div>Precio: <span className="font-semibold">${Number(row.precioUnit).toLocaleString("es-AR")}</span></div>
-                  </div>
-                  {row.obs && (
-                    <p className="text-xs text-gray-500 italic mb-2 border-t pt-1">{row.obs}</p>
-                  )}
-                  <div className="flex gap-2 mt-2">
-                    <button
-                      onClick={() => abrirEditar(row)}
-                      className="flex-1 bg-[#154734] text-white text-xs py-2 rounded hover:bg-[#1E5A3E]"
-                    >
-                      MODIFICAR
-                    </button>
-                    <button
-                      onClick={() => handleOpenItemDelete(i)}
-                      className="flex-1 bg-[#A30000] text-white text-xs py-2 rounded hover:bg-[#7A0000]"
-                    >
-                      ELIMINAR
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <DataTable
+            columns={columns}
+            data={itemsConObs}
+            rowKey={(row) => row.id}
+            stickyHeader={true}
+            wrapperClass="h-[250px]"
+            cellClass="px-3 py-2"
+          />
         </div>
 
         {items.length > 0 && (
-          <div className="flex flex-col md:flex-row justify-between items-center text-[#154734] text-sm mt-3 mb-1 flex-shrink-0 gap-2">
-            <div className="text-center md:text-left">
+          <div className="flex justify-between items-center text-[#154734] text-sm mt-3 mb-1 flex-shrink-0">
+            <div>
               Subtotales: Cajas: {cantidadCajas} u — $
               {subtotalCajas.toLocaleString("es-AR")}
-              <br className="md:hidden" />
               &nbsp;&nbsp;Materiales: {cantidadProductos} kg — $
               {subtotalProductos.toLocaleString("es-AR")}
             </div>
-            <p className="text-[#154734] font-semibold border border-[#e2ede8] bg-[#e8f4ef] px-3 py-1 rounded-md w-full md:w-auto text-center">
+            <p className="text-[#154734] font-semibold border border-[#e2ede8] bg-[#e8f4ef] px-3 py-1 rounded-md">
               Total compra:&nbsp;
               <span className="font-bold">
                 ${totalCompra.toLocaleString("es-AR")}
@@ -761,11 +709,11 @@ export default function RegistrarCompra() {
           </div>
         )}
 
-        <div className="flex flex-col md:flex-row justify-center gap-3 md:gap-6 py-6 md:py-10">
+        <div className="flex justify-center gap-6 py-10">
           <button
             type="button"
             onClick={handleCancelClick}
-            className="w-full md:w-auto min-w-[160px] px-8 py-2.5 rounded-md border border-[#154734] text-[#154734] font-semibold hover:bg-[#e8f4ef] transition"
+            className="min-w-[160px] px-8 py-2.5 rounded-md border border-[#154734] text-[#154734] font-semibold hover:bg-[#e8f4ef] transition"
           >
             CANCELAR
           </button>
@@ -773,7 +721,7 @@ export default function RegistrarCompra() {
           <button
             type="button"
             onClick={isEditMode ? handleActualizarCompra : handleGuardarCompra}
-            className="w-full md:w-auto min-w-[160px] px-8 py-2.5 rounded-md font-semibold text-white bg-[#154734] hover:bg-[#103a2b] transition"
+            className="min-w-[160px] px-8 py-2.5 rounded-md font-semibold text-white bg-[#154734] hover:bg-[#103a2b] transition"
           >
             {isEditMode ? "ACTUALIZAR COMPRA" : "GUARDAR"}
           </button>

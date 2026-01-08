@@ -60,11 +60,9 @@ router.get("/:id", requireAuth, async (req, res) => {
         p.nombre AS producto,
         dv.cantidad,
         dv.precio_unitario,
-        dv.subtotal,
-        COALESCE(m.simbolo, 'u') AS medida
+        dv.subtotal
       FROM detalle_venta dv
       JOIN productos p ON p.id_producto = dv.id_producto
-      LEFT JOIN medida m ON m.id_medida = p.id_medida
       WHERE dv.id_venta = $1
     `, [remito.rows[0].id_venta]);
 

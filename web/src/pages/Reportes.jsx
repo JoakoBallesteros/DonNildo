@@ -18,7 +18,7 @@ import { listarReportes, crearReporte, deleteReportes } from "../services/report
 
 export default function Reportes() {
 
-
+  
   const [reportes, setReportes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState(null);
@@ -53,7 +53,7 @@ export default function Reportes() {
     }
   }, [reportes, selectedIds]);
 
-
+  
   const loadReportes = useCallback(async () => {
     setLoading(true);
     setErrorMsg(null);
@@ -67,12 +67,12 @@ export default function Reportes() {
       setLoading(false);
     }
   }, []);
-
+  
   useEffect(() => {
     loadReportes();
   }, [loadReportes]);
 
-
+ 
   const crearReporteHandler = async ({ tipo, id_producto, fecha_desde, fecha_hasta }) => {
     try {
       // Validaciones
@@ -96,7 +96,7 @@ export default function Reportes() {
         return { ok: false };
       }
 
-
+      
       const payload = {
         tipo,
         id_producto: Number(id_producto),
@@ -104,9 +104,9 @@ export default function Reportes() {
         fecha_hasta,
       };
 
-
-
-
+    
+          
+      
       const resp = await crearReporte(payload);
       console.log("RESP:", resp);
       // EXITO
@@ -136,7 +136,7 @@ export default function Reportes() {
 
 
 
-
+ 
   const columns = useMemo(
     () => [
       { id: "id", header: "Codigo", accessor: "id", width: 100, align: "center" },
@@ -170,10 +170,11 @@ export default function Reportes() {
               disabled={!reportes || reportes.length === 0}
               title={selectedIds.length === reportes.length && reportes.length > 0 ? "Deseleccionar todos" : "Seleccionar todos"}
               aria-label={selectedIds.length === reportes.length && reportes.length > 0 ? "Deseleccionar todos" : "Seleccionar todos"}
-              className={`px-2 py-1 rounded-full flex items-center justify-center gap-2 transition-transform select-none ${selectedIds.length === reportes.length && reportes.length > 0
+              className={`px-2 py-1 rounded-full flex items-center justify-center gap-2 transition-transform select-none ${
+                selectedIds.length === reportes.length && reportes.length > 0
                   ? 'bg-[#0f7a4e] text-white shadow-md hover:scale-105'
                   : 'bg-white text-[#154734] border border-[#d8e4df] hover:shadow-sm hover:scale-105'
-                }`}
+              }`}
             >
               {selectedIds.length === reportes.length && reportes.length > 0 ? (
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -297,7 +298,7 @@ export default function Reportes() {
           Nuevo reporte
         </button>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
         <CategoriaChart />
         <StockMaterialChart />
         <TopProductsChart />
@@ -316,7 +317,7 @@ export default function Reportes() {
                 data={reportes}
                 zebra={false}
                 stickyHeader={true}
-                wrapperClass="dn-table-wrapper-tall overflow-y-auto shadow-sm !mb-0"
+                 wrapperClass="dn-table-wrapper-tall overflow-y-auto shadow-sm !mb-0"
 
                 tableClass="w-full text-sm border-collapse table-fixed"
                 theadClass="bg-[#e8f4ef] text-[#154734]"
@@ -327,57 +328,22 @@ export default function Reportes() {
               />
             </div>
 
-            <div className="md:hidden space-y-3">
-              {reportes.length === 0 && (
-                <p className="text-center text-gray-500 py-6">No hay reportes generados.</p>
-              )}
-              {reportes.map((row) => {
-                const isSelected = selectedIds.includes(row.id_reporte);
-                return (
-                  <div
-                    key={row.id_reporte}
-                    className={`bg-white border rounded-lg p-4 shadow-sm transition-all ${isSelected ? "border-emerald-500 ring-1 ring-emerald-500 bg-emerald-50/30" : "border-slate-200"
-                      }`}
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <span className="font-bold text-[#154734] text-lg">#{row.id}</span>
-                        <p className="text-xs text-gray-500 mt-1">{row.fechaGen}</p>
-                      </div>
-                      <span className="px-2 py-1 bg-slate-100 text-slate-600 text-xs rounded-full font-medium">
-                        {row.tipo}
-                      </span>
-                    </div>
+            <div className="md:hidden">
+              <DataTable
+                columns={columns}
+                data={reportes}
+                zebra={false}
+                stickyHeader={false}
+                wrapperClass="dn-table-wrapper-sm overflow-y-auto shadow-sm !mb-0"
 
-                    <div className="mb-4">
-                      <p className="text-sm text-gray-700 font-medium">
-                        {row.producto || <span className="text-gray-400 italic">Sin producto</span>}
-                      </p>
-                    </div>
 
-                    <div className="flex gap-2.5">
-                      <button
-                        onClick={() => {
-                          setDetailRow(row);
-                          setDetailOpen(true);
-                        }}
-                        className="flex-1 border border-[#d8e4df] text-[#154734] py-2 rounded-lg text-sm font-medium hover:bg-[#e8f4ef] active:bg-[#d1e7dd] transition-colors"
-                      >
-                        Ver Detalle
-                      </button>
-                      <button
-                        onClick={() => toggleSelect(row.id_reporte)}
-                        className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${isSelected
-                            ? "bg-[#0f7a4e] text-white shadow-sm hover:bg-[#0d6843]"
-                            : "border border-[#154734] text-[#154734] hover:bg-[#e8f4ef]"
-                          }`}
-                      >
-                        {isSelected ? "Seleccionado" : "Seleccionar"}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+                tableClass="w-full text-sm border-collapse table-fixed"
+                theadClass="bg-[#e8f4ef] text-[#154734]"
+                rowClass="hover:bg-[#f6faf7] border-t border-[#edf2ef]"
+                headerClass="px-4 py-3 font-semibold text-center"
+                cellClass="px-4 py-4 text-center"
+                enableSort
+              />
             </div>
           </div>
         )}
@@ -389,10 +355,11 @@ export default function Reportes() {
             onClick={handlePrintSelected}
             disabled={!selectedIds || selectedIds.length === 0}
             aria-label="Imprimir seleccionados"
-            className={`rounded-full px-6 py-3 ${selectedIds && selectedIds.length > 0
+            className={`rounded-full px-6 py-3 ${
+              selectedIds && selectedIds.length > 0
                 ? 'bg-[#0f7a4e] text-white hover:bg-[#0d6843]'
                 : 'bg-[#0f7a4e] text-white opacity-60 cursor-not-allowed'
-              }`}
+            }`}
           >
             Imprimir seleccionados
           </button>
@@ -403,10 +370,11 @@ export default function Reportes() {
             onClick={handleDeleteSelected}
             disabled={!selectedIds || selectedIds.length === 0}
             aria-label="Eliminar seleccionados"
-            className={`rounded-full px-3 py-3 ml-2 flex items-center justify-center ${selectedIds && selectedIds.length > 0
+            className={`rounded-full px-3 py-3 ml-2 flex items-center justify-center ${
+              selectedIds && selectedIds.length > 0
                 ? 'bg-[#9b102e] text-white hover:bg-[#630924]'
                 : 'bg-[#9b102e] text-white opacity-60 cursor-not-allowed'
-              }`}
+            }`}
           >
             Eliminar Seleccionados
           </button>

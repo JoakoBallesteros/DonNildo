@@ -53,7 +53,7 @@ export default function SegUsuarios() {
     );
   }, [items, q]);
 
-
+ 
   const handleEliminar = useCallback(
     async (row) => {
       if (!confirm(`¿Estás seguro de eliminar al usuario ${row.nombre}?`)) {
@@ -67,7 +67,7 @@ export default function SegUsuarios() {
 
         console.log(" Usuario eliminado exitosamente");
 
-
+  
         await cargar();
       } catch (error) {
         console.error(" Error al eliminar:", error);
@@ -112,10 +112,11 @@ export default function SegUsuarios() {
         sortAccessor: (r) => (r.estado === "ACTIVO" ? 1 : 0),
         render: (r) => (
           <span
-            className={`px-2 py-0.5 rounded text-xs ${r.estado === "ACTIVO"
+            className={`px-2 py-0.5 rounded text-xs ${
+              r.estado === "ACTIVO"
                 ? "bg-emerald-100 text-emerald-900"
                 : "bg-slate-200 text-slate-700"
-              }`}
+            }`}
           >
             {r.estado === "ACTIVO" ? "Activo" : "Inactivo"}
           </span>
@@ -215,71 +216,16 @@ export default function SegUsuarios() {
       {loading ? (
         <p className="text-sm text-slate-600">Cargando…</p>
       ) : (
-        <div>
-          {/* Desktop Table */}
-          <div className="hidden md:block">
-            <DataTable
-              columns={cols}
-              data={filtered}
-              enableSort
-              tableClass="w-full text-sm border-collapse table-fixed"
-              theadClass="bg-[#e8f4ef] text-[#154734]"
-              rowClass="hover:bg-[#f6faf7] transition border-t border-[#edf2ef]"
-              headerClass="px-4 py-3 font-semibold border-r border-[#e3e9e5] last:border-none select-none"
-              cellClass="px-4 py-3 border-r border-[#edf2ef] last:border-none"
-            />
-          </div>
-
-          {/* Mobile Card List */}
-          <div className="md:hidden space-y-3">
-            {filtered.length === 0 && (
-              <p className="text-center text-gray-500 py-6">No hay usuarios encontrados.</p>
-            )}
-            {filtered.map((u) => (
-              <div key={u.id_usuario} className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm">
-                <div className="flex justify-between items-start mb-2">
-                  <div>
-                    <h3 className="font-bold text-[#154734] text-lg">{u.nombre}</h3>
-                    <p className="text-sm text-gray-600">{u.mail}</p>
-                  </div>
-                  <span className={`px-2 py-1 rounded text-xs font-semibold ${u.estado === "ACTIVO" ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600"
-                    }`}>
-                    {u.estado === "ACTIVO" ? "Activo" : "Inactivo"}
-                  </span>
-                </div>
-
-                <div className="text-sm text-gray-700 grid grid-cols-2 gap-2 mb-4 bg-slate-50 p-2 rounded">
-                  <div>
-                    <span className="block text-xs text-gray-400">DNI</span>
-                    <span className="font-medium">{u.dni}</span>
-                  </div>
-                  <div>
-                    <span className="block text-xs text-gray-400">Rol</span>
-                    <span className="font-medium">{u.rol_nombre || "—"}</span>
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      setEdit(u);
-                      setOpen(true);
-                    }}
-                    className="flex-1 bg-[#154734] text-white py-2 rounded-lg text-sm hover:bg-[#103a2b]"
-                  >
-                    Modificar
-                  </button>
-                  <button
-                    onClick={() => handleEliminar(u)}
-                    className="flex-1 bg-[#a30000] text-white py-2 rounded-lg text-sm hover:bg-[#8a0000]"
-                  >
-                    Eliminar
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <DataTable
+          columns={cols}
+          data={filtered}
+          enableSort
+          tableClass="w-full text-sm border-collapse table-fixed"
+          theadClass="bg-[#e8f4ef] text-[#154734]"
+          rowClass="hover:bg-[#f6faf7] transition border-t border-[#edf2ef]"
+          headerClass="px-4 py-3 font-semibold border-r border-[#e3e9e5] last:border-none select-none"
+          cellClass="px-4 py-3 border-r border-[#edf2ef] last:border-none"
+        />
       )}
 
       {open && (

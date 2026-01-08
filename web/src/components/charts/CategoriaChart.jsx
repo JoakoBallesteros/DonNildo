@@ -17,7 +17,7 @@ export default function CategoriaChart() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
 
-
+ 
   const formatLabel = (label, periodo) => {
     if (periodo === "semanas") {
       const parts = label.split("-");
@@ -36,7 +36,7 @@ export default function CategoriaChart() {
         `/api/dashboard/categoria?periodo=${periodo}&origen=${origen}`
       );
 
-
+  
       const sorted = (result || []).sort((a, b) =>
         a.label.localeCompare(b.label)
       );
@@ -55,17 +55,17 @@ export default function CategoriaChart() {
   }, [loadData]);
 
   return (
-    <div className="bg-white rounded-2xl border p-3 md:p-5 shadow-sm">
+    <div className="bg-white rounded-2xl border p-5 shadow-sm">
       <h3 className="text-lg font-bold text-emerald-900 mb-4">
         Montos Obtenidos Por Categoria
       </h3>
 
 
-      <div className="flex gap-3 mb-8 flex-wrap">
+      <div className="flex gap-3 mb-8">
         <select
           value={periodo}
           onChange={(e) => setPeriodo(e.target.value)}
-          className="border rounded-md px-3 py-2 w-full md:w-auto"
+          className="border rounded-md px-3 py-2"
         >
           <option value="dias">Últimos días</option>
           <option value="semanas">Últimas semanas</option>
@@ -75,7 +75,7 @@ export default function CategoriaChart() {
         <select
           value={origen}
           onChange={(e) => setOrigen(e.target.value)}
-          className="border rounded-md px-3 py-2 w-full md:w-auto"
+          className="border rounded-md px-3 py-2"
         >
           <option value="ventas">Ventas</option>
           <option value="compras">Compras</option>
@@ -90,42 +90,42 @@ export default function CategoriaChart() {
         </p>
       ) : (
         <ResponsiveContainer width="100%" height={350}>
-          <BarChart
+           <BarChart 
             data={data}
-            margin={{ top: 20, right: 20, left: 20, bottom: 20 }}
+            margin={{ top: 20, right: 20, left: 20, bottom: 20 }}  
           >
             <CartesianGrid strokeDasharray="3 3" />
 
-
+      
             <XAxis
               dataKey="label"
               tickFormatter={(label) => formatLabel(label, periodo)}
             />
 
-            <YAxis
-              tickFormatter={(v) => v.toLocaleString("es-AR")}
-              width={70}
-              tickMargin={10}
-              label={{
-                value: "Monto ($)",
-                angle: 0,
-                position: "insideLeft",
-                dx: -20,
-                dy: -143,
-                style: { fill: "#155E3B", fontSize: 12, fontWeight: 600 }
-              }}
-            />
-
+           <YAxis
+            tickFormatter={(v) => v.toLocaleString("es-AR")}   
+            width={70}                                       
+            tickMargin={10}                                 
+            label={{
+              value: "Monto ($)",
+              angle:0,
+              position: "insideLeft",
+              dx: -20,                                         
+              dy: -143,
+              style: { fill: "#155E3B", fontSize: 12, fontWeight: 600 }
+            }}
+          />
+            
             <Tooltip
               formatter={(value, name, props) => {
-                const key = props.dataKey;
+                const key = props.dataKey; 
 
                 const label =
                   key === "cajas"
                     ? "Cajas de Embalaje"
                     : key === "materiales"
-                      ? "Materiales Reciclados"
-                      : key;
+                    ? "Materiales Reciclados"
+                    : key;
 
                 return [`$${Number(value).toLocaleString("es-AR")}`, label];
               }}
