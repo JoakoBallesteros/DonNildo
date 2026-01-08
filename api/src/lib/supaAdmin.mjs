@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const url = process.env.SUPABASE_URL;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE; // 👈 coincide con tu .env
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE; 
 
 if (!url || !serviceRoleKey) {
   throw new Error("[supaAdmin] Faltan SUPABASE_URL o SUPABASE_SERVICE_ROLE");
