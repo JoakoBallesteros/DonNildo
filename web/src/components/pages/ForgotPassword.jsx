@@ -1,35 +1,37 @@
-import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+// web/src/components/pages/ForgotPassword.jsx
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
-function getApiBaseUrl() {
+function getApiOrigin() {
   const raw = import.meta.env.VITE_API_URL?.trim();
 
+  // Dev fallback
+  if (!raw) return "http://localhost:4000";
 
-  if (!raw) {
-    return "http://localhost:4000";
+  // Si te pasan solo el host (dn-api-production.up.railway.app)
+  if (!/^https?:\/\//i.test(raw) && !raw.startsWith("/")) {
+    return `https://${raw}`.replace(/\/$/, "");
   }
 
+  // Si es URL absoluta
+  if (/^https?:\/\//i.test(raw)) return raw.replace(/\/$/, "");
 
-  if (raw.startsWith("/")) {
-    return raw.replace(/\/$/, ""); 
-  }
+  // Si es relativa (raro en tu caso, pero por las dudas)
+  if (raw.startsWith("/")) return raw.replace(/\/$/, "");
 
-
-  if (/^https?:\/\//i.test(raw)) {
-    return raw.replace(/\/$/, "");
-  }
-
-
-  return `http://${raw}`.replace(/\/$/, "");
+  return raw.replace(/\/$/, "");
 }
 
 export default function ForgotPassword() {
+  const navigate = useNavigate();
+
   const [mail, setMail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  const [resendIn, setResendIn] = useState(0); 
-  const baseUrl = getApiBaseUrl();
+  const [resendIn, setResendIn] = useState(0);
+
+  const apiOrigin = getApiOrigin();
 
   useEffect(() => {
     if (!resendIn) return;
@@ -44,22 +46,24 @@ export default function ForgotPassword() {
     setError(null);
     setSuccess(null);
 
-    if (!mail) {
+    const email = (mail || "").trim();
+    if (!email) {
       setError("Ingresá tu correo para enviarte el enlace de recuperación.");
       return;
     }
 
     setLoading(true);
     try {
-      const resp = await fetch(`${baseUrl}/v1/auth/password/reset`, {
+      const resp = await fetch(`${apiOrigin}/api/v1/auth/password/reset`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: mail }),
+        body: JSON.stringify({ email }),
       });
 
       const contentType = resp.headers.get("content-type") || "";
-      const tryJson = contentType.includes("application/json");
-      const data = tryJson ? await resp.json().catch(() => ({})) : {};
+      const data = contentType.includes("application/json")
+        ? await resp.json().catch(() => ({}))
+        : {};
 
       if (!resp.ok) {
         const msg =
@@ -67,8 +71,10 @@ export default function ForgotPassword() {
           (resp.status === 429
             ? "Demasiados intentos. Probá nuevamente en un minuto."
             : "No se pudo enviar el correo.");
-        // si es rate limit, activamos el cooldown también
-        if ((msg || "").toLowerCase().includes("limit")) setResendIn(60);
+
+        if (resp.status === 429 || (msg || "").toLowerCase().includes("limit")) {
+          setResendIn(60);
+        }
         throw new Error(msg);
       }
 
@@ -76,8 +82,8 @@ export default function ForgotPassword() {
         "Si la cuenta existe, te enviamos un correo con el enlace para restablecer tu contraseña."
       );
       setResendIn(60);
-    } catch (e) {
-      setError(e?.message || "No se pudo enviar el correo.");
+    } catch (err) {
+      setError(err?.message || "No se pudo enviar el correo.");
     } finally {
       setLoading(false);
     }
@@ -88,7 +94,7 @@ export default function ForgotPassword() {
       <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-emerald-100 p-6">
         <div className="mb-6 select-none">
           <div className="text-3xl leading-7 font-extrabold text-emerald-900">
-            DON<br/>NILDO
+            DON<br />NILDO
           </div>
           <p className="mt-2 text-emerald-900/70 text-sm">
             Recuperá el acceso a tu cuenta
