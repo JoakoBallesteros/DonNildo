@@ -5,10 +5,14 @@ import HamburgerButton from "../buttons/HamburgerButton.jsx";
 import AccountBadge from "../buttons/AccountBadge.jsx";
 import { signOut } from "../../services/authService.mjs";
 
+// ─── HydroPack navy + cyan tokens ─────────────────────────────────────────
 const linkBase =
   "block w-full rounded-xl px-4 py-3 text-base font-semibold tracking-[0.2px] transition-colors";
-const active = "bg-emerald-700 text-white";
-const inactive = "text-emerald-900/85 hover:bg-emerald-100";
+const active  = "text-white shadow-sm";
+const inactive = "hover:bg-blue-50";
+
+const activeStyle  = { background: 'linear-gradient(90deg, #1e408f, #2554b2)', color: '#fff' };
+const inactiveColor = '#173070';
 
 const getRole = () => localStorage.getItem("dn_role") || "";
 const ACCORDION = true;
@@ -21,22 +25,11 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
   const [role, setRole] = useState(getRole());
   const navigate = useNavigate();
 
-  // acordeones
-  const [comprasOpen, setComprasOpen] = useState(() =>
-    isSectionActive(pathname, "/compras")
-  );
-  const [ventasOpen, setVentasOpen] = useState(() =>
-    isSectionActive(pathname, "/ventas")
-  );
-  const [stockOpen, setStockOpen] = useState(() =>
-    isSectionActive(pathname, "/stock")
-  );
-  const [reportesOpen, setReportesOpen] = useState(() =>
-    isSectionActive(pathname, "/reportes")
-  );
-  const [securityOpen, setSecurityOpen] = useState(() =>
-    isSectionActive(pathname, "/seguridad")
-  );
+  const [comprasOpen, setComprasOpen]   = useState(() => isSectionActive(pathname, "/compras"));
+  const [ventasOpen, setVentasOpen]     = useState(() => isSectionActive(pathname, "/ventas"));
+  const [stockOpen, setStockOpen]       = useState(() => isSectionActive(pathname, "/stock"));
+  const [reportesOpen, setReportesOpen] = useState(() => isSectionActive(pathname, "/reportes"));
+  const [securityOpen, setSecurityOpen] = useState(() => isSectionActive(pathname, "/seguridad"));
 
   const handleLogout = async () => {
     try {
@@ -58,36 +51,28 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
 
   const toggleSection = (key) => {
     if (!ACCORDION) {
-      if (key === "compras") setComprasOpen((v) => !v);
-      if (key === "ventas") setVentasOpen((v) => !v);
-      if (key === "stock") setStockOpen((v) => !v);
+      if (key === "compras")  setComprasOpen((v) => !v);
+      if (key === "ventas")   setVentasOpen((v) => !v);
+      if (key === "stock")    setStockOpen((v) => !v);
       if (key === "reportes") setReportesOpen((v) => !v);
       if (key === "security") setSecurityOpen((v) => !v);
       return;
     }
-    const isOpen = {
-      compras: comprasOpen,
-      ventas: ventasOpen,
-      stock: stockOpen,
-      reportes: reportesOpen,
-      security: securityOpen,
-    }[key];
+    const isOpen = { compras: comprasOpen, ventas: ventasOpen, stock: stockOpen, reportes: reportesOpen, security: securityOpen }[key];
     if (isOpen) openOnly(null);
     else openOnly(key);
   };
 
- 
   useEffect(() => {
     if (!ACCORDION) return;
-    if (isSectionActive(pathname, "/compras")) openOnly("compras");
-    else if (isSectionActive(pathname, "/ventas")) openOnly("ventas");
-    else if (isSectionActive(pathname, "/stock")) openOnly("stock");
-    else if (isSectionActive(pathname, "/reportes")) openOnly("reportes");
+    if (isSectionActive(pathname, "/compras"))   openOnly("compras");
+    else if (isSectionActive(pathname, "/ventas"))    openOnly("ventas");
+    else if (isSectionActive(pathname, "/stock"))     openOnly("stock");
+    else if (isSectionActive(pathname, "/reportes"))  openOnly("reportes");
     else if (isSectionActive(pathname, "/seguridad")) openOnly("security");
     else openOnly(null);
   }, [pathname]);
 
-  
   useEffect(() => {
     const id = setInterval(() => {
       const r = getRole();
@@ -96,31 +81,62 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
     return () => clearInterval(id);
   }, [role]);
 
-  
   const perms = useMemo(() => {
     const r = (role || "").toUpperCase();
-    const isAdmin = r === "ADMIN";
+    const isAdmin   = r === "ADMIN";
     const isCompras = r === "COMPRAS";
-    const isVentas = r === "VENTAS";
-    const isStock = r === "STOCK";
-
+    const isVentas  = r === "VENTAS";
+    const isStock   = r === "STOCK";
     return {
       isAdmin,
       isCompras,
       isVentas,
       isStock,
-      canCompras: isAdmin || isCompras,
-      canVentas: isAdmin || isVentas,
-      canStockSection: isAdmin || isStock || isCompras || isVentas,
-      canReportes: isAdmin,
-
-      canStockNuevoProducto: isAdmin || isStock,
+      canCompras:              isAdmin || isCompras,
+      canVentas:               isAdmin || isVentas,
+      canStockSection:         isAdmin || isStock || isCompras || isVentas,
+      canReportes:             isAdmin,
+      canStockNuevoProducto:   isAdmin || isStock,
       canStockRegistrarPesaje: isAdmin || isStock,
-      canStockHistorialPesajes: isAdmin || isStock || isCompras || isVentas,
+      canStockHistorialPesajes:isAdmin || isStock || isCompras || isVentas,
     };
   }, [role]);
 
   const shouldRenderContent = open || mobileOpen;
+
+  // Shared styled NavLink renderer
+  const SNavLink = ({ to, end, children, sub = false }) => (
+    <NavLink
+      to={to}
+      end={end}
+      onClick={onCloseMobile}
+      className={({ isActive }) =>
+        `${sub ? "pl-2 " : ""}mx-1 ${linkBase} ${isActive ? active : inactive}`
+      }
+      style={({ isActive }) =>
+        isActive ? activeStyle : { color: inactiveColor }
+      }
+    >
+      {children}
+    </NavLink>
+  );
+
+  const AccordionBtn = ({ expanded, section, children }) => (
+    <div className="relative mx-1">
+      {children}
+      <button
+        type="button"
+        aria-expanded={expanded}
+        onClick={() => toggleSection(section)}
+        className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 grid place-items-center rounded-lg transition-colors hover:bg-blue-100"
+      >
+        <ChevronRight
+          className={`w-4 h-4 transition-transform`}
+          style={{ color: inactiveColor, transform: expanded ? 'rotate(90deg)' : undefined }}
+        />
+      </button>
+    </div>
+  );
 
   return (
     <>
@@ -133,26 +149,26 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
 
       <aside
         className={[
-          "fixed md:static z-50 bg-emerald-50 border-r border-emerald-100 min-h-screen transition-all duration-200",
+          "fixed md:static z-50 min-h-screen transition-all duration-200 border-r",
           mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
           open
             ? "md:w-72 md:pointer-events-auto"
             : "md:w-0 md:border-0 md:pointer-events-none md:overflow-hidden",
         ].join(" ")}
+        style={{ background: '#f0f5ff', borderColor: '#dce8fd' }}
       >
         {shouldRenderContent && (
           <div className="w-72 h-full flex flex-col">
-            <div className="flex items-center justify-between px-4 pt-5 pb-4">
+            {/* Brand / close button */}
+            <div className="flex items-center justify-between px-4 pt-5 pb-4 border-b" style={{ borderColor: '#dce8fd' }}>
               <Link
                 to="/"
                 onClick={onCloseMobile}
-                className="text-3xl leading-7 font-extrabold text-emerald-900 select-none
-               rounded-md focus:outline-none focus-visible:ring-2
-               focus-visible:ring-emerald-500"
+                className="select-none focus:outline-none focus-visible:ring-2 rounded-md"
+                style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: '1.6rem', lineHeight: 1.1, color: '#0b1a38' }}
               >
-                DON
-                <br />
-                NILDO
+                Hydro
+                <span style={{ color: '#2554b2' }}>Pack</span>
               </Link>
 
               <HamburgerButton
@@ -162,276 +178,85 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
               />
             </div>
 
-           
-            <nav className="flex-1 overflow-y-auto md:overflow-visible px-3 pb-3 flex flex-col space-y-1">
-             
-              <NavLink
-                to="/"
-                end
-                onClick={onCloseMobile}
-                className={({ isActive }) =>
-                  `mx-1 ${linkBase} ${isActive ? active : inactive}`
-                }
-              >
-                Inicio
-              </NavLink>
+            <nav className="flex-1 overflow-y-auto md:overflow-visible px-3 pb-3 pt-2 flex flex-col space-y-1">
 
-              
+              {/* Inicio */}
+              <SNavLink to="/" end>Inicio</SNavLink>
+
+              {/* Compras */}
               {perms.canCompras && (
                 <>
-                  <div className="relative mx-1">
-                    <NavLink
-                      to="/compras"
-                      end
-                      onClick={onCloseMobile}
-                      className={({ isActive }) =>
-                        `pr-10 ${linkBase} ${isActive ? active : inactive}`
-                      }
-                    >
-                      Compras
-                    </NavLink>
-                    <button
-                      type="button"
-                      aria-expanded={comprasOpen}
-                      aria-label={
-                        comprasOpen
-                          ? "Ocultar opciones de compras"
-                          : "Mostrar opciones de compras"
-                      }
-                      onClick={() => toggleSection("compras")}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 grid place-items-center rounded-lg hover:bg-emerald-100"
-                    >
-                      <ChevronRight
-                        className={`w-4 h-4 transition-transform ${
-                          comprasOpen ? "rotate-90" : ""
-                        }`}
-                      />
-                    </button>
-                  </div>
+                  <AccordionBtn expanded={comprasOpen} section="compras">
+                    <SNavLink to="/compras" end>Compras</SNavLink>
+                  </AccordionBtn>
                   {comprasOpen && (
                     <div className="pl-5 space-y-1">
-                      <NavLink
-                        to="/compras/nueva"
-                        onClick={onCloseMobile}
-                        className={({ isActive }) =>
-                          `mx-1 ${linkBase} ${isActive ? active : inactive}`
-                        }
-                      >
-                        Registrar nueva compra
-                      </NavLink>
-                      <NavLink
-                        to="/compras/proveedores"
-                        onClick={onCloseMobile}
-                        className={({ isActive }) =>
-                          `mx-1 ${linkBase} ${isActive ? active : inactive}`
-                        }
-                      >
-                        Proveedores
-                      </NavLink>
+                      <SNavLink to="/compras/nueva" sub>Registrar nueva compra</SNavLink>
+                      <SNavLink to="/compras/proveedores" sub>Proveedores</SNavLink>
                     </div>
                   )}
                 </>
               )}
 
-             
+              {/* Ventas */}
               {perms.canVentas && (
                 <>
-                  <div className="relative mx-1">
-                    <NavLink
-                      to="/ventas"
-                      end
-                      onClick={onCloseMobile}
-                      className={({ isActive }) =>
-                        `pr-10 ${linkBase} ${isActive ? active : inactive}`
-                      }
-                    >
-                      Ventas
-                    </NavLink>
-                    <button
-                      type="button"
-                      aria-expanded={ventasOpen}
-                      aria-label={
-                        ventasOpen
-                          ? "Ocultar opciones de ventas"
-                          : "Mostrar opciones de ventas"
-                      }
-                      onClick={() => toggleSection("ventas")}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 grid place-items-center rounded-lg hover:bg-emerald-100"
-                    >
-                      <ChevronRight
-                        className={`w-4 h-4 transition-transform ${
-                          ventasOpen ? "rotate-90" : ""
-                        }`}
-                      />
-                    </button>
-                  </div>
+                  <AccordionBtn expanded={ventasOpen} section="ventas">
+                    <SNavLink to="/ventas" end>Ventas</SNavLink>
+                  </AccordionBtn>
                   {ventasOpen && (
                     <div className="pl-5 space-y-1">
-                      <NavLink
-                        to="/ventas/nueva"
-                        onClick={onCloseMobile}
-                        className={({ isActive }) =>
-                          `mx-1 ${linkBase} ${isActive ? active : inactive}`
-                        }
-                      >
-                        Registrar nueva venta
-                      </NavLink>
+                      <SNavLink to="/ventas/nueva" sub>Registrar nueva venta</SNavLink>
                     </div>
                   )}
                 </>
               )}
 
-             
+              {/* Stock */}
               {perms.canStockSection && (
                 <>
-                  <div className="relative mx-1">
-                    <NavLink
-                      to="/stock"
-                      end
-                      onClick={onCloseMobile}
-                      className={({ isActive }) =>
-                        `pr-10 ${linkBase} ${isActive ? active : inactive}`
-                      }
-                    >
-                      Stock
-                    </NavLink>
-                    <button
-                      type="button"
-                      aria-expanded={stockOpen}
-                      aria-label={
-                        stockOpen
-                          ? "Ocultar opciones de stock"
-                          : "Mostrar opciones de stock"
-                      }
-                      onClick={() => toggleSection("stock")}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 grid place-items-center rounded-lg hover:bg-emerald-100"
-                    >
-                      <ChevronRight
-                        className={`w-4 h-4 transition-transform ${
-                          stockOpen ? "rotate-90" : ""
-                        }`}
-                      />
-                    </button>
-                  </div>
+                  <AccordionBtn expanded={stockOpen} section="stock">
+                    <SNavLink to="/stock" end>Stock</SNavLink>
+                  </AccordionBtn>
                   {stockOpen && (
                     <div className="pl-5 space-y-1">
-                      {perms.canStockNuevoProducto && (
-                        <NavLink
-                          to="/stock/nuevo-producto"
-                          onClick={onCloseMobile}
-                          className={({ isActive }) =>
-                            `mx-1 ${linkBase} ${isActive ? active : inactive}`
-                          }
-                        >
-                          Registrar nuevo producto
-                        </NavLink>
-                      )}
-
-                      {perms.canStockRegistrarPesaje && (
-                        <NavLink
-                          to="/stock/pesaje"
-                          onClick={onCloseMobile}
-                          className={({ isActive }) =>
-                            `mx-1 ${linkBase} ${isActive ? active : inactive}`
-                          }
-                        >
-                          Registrar pesaje
-                        </NavLink>
-                      )}
-
-                      {perms.canStockHistorialPesajes && (
-                        <NavLink
-                          to="/stock/pesajes"
-                          onClick={onCloseMobile}
-                          className={({ isActive }) =>
-                            `mx-1 ${linkBase} ${isActive ? active : inactive}`
-                          }
-                        >
-                          Historial de materiales
-                        </NavLink>
-                      )}
+                      {perms.canStockNuevoProducto    && <SNavLink to="/stock/nuevo-producto" sub>Registrar nuevo producto</SNavLink>}
+                      {perms.canStockRegistrarPesaje  && <SNavLink to="/stock/pesaje" sub>Registrar pesaje</SNavLink>}
+                      {perms.canStockHistorialPesajes && <SNavLink to="/stock/pesajes" sub>Historial de materiales</SNavLink>}
                     </div>
                   )}
                 </>
               )}
 
-             
+              {/* Reportes */}
               {perms.canReportes && (
-                <div className="relative mx-1">
-                  <NavLink
-                    to="/reportes"
-                    end
-                    onClick={onCloseMobile}
-                    className={({ isActive }) =>
-                      `pr-10 ${linkBase} ${isActive ? active : inactive}`
-                    }
-                  >
-                    Reportes
-                  </NavLink>
-                </div>
+                <SNavLink to="/reportes" end>Reportes</SNavLink>
               )}
 
-           
+              {/* Seguridad */}
               {perms.isAdmin && (
                 <>
-                  <div className="relative mx-1">
-                    <NavLink
-                      to="/seguridad"
-                      end
-                      onClick={onCloseMobile}
-                      className={({ isActive }) =>
-                        `pr-10 ${linkBase} ${isActive ? active : inactive}`
-                      }
-                    >
-                      Seguridad
-                    </NavLink>
-                    <button
-                      type="button"
-                      aria-expanded={securityOpen}
-                      onClick={() => toggleSection("security")}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 grid place-items-center rounded-lg hover:bg-emerald-100"
-                    >
-                      <ChevronRight
-                        className={`w-4 h-4 transition-transform ${
-                          securityOpen ? "rotate-90" : ""
-                        }`}
-                      />
-                    </button>
-                  </div>
+                  <AccordionBtn expanded={securityOpen} section="security">
+                    <SNavLink to="/seguridad" end>Seguridad</SNavLink>
+                  </AccordionBtn>
                   {securityOpen && (
                     <div className="pl-5 space-y-1">
-                      <NavLink
-                        to="/seguridad/auditoria"
-                        onClick={onCloseMobile}
-                        className={({ isActive }) =>
-                          `mx-1 ${linkBase} ${isActive ? active : inactive}`
-                        }
-                      >
-                        Auditoría
-                      </NavLink>
-                      <NavLink
-                        to="/seguridad/roles"
-                        onClick={onCloseMobile}
-                        className={({ isActive }) =>
-                          `mx-1 ${linkBase} ${isActive ? active : inactive}`
-                        }
-                      >
-                        Gestión de roles
-                      </NavLink>
+                      <SNavLink to="/seguridad/auditoria" sub>Auditoría</SNavLink>
+                      <SNavLink to="/seguridad/roles" sub>Gestión de roles</SNavLink>
                     </div>
                   )}
                 </>
               )}
 
-             
+              {/* Salir */}
               <button
                 onClick={handleLogout}
                 className={`mx-1 w-full text-left ${linkBase} ${inactive}`}
+                style={{ color: inactiveColor }}
               >
                 Salir
               </button>
 
-              
               <div className="mt-auto px-1 pt-3">
                 <AccountBadge />
               </div>
