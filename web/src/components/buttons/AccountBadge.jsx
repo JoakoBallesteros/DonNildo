@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getAccountMe } from "../../services/accountService.mjs";
+import { cn } from "../../lib/utils";
 
 export default function AccountBadge() {
   const navigate = useNavigate();
@@ -32,15 +33,25 @@ export default function AccountBadge() {
     <button
       type="button"
       onClick={() => navigate("/account")}
-      className="w-full flex items-center gap-3 p-3 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-900"
+      className={cn(
+        "group relative w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-300",
+        "bg-white/50 hover:bg-white border border-transparent hover:border-[var(--hp-cyan-200)] shadow-sm hover:shadow-md"
+      )}
       title={me ? `${me.nombre} / ${me.rol}` : "Mi perfil"}
     >
-      <span className="inline-block w-6 h-6 rounded-full bg-emerald-800 flex-shrink-0" />
-      <div className="flex flex-col text-left min-w-0">
-        <span className="font-semibold leading-tight break-words">
+      <div className="relative">
+        <div className="absolute -inset-1 bg-gradient-to-r from-[var(--hp-cyan-400)] to-[var(--hp-navy-500)] rounded-full blur opacity-0 group-hover:opacity-60 transition duration-500" />
+        <span
+          className="relative flex items-center justify-center w-10 h-10 rounded-full text-white font-bold text-sm bg-gradient-to-br from-[var(--hp-navy-600)] to-[var(--hp-navy-800)] border-2 border-white shadow-sm"
+        >
+          {me?.nombre ? me.nombre.charAt(0).toUpperCase() : "U"}
+        </span>
+      </div>
+      <div className="flex flex-col text-left min-w-0 flex-1">
+        <span className="font-semibold text-[15px] text-[var(--hp-navy-900)] leading-tight truncate group-hover:text-[var(--hp-cyan-600)] transition-colors">
           {me ? me.nombre : "Usuario"}
         </span>
-        <span className="text-sm opacity-80 leading-tight break-words">
+        <span className="text-xs font-medium text-[var(--hp-slate-500)] leading-tight truncate uppercase tracking-wider mt-0.5">
           {me ? me.rol : "Rol"}
         </span>
       </div>

@@ -67,7 +67,7 @@ export default function PrintButton({
         px-4 py-2 border 
         ${disabled
           ? "opacity-50 cursor-not-allowed bg-gray-200 border-gray-300 text-gray-500"
-          : "bg-[#f1f6f3] text-[#154734] border-[#e2ede8] hover:bg-[#e8f4ef]"
+          : "bg-[#f1f6f3] text-[#0b1a38] border-[#e2ede8] hover:bg-[#f0f5ff]"
         }
         ${className}
       `}
