@@ -1,19 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
 import { NavLink, useLocation, useNavigate, Link } from "react-router-dom";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, LogOut, LayoutDashboard, ShoppingCart, TrendingUp, Package, BarChart3, ShieldCheck } from "lucide-react";
 import HamburgerButton from "../buttons/HamburgerButton.jsx";
 import AccountBadge from "../buttons/AccountBadge.jsx";
 import { signOut } from "../../services/authService.mjs";
+import { cn } from "../../lib/utils";
 
 // ─── HydroPack navy + cyan tokens ─────────────────────────────────────────
-const linkBase =
-  "block w-full rounded-xl px-4 py-3 text-base font-semibold tracking-[0.2px] transition-colors";
-const active  = "text-white shadow-sm";
-const inactive = "hover:bg-blue-50";
-
-const activeStyle  = { background: 'linear-gradient(90deg, #1e408f, #2554b2)', color: '#fff' };
-const inactiveColor = '#173070';
-
 const getRole = () => localStorage.getItem("dn_role") || "";
 const ACCORDION = true;
 
@@ -105,19 +98,30 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
   const shouldRenderContent = open || mobileOpen;
 
   // Shared styled NavLink renderer
-  const SNavLink = ({ to, end, children, sub = false }) => (
+  const SNavLink = ({ to, end, children, sub = false, icon: Icon }) => (
     <NavLink
       to={to}
       end={end}
       onClick={onCloseMobile}
-      className={({ isActive }) =>
-        `${sub ? "pl-2 " : ""}mx-1 ${linkBase} ${isActive ? active : inactive}`
-      }
-      style={({ isActive }) =>
-        isActive ? activeStyle : { color: inactiveColor }
-      }
+      className={({ isActive }) => cn(
+        "group relative flex items-center w-full rounded-xl px-4 py-3 mx-1 text-[15px] font-medium tracking-wide transition-all duration-300",
+        sub ? "pl-11 py-2 text-sm text-[var(--hp-slate-600)] hover:text-[var(--hp-navy-900)] hover:bg-[var(--hp-cyan-50)]/50" : "",
+        isActive && !sub ? "text-white bg-gradient-to-r from-[var(--hp-navy-700)] to-[var(--hp-navy-500)] shadow-lg shadow-[var(--hp-navy-900)]/20" : "",
+        !isActive && !sub ? "text-[var(--hp-navy-800)] hover:bg-white/60 hover:text-[var(--hp-navy-900)] hover:shadow-sm" : "",
+        isActive && sub ? "text-[var(--hp-navy-900)] font-bold bg-[var(--hp-cyan-50)]" : ""
+      )}
     >
-      {children}
+      {({ isActive }) => (
+        <>
+          {isActive && !sub && (
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] animate-[shimmer_2s_infinite]" />
+          )}
+          {Icon && (
+            <Icon className={cn("w-5 h-5 mr-3 transition-transform duration-300 group-hover:scale-110", isActive ? "text-[var(--hp-cyan-300)]" : "text-[var(--hp-slate-400)] group-hover:text-[var(--hp-cyan-500)]")} />
+          )}
+          <span className="relative z-10">{children}</span>
+        </>
+      )}
     </NavLink>
   );
 
@@ -128,11 +132,10 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
         type="button"
         aria-expanded={expanded}
         onClick={() => toggleSection(section)}
-        className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 grid place-items-center rounded-lg transition-colors hover:bg-blue-100"
+        className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 grid place-items-center rounded-lg transition-colors hover:bg-white/50 text-[var(--hp-slate-400)] hover:text-[var(--hp-navy-900)]"
       >
         <ChevronRight
-          className={`w-4 h-4 transition-transform`}
-          style={{ color: inactiveColor, transform: expanded ? 'rotate(90deg)' : undefined }}
+          className={cn("w-4 h-4 transition-transform duration-300", expanded ? "rotate-90 text-[var(--hp-navy-900)]" : "")}
         />
       </button>
     </div>
@@ -142,123 +145,129 @@ export default function Sidebar({ open, mobileOpen, onCloseMobile, onToggle }) {
     <>
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/30 md:hidden"
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm md:hidden transition-opacity duration-300"
           onClick={onCloseMobile}
         />
       )}
 
       <aside
-        className={[
-          "fixed md:static z-50 min-h-screen transition-all duration-200 border-r",
+        className={cn(
+          "fixed md:static z-50 min-h-screen transition-all duration-300 ease-[cubic-bezier(0.25,0.8,0.25,1)] border-r bg-white/70 backdrop-blur-2xl shadow-[4px_0_24px_rgba(0,0,0,0.02)] border-[var(--hp-slate-200)]/60",
           mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
           open
-            ? "md:w-72 md:pointer-events-auto"
-            : "md:w-0 md:border-0 md:pointer-events-none md:overflow-hidden",
-        ].join(" ")}
-        style={{ background: '#f0f5ff', borderColor: '#dce8fd' }}
+            ? "md:w-[280px] md:pointer-events-auto"
+            : "md:w-0 md:border-0 md:pointer-events-none md:overflow-hidden"
+        )}
       >
         {shouldRenderContent && (
-          <div className="w-72 h-full flex flex-col">
+          <div className="w-[280px] h-full flex flex-col relative">
+            {/* Subtle mesh background */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-[var(--hp-cyan-100)]/30 to-transparent rounded-full blur-[60px] pointer-events-none" />
+
             {/* Brand / close button */}
-            <div className="flex items-center justify-between px-4 pt-5 pb-4 border-b" style={{ borderColor: '#dce8fd' }}>
+            <div className="flex items-center justify-between px-6 pt-8 pb-6 mb-2 relative z-10">
               <Link
                 to="/"
                 onClick={onCloseMobile}
-                className="select-none focus:outline-none focus-visible:ring-2 rounded-md"
-                style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: '1.6rem', lineHeight: 1.1, color: '#0b1a38' }}
+                className="select-none focus:outline-none focus-visible:ring-2 rounded-md flex items-center gap-2 group"
               >
-                Hydro
-                <span style={{ color: '#2554b2' }}>Pack</span>
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--hp-cyan-400)] to-[var(--hp-navy-600)] flex items-center justify-center shadow-lg group-hover:shadow-[var(--hp-cyan-400)]/40 transition-shadow">
+                  <div className="w-3 h-3 bg-white rounded-sm rotate-45 group-hover:rotate-90 transition-transform duration-500" />
+                </div>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: '1.6rem', lineHeight: 1.1, color: 'var(--hp-navy-900)' }}>
+                  Hydro<span style={{ color: 'var(--hp-cyan-500)' }}>Pack</span>
+                </div>
               </Link>
 
               <HamburgerButton
                 onClick={onToggle}
-                className="hidden md:inline-flex"
+                className="hidden md:inline-flex opacity-50 hover:opacity-100"
                 label={open ? "Contraer menú" : "Expandir menú"}
               />
             </div>
 
-            <nav className="flex-1 overflow-y-auto md:overflow-visible px-3 pb-3 pt-2 flex flex-col space-y-1">
+            <nav className="flex-1 overflow-y-auto custom-scrollbar px-3 flex flex-col space-y-1.5 relative z-10">
 
-              {/* Inicio */}
-              <SNavLink to="/" end>Inicio</SNavLink>
+              <SNavLink to="/" end icon={LayoutDashboard}>Inicio</SNavLink>
 
-              {/* Compras */}
               {perms.canCompras && (
                 <>
                   <AccordionBtn expanded={comprasOpen} section="compras">
-                    <SNavLink to="/compras" end>Compras</SNavLink>
+                    <SNavLink to="/compras" end icon={ShoppingCart}>Compras</SNavLink>
                   </AccordionBtn>
-                  {comprasOpen && (
-                    <div className="pl-5 space-y-1">
-                      <SNavLink to="/compras/nueva" sub>Registrar nueva compra</SNavLink>
+                  <div className={cn("grid transition-all duration-300 ease-in-out", comprasOpen ? "grid-rows-[1fr] opacity-100 mb-2" : "grid-rows-[0fr] opacity-0")}>
+                    <div className="overflow-hidden space-y-1 relative before:absolute before:left-6 before:top-2 before:bottom-2 before:w-px before:bg-gradient-to-b before:from-[var(--hp-cyan-300)]/50 before:to-transparent">
+                      <SNavLink to="/compras/nueva" sub>Registrar compra</SNavLink>
                       <SNavLink to="/compras/proveedores" sub>Proveedores</SNavLink>
                     </div>
-                  )}
+                  </div>
                 </>
               )}
 
-              {/* Ventas */}
               {perms.canVentas && (
                 <>
                   <AccordionBtn expanded={ventasOpen} section="ventas">
-                    <SNavLink to="/ventas" end>Ventas</SNavLink>
+                    <SNavLink to="/ventas" end icon={TrendingUp}>Ventas</SNavLink>
                   </AccordionBtn>
-                  {ventasOpen && (
-                    <div className="pl-5 space-y-1">
-                      <SNavLink to="/ventas/nueva" sub>Registrar nueva venta</SNavLink>
+                  <div className={cn("grid transition-all duration-300 ease-in-out", ventasOpen ? "grid-rows-[1fr] opacity-100 mb-2" : "grid-rows-[0fr] opacity-0")}>
+                    <div className="overflow-hidden space-y-1 relative before:absolute before:left-6 before:top-2 before:bottom-2 before:w-px before:bg-gradient-to-b before:from-[var(--hp-cyan-300)]/50 before:to-transparent">
+                      <SNavLink to="/ventas/nueva" sub>Registrar venta</SNavLink>
+                      <SNavLink to="/ventas/clientes" sub>Clientes</SNavLink>
+                      <SNavLink to="/ventas/precios" sub>Listas de Precios</SNavLink>
                     </div>
-                  )}
+                  </div>
                 </>
               )}
 
-              {/* Stock */}
               {perms.canStockSection && (
                 <>
                   <AccordionBtn expanded={stockOpen} section="stock">
-                    <SNavLink to="/stock" end>Stock</SNavLink>
+                    <SNavLink to="/stock" end icon={Package}>Stock</SNavLink>
                   </AccordionBtn>
-                  {stockOpen && (
-                    <div className="pl-5 space-y-1">
-                      {perms.canStockNuevoProducto    && <SNavLink to="/stock/nuevo-producto" sub>Registrar nuevo producto</SNavLink>}
+                  <div className={cn("grid transition-all duration-300 ease-in-out", stockOpen ? "grid-rows-[1fr] opacity-100 mb-2" : "grid-rows-[0fr] opacity-0")}>
+                    <div className="overflow-hidden space-y-1 relative before:absolute before:left-6 before:top-2 before:bottom-2 before:w-px before:bg-gradient-to-b before:from-[var(--hp-cyan-300)]/50 before:to-transparent">
+                      {perms.canStockNuevoProducto    && <SNavLink to="/stock/nuevo-producto" sub>Nuevo producto</SNavLink>}
                       {perms.canStockRegistrarPesaje  && <SNavLink to="/stock/pesaje" sub>Registrar pesaje</SNavLink>}
-                      {perms.canStockHistorialPesajes && <SNavLink to="/stock/pesajes" sub>Historial de materiales</SNavLink>}
+                      {perms.canStockHistorialPesajes && <SNavLink to="/stock/pesajes" sub>Historial</SNavLink>}
                     </div>
-                  )}
+                  </div>
                 </>
               )}
 
-              {/* Reportes */}
               {perms.canReportes && (
-                <SNavLink to="/reportes" end>Reportes</SNavLink>
+                <SNavLink to="/reportes" end icon={BarChart3}>Reportes</SNavLink>
               )}
 
-              {/* Seguridad */}
               {perms.isAdmin && (
                 <>
                   <AccordionBtn expanded={securityOpen} section="security">
-                    <SNavLink to="/seguridad" end>Seguridad</SNavLink>
+                    <SNavLink to="/seguridad" end icon={ShieldCheck}>Seguridad</SNavLink>
                   </AccordionBtn>
-                  {securityOpen && (
-                    <div className="pl-5 space-y-1">
+                  <div className={cn("grid transition-all duration-300 ease-in-out", securityOpen ? "grid-rows-[1fr] opacity-100 mb-2" : "grid-rows-[0fr] opacity-0")}>
+                    <div className="overflow-hidden space-y-1 relative before:absolute before:left-6 before:top-2 before:bottom-2 before:w-px before:bg-gradient-to-b before:from-[var(--hp-cyan-300)]/50 before:to-transparent">
                       <SNavLink to="/seguridad/auditoria" sub>Auditoría</SNavLink>
                       <SNavLink to="/seguridad/roles" sub>Gestión de roles</SNavLink>
                     </div>
-                  )}
+                  </div>
                 </>
               )}
 
-              {/* Salir */}
-              <button
-                onClick={handleLogout}
-                className={`mx-1 w-full text-left ${linkBase} ${inactive}`}
-                style={{ color: inactiveColor }}
-              >
-                Salir
-              </button>
+              <div className="flex-1" />
 
-              <div className="mt-auto px-1 pt-3">
-                <AccountBadge />
+              <div className="pt-4 pb-2 mt-4 relative">
+                <div className="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-[var(--hp-slate-200)] to-transparent" />
+                
+                <button
+                  onClick={handleLogout}
+                  className="group flex w-full items-center rounded-xl px-4 py-3 mx-1 text-sm font-medium text-[var(--hp-slate-500)] hover:text-red-600 hover:bg-red-50/50 transition-all duration-300"
+                >
+                  <LogOut className="w-5 h-5 mr-3 group-hover:-translate-x-1 transition-transform" />
+                  Cerrar sesión
+                </button>
+
+                <div className="mt-2 px-1">
+                  <AccountBadge />
+                </div>
               </div>
             </nav>
           </div>

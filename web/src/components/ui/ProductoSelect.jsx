@@ -18,7 +18,7 @@ export default function ProductoSelect({ productos = [], value, onChange }) {
         {/* Input */}
         <div className="relative">
           <Combobox.Input
-            className="w-full border border-[#d8e4df] rounded-xl px-4 py-2 text-sm"
+            className="w-full border border-[#dce8fd] rounded-xl px-4 py-2 text-sm"
             placeholder="Buscar producto…"
             displayValue={(p) => p?.nombre || ""}
             onChange={(e) => setQuery(e.target.value)}
@@ -27,7 +27,7 @@ export default function ProductoSelect({ productos = [], value, onChange }) {
           {/* Flecha simple */}
           <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-3">
             <svg
-              className="h-4 w-4 text-[#154734]"
+              className="h-4 w-4 text-[#0b1a38]"
               viewBox="0 0 24 24"
               strokeWidth={2}
               stroke="currentColor"
@@ -50,7 +50,7 @@ export default function ProductoSelect({ productos = [], value, onChange }) {
                   value={p}
                   className={({ active }) =>
                     `cursor-pointer px-4 py-2 text-sm ${
-                      active ? "bg-[#e8f4ef]" : ""
+                      active ? "bg-[#f0f5ff]" : ""
                     }`
                   }
                 >
