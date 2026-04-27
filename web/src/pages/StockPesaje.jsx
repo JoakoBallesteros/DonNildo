@@ -25,7 +25,7 @@ function genId() {
 function IconButton({ children, className = "", ...rest }) {
   return (
     <button
-      className={`inline-flex items-center gap-2 rounded-md text-sm bg-[#154734] text-white px-3 py-2 hover:bg-[#103a2b] ${className}`}
+      className={`inline-flex items-center gap-2 rounded-md text-sm bg-[#0b1a38] text-white px-3 py-2 hover:bg-[#102354] ${className}`}
       {...rest}
     >
       {children}
@@ -236,15 +236,15 @@ const onConfirm = async () => {
       },
       {
         id: "cantidad",
-        header: "Cantidad (kg)",
-        accessor: (r) => r.cantidad,
+        header: "Cantidad",
+        accessor: (r) => `${r.cantidad} ${r.unidad}`,
         align: "center",
         width: 140,
         cellClass: "tabular-nums whitespace-nowrap text-center",
       },
       {
         id: "precioKg",
-        header: "Precio x Kg",
+        header: "Precio Unit.",
         accessor: (r) =>
           (r.precio ?? 0).toLocaleString("es-AR", {
             style: "currency",
@@ -286,7 +286,7 @@ const onConfirm = async () => {
           <div className="flex items-center justify-center gap-2">
             <button
               onClick={() => onOpenEdit(row)}
-              className="inline-flex items-center gap-1 rounded-md text-xs bg-[#154734] text-white px-2 py-1 hover:bg-[#103a2b] whitespace-nowrap"
+              className="inline-flex items-center gap-1 rounded-md text-xs bg-[#0b1a38] text-white px-2 py-1 hover:bg-[#102354] whitespace-nowrap"
             >
               Modificar
             </button>
@@ -307,7 +307,7 @@ const onConfirm = async () => {
     <PageContainer title="Registro de Pesaje">
       <div className="space-y-5 md:space-y-6 pb-28 md:pb-12">
         {/* Form de alta */}
-        <div className="bg-white rounded-2xl border border-[#e3e9e5] shadow-sm p-4 sm:p-5 md:p-6">
+        <div className="bg-white rounded-2xl border border-[#dce8fd] shadow-sm p-4 sm:p-5 md:p-6">
           {err && (
             <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded">
               {err}
@@ -316,13 +316,13 @@ const onConfirm = async () => {
 
           <div className="grid grid-cols-1 md:grid-cols-[1.5fr_1fr_1fr_auto] gap-4 items-end">
             <div className="flex flex-col">
-              <label className="text-sm font-semibold text-[#154734] mb-1">
+              <label className="text-sm font-semibold text-[#0b1a38] mb-1">
                 Tipo de Material
               </label>
               <select
                 value={matId}
                 onChange={(e) => setMatId(e.target.value)}
-                className="border border-[#d8e4df] rounded-md px-3 py-2"
+                className="border border-[#dce8fd] rounded-md px-3 py-2"
                 disabled={loadingMat}
               >
                 <option value="">
@@ -337,8 +337,8 @@ const onConfirm = async () => {
             </div>
 
             <div className="flex flex-col">
-              <label className="text-sm font-semibold text-[#154734] mb-1">
-                Cantidad (kg)
+              <label className="text-sm font-semibold text-[#0b1a38] mb-1">
+                Cantidad
               </label>
               <input
                 type="number"
@@ -346,13 +346,13 @@ const onConfirm = async () => {
                 value={cantidad}
                 onChange={(e) => setCantidad(e.target.value)}
                 placeholder="Ingresar cantidad…"
-                className="border border-[#d8e4df] rounded-md px-3 py-2"
+                className="border border-[#dce8fd] rounded-md px-3 py-2"
               />
             </div>
 
             <div className="flex flex-col">
-              <label className="text-sm font-semibold text-[#154734] mb-1">
-                Precio x Kg (opcional)
+              <label className="text-sm font-semibold text-[#0b1a38] mb-1">
+                Precio Unit. (opcional)
               </label>
               <input
                 type="number"
@@ -360,7 +360,7 @@ const onConfirm = async () => {
                 value={precioKg}
                 onChange={(e) => setPrecioKg(e.target.value)}
                 placeholder="Ingresar precio…"
-                className="border border-[#d8e4df] rounded-md px-3 py-2"
+                className="border border-[#dce8fd] rounded-md px-3 py-2"
               />
             </div>
 
@@ -375,14 +375,14 @@ const onConfirm = async () => {
             </div>
 
             <div className="md:col-span-4 flex flex-col">
-              <label className="text-sm font-semibold text-[#154734] mb-1">
+              <label className="text-sm font-semibold text-[#0b1a38] mb-1">
                 Observaciones (opcional)
               </label>
               <input
                 value={obsFila}
                 onChange={(e) => setObsFila(e.target.value)}
                 placeholder="(Opcional)"
-                className="border border-[#d8e4df] rounded-md px-3 py-2"
+                className="border border-[#dce8fd] rounded-md px-3 py-2"
               />
             </div>
           </div>
@@ -479,18 +479,18 @@ const onConfirm = async () => {
         <div className="space-y-4">
           {/* Versión desktop */}
           <div
-            className="hidden md:block bg-white rounded-2xl border border-[#e3e9e5] shadow-sm p-3 md:p-4"
+            className="hidden md:block bg-white rounded-2xl border border-[#dce8fd] shadow-sm p-3 md:p-4"
           >
             <DataTable
               columns={columns}
               data={items}
               zebra={false}
               stickyHeader={true}
-                wrapperClass="dn-table-wrapper-tall overflow-y-auto overflow-x-auto"
+                wrapperClass="hp-table-wrapper-tall overflow-y-auto overflow-x-auto"
 
               tableClass="w-full text-sm border-collapse"
-              theadClass="bg-[#e8f4ef] text-[#154734]"
-              rowClass="hover:bg-[#f6faf7] border-t border-[#edf2ef]"
+              theadClass="bg-[#f0f5ff] text-[#0b1a38]"
+              rowClass="hover:bg-[#f0f5ff] border-t border-[#e2e8f0]"
               headerClass="px-3 py-2.5 font-semibold"
               cellClass="px-3 py-2.5 text-center"
               emptyLabel="Sin ítems cargados"
@@ -500,14 +500,14 @@ const onConfirm = async () => {
           {/* Versión mobile */}
           <div className="md:hidden space-y-3">
             {!items.length && (
-              <div className="rounded-2xl border border-dashed border-[#d8e4df] bg-[#f7fbf9] px-4 py-6 text-center text-sm text-[#62736a]">
+              <div className="rounded-2xl border border-dashed border-[#dce8fd] bg-[#f7fbf9] px-4 py-6 text-center text-sm text-[#62736a]">
                 Sin ítems cargados
               </div>
             )}
             {items.map((row) => (
               <div
                 key={row.id}
-                className="rounded-2xl border border-[#e3e9e5] bg-white shadow-sm p-4 space-y-3"
+                className="rounded-2xl border border-[#dce8fd] bg-white shadow-sm p-4 space-y-3"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -522,7 +522,7 @@ const onConfirm = async () => {
                     <p className="text-xs uppercase tracking-wide text-[#7a8b82]">
                       Subtotal
                     </p>
-                    <p className="text-base font-semibold text-[#154734]">
+                    <p className="text-base font-semibold text-[#0b1a38]">
                       {(row.subtotal ?? 0).toLocaleString("es-AR", {
                         style: "currency",
                         currency: "ARS",
@@ -543,7 +543,7 @@ const onConfirm = async () => {
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs font-semibold text-[#7a8b82]">
-                      Precio x Kg
+                      Precio Unit.
                     </p>
                     <p className="font-medium">
                       {(row.precio ?? 0).toLocaleString("es-AR", {
@@ -569,7 +569,7 @@ const onConfirm = async () => {
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => onOpenEdit(row)}
-                    className="flex-1 rounded-md bg-[#154734] text-white px-3 py-2 text-sm font-medium hover:bg-[#103a2b] transition"
+                    className="flex-1 rounded-md bg-[#0b1a38] text-white px-3 py-2 text-sm font-medium hover:bg-[#102354] transition"
                   >
                     Modificar
                   </button>
@@ -600,7 +600,7 @@ const onConfirm = async () => {
         <div className="flex flex-col md:flex-row md:justify-center gap-3">
           <button
             type="button"
-            className="w-full md:w-auto rounded-md border border-[#154734] text-[#154734] px-8 py-2 font-semibold hover:bg-[#e8f4ef] transition"
+            className="w-full md:w-auto rounded-md border border-[#0b1a38] text-[#0b1a38] px-8 py-2 font-semibold hover:bg-[#f0f5ff] transition"
             onClick={() => {
              handleCancelClick();
             }}
@@ -613,7 +613,7 @@ const onConfirm = async () => {
             className={`w-full md:w-auto px-8 py-2 rounded-md font-semibold text-white transition 
               ${loadingSubmit 
                 ? "bg-[#6a8679] cursor-not-allowed opacity-70" 
-                : "bg-[#154734] hover:bg-[#103a2b]"
+                : "bg-[#0b1a38] hover:bg-[#102354]"
               }`}
             onClick={onConfirm}
           >
@@ -634,13 +634,13 @@ const onConfirm = async () => {
             { key: "tipo", label: "Tipo", readOnly: true },
             {
               key: "cantidad",
-              label: "Cantidad (kg)",
+              label: "Cantidad",
               type: "number",
               align: "text-center",
             },
             {
               key: "precio",
-              label: "Precio x Kg",
+              label: "Precio Unit.",
               type: "number",
               align: "text-center",
             },

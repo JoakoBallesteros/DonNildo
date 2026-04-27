@@ -350,7 +350,7 @@ export default function Compras() {
       render: (row) => (
         <button
           onClick={() => onViewDetail(row)}
-          className="border border-[#d8e4df] rounded-md px-4 py-1.5 text-[#154734] hover:bg-[#e8f4ef] transition"
+          className="border border-[#dce8fd] rounded-md px-4 py-1.5 text-[#0b1a38] hover:bg-[#f0f5ff] transition"
         >
           Ver detalle
         </button>
@@ -380,7 +380,7 @@ export default function Compras() {
           <div className="flex flex-wrap justify-center items-center gap-2">
             <button
               onClick={() => navigate(`/compras/editar/${numericId}`)}
-              className="bg-[#154734] text-white px-4 py-1.5 text-xs rounded-md hover:bg-[#1E5A3E]"
+              className="bg-[#0b1a38] text-white px-4 py-1.5 text-xs rounded-md hover:bg-[#173070]"
             >
               MODIFICAR
             </button>
@@ -397,10 +397,10 @@ export default function Compras() {
 
             <button
               onClick={() => handleDownloadDetalleCompra(row)}
-              className="p-1 border border-[#d8e4df] rounded-md hover:bg-[#f7faf9] flex items-center justify-center"
+              className="p-1 border border-[#dce8fd] rounded-md hover:bg-[#f0f5ff] flex items-center justify-center"
               title="Descargar Detalle de Compra"
             >
-              <Download className="w-4 h-4 text-[#154734]" />
+              <Download className="w-4 h-4 text-[#0b1a38]" />
             </button>
           </div>
         );
@@ -461,7 +461,7 @@ export default function Compras() {
       actions={
         <button
           onClick={() => navigate("/compras/nueva")}
-          className="flex items-center gap-2 bg-[#154734] text-white px-4 py-2 rounded-md hover:bg-[#103a2b] transition"
+          className="flex items-center gap-2 bg-[#0b1a38] text-white px-4 py-2 rounded-md hover:bg-[#102354] transition"
         >
           <Plus size={16} /> Añadir nueva compra
         </button>
@@ -493,7 +493,7 @@ export default function Compras() {
         applyButton={(props) => (
           <button
             {...props}
-            className="flex items-center gap-2 bg-[#154734] text-white px-4 py-2 rounded-md hover:bg-[#103a2b] transition"
+            className="flex items-center gap-2 bg-[#0b1a38] text-white px-4 py-2 rounded-md hover:bg-[#102354] transition"
           >
             <Filter size={16} /> Aplicar Filtros
           </button>
@@ -503,7 +503,7 @@ export default function Compras() {
       <div className="flex justify-end mb-4 gap-4">
         <button
           onClick={() => setMostrarAnuladas((prev) => !prev)}
-          className="border border-[#154734] text-[#154734] px-3 py-1 rounded-md hover:bg-[#e8f4ef] transition"
+          className="border border-[#0b1a38] text-[#0b1a38] px-3 py-1 rounded-md hover:bg-[#f0f5ff] transition"
         >
           {mostrarAnuladas ? "Ocultar anuladas" : "Ver anuladas"}
         </button>
@@ -521,13 +521,13 @@ export default function Compras() {
                 data={filtered}
                 zebra={false}
                 stickyHeader={true}
-                wrapperClass="dn-table-wrapper overflow-y-auto shadow-sm"
+                wrapperClass="hp-table-wrapper overflow-y-auto shadow-sm"
                 tableClass="w-full text-sm text-center border-collapse"
-                theadClass="bg-[#e8f4ef] text-[#154734]"
+                theadClass="bg-[#f0f5ff] text-[#0b1a38]"
                 rowClass={(row) =>
-                  `border-t border-[#edf2ef] ${row.estado === "ANULADO"
+                  `border-t border-[#e2e8f0] ${row.estado === "ANULADO"
                     ? "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                    : "bg-white hover:bg-[#f6faf7]"
+                    : "bg-white hover:bg-[#f0f5ff]"
                   }`
                 }
                 headerClass="px-4 py-3 font-semibold text-center"
@@ -558,13 +558,13 @@ export default function Compras() {
                 return (
                   <div
                     key={row.id}
-                    className={`border rounded-lg p-3 shadow-sm ${isAnulada ? "bg-gray-100 border-gray-200" : "bg-white border-[#e3e9e5]"
+                    className={`border rounded-lg p-3 shadow-sm ${isAnulada ? "bg-gray-100 border-gray-200" : "bg-white border-[#dce8fd]"
                       }`}
                   >
                     {/* Cabecera: ID y Fecha */}
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex flex-col">
-                        <span className="text-xs font-bold text-[#154734] bg-[#e8f4ef] px-2 py-0.5 rounded w-fit">
+                        <span className="text-xs font-bold text-[#0b1a38] bg-[#f0f5ff] px-2 py-0.5 rounded w-fit">
                           {row.id}
                         </span>
                         <span className="text-xs text-gray-500 mt-1">{formattedDate}</span>
@@ -575,7 +575,7 @@ export default function Compras() {
                             Anulada
                           </span>
                         ) : (
-                          <span className="text-lg font-bold text-[#154734]">
+                          <span className="text-lg font-bold text-[#0b1a38]">
                             {formattedTotal}
                           </span>
                         )}
@@ -600,19 +600,19 @@ export default function Compras() {
                       <div className="flex gap-2 mt-2 pt-2 border-t border-gray-100">
                         <button
                           onClick={() => onViewDetail(row)}
-                          className="flex-1 text-xs text-[#154734] font-medium py-2 bg-gray-50 rounded hover:bg-gray-100"
+                          className="flex-1 text-xs text-[#0b1a38] font-medium py-2 bg-gray-50 rounded hover:bg-gray-100"
                         >
                           Detalle
                         </button>
                         <button
                           onClick={() => navigate(`/compras/editar/${numericId}`)}
-                          className="flex-1 text-xs text-[#154734] font-medium py-2 bg-gray-50 rounded hover:bg-gray-100"
+                          className="flex-1 text-xs text-[#0b1a38] font-medium py-2 bg-gray-50 rounded hover:bg-gray-100"
                         >
                           Editar
                         </button>
                         <button
                           onClick={() => handleDownloadDetalleCompra(row)}
-                          className="w-10 flex items-center justify-center text-[#154734] bg-gray-50 rounded hover:bg-gray-100"
+                          className="w-10 flex items-center justify-center text-[#0b1a38] bg-gray-50 rounded hover:bg-gray-100"
                           title="Descargar PDF"
                         >
                           <Download className="w-4 h-4" />
@@ -693,7 +693,7 @@ export default function Compras() {
           extraFooter={
             <div className="flex justify-between items-center">
               <div>
-                <label className="text-sm font-semibold text-[#154734] mr-2">
+                <label className="text-sm font-semibold text-[#0b1a38] mr-2">
                   Fecha:
                 </label>
                 <input
@@ -703,7 +703,7 @@ export default function Compras() {
                   readOnly
                 />
               </div>
-              <p className="text-lg font-semibold text-[#154734]">
+              <p className="text-lg font-semibold text-[#0b1a38]">
                 Total: {fmtARS.format(Number(editRow.total || 0))}
               </p>
             </div>
@@ -754,7 +754,7 @@ export default function Compras() {
             <button
               onClick={() => setMessageModal({ isOpen: false, title: "", text: "", type: "" })}
               className={`px-4 py-2 rounded-md font-semibold text-white transition ${messageModal.type === "success"
-                ? "bg-emerald-700 hover:bg-emerald-800"
+                ? "bg-[#1e408f] hover:bg-[#102354]"
                 : "bg-red-700 hover:bg-red-800"
                 }`}
             >

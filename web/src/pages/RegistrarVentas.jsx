@@ -9,6 +9,7 @@ import Modal from "../components/modals/Modals.jsx";
 import api from "../lib/apiClient";
 import ProductFormTabs from "../components/forms/ProductFormTabs";
 import ProductoSelect from "../components/ui/ProductoSelect";
+import ClienteSelect from "../components/ui/ClienteSelect";
 
 const NEW_SALE_KEY = "dn_new_sale_items";
 const SESSION_KEY = "dn_pending_sale_items";
@@ -51,6 +52,8 @@ export default function RegistrarVentas() {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
+    id_cliente: null,
+    cliente_nombre: "",
     producto: "",
     tipo: "",
     cantidad: "",
@@ -86,7 +89,7 @@ export default function RegistrarVentas() {
         const productos = productosBackend.map((r) => ({
           id_producto: r.id_producto,
           producto: r.producto,
-          tipo: r.tipo_producto === "Caja" ? "Caja" : "Material",
+          tipo: r.tipo_producto,
           cantidad: r.cantidad,
           precio: r.precio,
           descuento: r.descuento || 0,
@@ -98,6 +101,7 @@ export default function RegistrarVentas() {
         setFormData((prev) => ({
           ...prev,
           observaciones: res.venta?.observaciones || "",
+          id_cliente: res.venta?.id_cliente || null,
         }));
       } catch (err) {
         console.error("Error cargando venta:", err);
@@ -120,6 +124,9 @@ export default function RegistrarVentas() {
 
 
   const [productosDisponibles, setProductosDisponibles] = useState([]);
+  const [clientesDisponibles, setClientesDisponibles] = useState([]);
+  const [listasPrecios, setListasPrecios] = useState([]);
+  const [dolarOficial, setDolarOficial] = useState(1);
   useEffect(() => {
     const fetchProductos = async () => {
       try {
@@ -138,7 +145,8 @@ export default function RegistrarVentas() {
           id_producto: p.id_producto,
           nombre: p.nombre,
           precio: Number(p.precio_unitario) || 0,
-          tipoVenta: p.id_tipo_producto === 1 ? "Caja" : "Material",
+          moneda: p.moneda || "ARS",
+          tipoVenta: p.tipo_nombre || p.tipo_producto_nombre || "Desconocido",
         }));
 
         setProductosDisponibles(items);
@@ -146,8 +154,99 @@ export default function RegistrarVentas() {
         console.error("Error cargando productos desde la API:", err.message);
       }
     };
+    
+    const fetchClientes = async () => {
+      try {
+        const data = await api("/api/v1/clientes/search");
+        setClientesDisponibles(data.clientes || []);
+      } catch (err) {
+        console.error("Error cargando clientes:", err.message);
+      }
+    };
+    
+    const fetchPrecios = async () => {
+      try {
+        const respListas = await api("/api/v1/precios/listas");
+        if (respListas?.ok) setListasPrecios(respListas.listas || []);
+        
+        const respDolar = await api("/api/v1/precios/dolar");
+        if (respDolar?.ok && respDolar.dolares?.length > 0) {
+           const oficial = respDolar.dolares.find(d => d.nombre === "Oficial") || respDolar.dolares[0];
+           setDolarOficial(oficial.venta || 1);
+        }
+      } catch (err) {
+        console.error("Error cargando precios:", err.message);
+      }
+    };
+    
     fetchProductos();
+    fetchClientes();
+    fetchPrecios();
   }, []);
+
+  const calcPrecioFinal = (prodOriginal, clienteId) => {
+    if (!prodOriginal) return 0;
+    
+    let precio = prodOriginal.precio;
+    
+    // 1. Si el producto está en USD, pasarlo a ARS según cotización del día
+    if (prodOriginal.moneda === 'USD') {
+      precio = precio * dolarOficial;
+    }
+    
+    // 2. Aplicar recargo/descuento de la lista de precios del cliente
+    if (clienteId) {
+      const cli = clientesDisponibles.find(c => c.id_cliente === clienteId);
+      if (cli && cli.lista_precios_id) {
+        const lista = listasPrecios.find(l => l.id_lista === cli.lista_precios_id);
+        if (lista) {
+          const variacion = 1 + (Number(lista.porcentaje_variacion) / 100);
+          precio = precio * variacion;
+        }
+      }
+    }
+    
+    return precio;
+  };
+
+  useEffect(() => {
+    if (!productosDisponibles.length) return;
+    
+    setVentas(prev => {
+      let changed = false;
+      const next = prev.map(v => {
+        const prodOriginal = productosDisponibles.find(p => p.id_producto === v.id_producto);
+        if (!prodOriginal) return v;
+        
+        const nuevoPrecio = calcPrecioFinal(prodOriginal, formData.id_cliente);
+        if (Math.abs(v.precio - nuevoPrecio) < 0.01) return v;
+        
+        changed = true;
+        return {
+          ...v,
+          precio: nuevoPrecio,
+          precio_unitario: nuevoPrecio,
+          subtotal: calcSubtotal(v.cantidad, nuevoPrecio, v.descuento)
+        };
+      });
+      return changed ? next : prev;
+    });
+    
+    setFormData(prev => {
+      if (!prev.producto) return prev;
+      const prodOriginal = productosDisponibles.find(p => p.nombre === prev.producto);
+      if (!prodOriginal) return prev;
+      
+      const nuevoPrecio = calcPrecioFinal(prodOriginal, prev.id_cliente);
+      if (Math.abs(prev.precio - nuevoPrecio) < 0.01) return prev;
+      
+      return {
+        ...prev,
+        precio: nuevoPrecio,
+        subtotal: calcSubtotal(prev.cantidad, nuevoPrecio, prev.descuento)
+      };
+    });
+  }, [formData.id_cliente, productosDisponibles, listasPrecios, dolarOficial, clientesDisponibles]);
 
 
   const handleChange = (name, value) => {
@@ -160,12 +259,14 @@ export default function RegistrarVentas() {
       const prod = productosDisponibles.find((p) => p.nombre === value);
       if (!prod) return;
 
+      const calcPrecio = calcPrecioFinal(prod, formData.id_cliente);
+
       setFormData((prev) => ({
         ...prev,
         producto: value,
-        tipo: prod.tipoVenta === "Caja" ? "Caja" : "Material",
-        precio: prod.precio || "",
-        subtotal: calcSubtotal(prev.cantidad, prod.precio, prev.descuento),
+        tipo: prod.tipoVenta,
+        precio: calcPrecio || "",
+        subtotal: calcSubtotal(prev.cantidad, calcPrecio, prev.descuento),
       }));
       return;
     }
@@ -267,6 +368,7 @@ export default function RegistrarVentas() {
         body: JSON.stringify({
           productos: ventas,
           observaciones: formData.observaciones || null,
+          id_cliente: formData.id_cliente,
         }),
       });
 
@@ -356,6 +458,7 @@ export default function RegistrarVentas() {
         body: JSON.stringify({
           ventas: ventas,
           observaciones: formData.observaciones,
+          id_cliente: formData.id_cliente,
         }),
       });
 
@@ -467,7 +570,7 @@ export default function RegistrarVentas() {
           <div className="min-w-[140px] flex flex-wrap justify-center items-center gap-2">
             <button
               onClick={() => handleEditar(row, i)}
-              className="bg-[#154734] text-white px-3 py-1 text-xs rounded-md hover:bg-[#1E5A3E]"
+              className="bg-[#0b1a38] text-white px-3 py-1 text-xs rounded-md hover:bg-[#173070]"
             >
               MODIFICAR
             </button>
@@ -494,7 +597,7 @@ export default function RegistrarVentas() {
         id_producto: row.id_producto,
         nombre: row.referencia,
         precio: Number(row.precio) || 0,
-        tipoVenta: row.tipo === "Caja" ? "Caja" : "Material",
+        tipoVenta: row.tipo,
       };
 
       setProductosDisponibles((prev) => [...prev, nuevoProducto]);
@@ -526,9 +629,30 @@ export default function RegistrarVentas() {
 
         <div className="flex-1 flex flex-col">
           <div className="bg-[#f7fbf8] border border-[#e2ede8] rounded-2xl p-4 mb-4 flex-shrink-0">
-            <h2 className="text-[#154734] text-base font-semibold mb-3">
+            <h2 className="text-[#0b1a38] text-base font-semibold mb-3">
               Datos de la venta
             </h2>
+
+            <div className="mb-4 max-w-[400px]">
+              <label className="block text-sm text-slate-700 mb-1">
+                Cliente (Opcional)
+              </label>
+              <div className="flex gap-2">
+                <ClienteSelect
+                  clientes={clientesDisponibles}
+                  value={clientesDisponibles.find(c => c.id_cliente === formData.id_cliente) || null}
+                  onChange={(c) => setFormData(prev => ({ ...prev, id_cliente: c?.id_cliente || null, cliente_nombre: c?.razon_social || "" }))}
+                />
+                {formData.id_cliente && (
+                   <button 
+                     onClick={() => setFormData(prev => ({...prev, id_cliente: null, cliente_nombre: ""}))}
+                     className="text-xs text-red-500 hover:text-red-700 font-semibold px-2 border border-red-200 bg-red-50 rounded"
+                   >
+                     Quitar
+                   </button>
+                )}
+              </div>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-[0.5fr_0.2fr] gap-4 mb-4 max-w-[700px]">
               <div>
@@ -633,7 +757,7 @@ export default function RegistrarVentas() {
               <div className="flex flex-col md:flex-row gap-2 md:col-span-2">
                 <button
                   onClick={handleAgregarProducto}
-                  className="bg-[#154734] text-white px-4 py-2 rounded-md hover:bg-[#103a2b] transition w-full"
+                  className="bg-[#0b1a38] text-white px-4 py-2 rounded-md hover:bg-[#102354] transition w-full"
                 >
                   + Añadir
                 </button>
@@ -641,7 +765,7 @@ export default function RegistrarVentas() {
                 <button
                   type="button"
                   onClick={() => setNewOpen(true)}
-                  className="rounded-md border border-[#154734] text-[#154734] px-4 py-2 hover:bg-[#e8f4ef] transition w-full"
+                  className="rounded-md border border-[#0b1a38] text-[#0b1a38] px-4 py-2 hover:bg-[#f0f5ff] transition w-full"
                 >
                   + Nuevo
                 </button>
@@ -649,11 +773,11 @@ export default function RegistrarVentas() {
             </div>
           </div>
 
-          <h3 className="text-[#154734] text-sm font-semibold mb-2">
+          <h3 className="text-[#0b1a38] text-sm font-semibold mb-2">
             Productos registrados
           </h3>
 
-          <div className="flex-1 min-h-[150px] rounded-t-xl border-t border-[#e3e9e5]">
+          <div className="flex-1 min-h-[150px] rounded-t-xl border-t border-[#dce8fd]">
             {/* Desktop Table */}
             <div className="hidden md:block">
               <DataTable
@@ -661,7 +785,7 @@ export default function RegistrarVentas() {
                 data={ventasConObservacion}
                 stickyHeader={true}
                 cellClass="px-4 py-2"
-                wrapperClass="dn-table-wrapper overflow-y-auto"
+                wrapperClass="hp-table-wrapper overflow-y-auto"
                 enablePagination={true}
               />
             </div>
@@ -677,10 +801,10 @@ export default function RegistrarVentas() {
                   <div key={i} className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm">
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <p className="font-bold text-[#154734]">{row.producto}</p>
+                        <p className="font-bold text-[#0b1a38]">{row.producto}</p>
                         <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{row.tipo}</span>
                       </div>
-                      <p className="font-bold text-[#154734] text-lg">
+                      <p className="font-bold text-[#0b1a38] text-lg">
                         ${Number(row.subtotal).toLocaleString("es-AR")}
                       </p>
                     </div>
@@ -694,7 +818,7 @@ export default function RegistrarVentas() {
                     <div className="flex gap-2 mt-2">
                       <button
                         onClick={() => handleEditar(row, i)}
-                        className="flex-1 bg-[#154734] text-white text-xs py-2 rounded hover:bg-[#1E5A3E]"
+                        className="flex-1 bg-[#0b1a38] text-white text-xs py-2 rounded hover:bg-[#173070]"
                       >
                         MODIFICAR
                       </button>
@@ -712,13 +836,13 @@ export default function RegistrarVentas() {
           </div>
 
           {ventas.length > 0 && (
-            <div className="flex flex-col md:flex-row justify-between items-center text-[#154734] text-sm mt-3 mb-1 flex-shrink-0 gap-2">
+            <div className="flex flex-col md:flex-row justify-between items-center text-[#0b1a38] text-sm mt-3 mb-1 flex-shrink-0 gap-2">
               <div className="text-center md:text-left">
                 Subtotales: Cajas: {cantidadCajas} u — ${subtotalCajas.toLocaleString("es-AR")}
                 <br className="md:hidden" />
                 &nbsp;&nbsp;Materiales: {cantidadProductos} kg — ${subtotalProductos.toLocaleString("es-AR")}
               </div>
-              <p className="text-[#154734] font-semibold border border-[#e2ede8] bg-[#e8f4ef] px-3 py-1 rounded-md w-full md:w-auto text-center">
+              <p className="text-[#0b1a38] font-semibold border border-[#e2ede8] bg-[#f0f5ff] px-3 py-1 rounded-md w-full md:w-auto text-center">
                 Total venta:&nbsp;
                 <span className="font-bold">
                   ${totalVenta.toLocaleString("es-AR")}
@@ -732,14 +856,14 @@ export default function RegistrarVentas() {
         <div className="flex flex-wrap justify-center gap-3 mt-4 pb-2">
           <button
             onClick={handleCancelClick}
-            className="border border-[#154734] text-[#154734] px-6 py-2 rounded-md hover:bg-[#f0f7f3] transition w-full sm:w-auto"
+            className="border border-[#0b1a38] text-[#0b1a38] px-6 py-2 rounded-md hover:bg-[#f0f7f3] transition w-full sm:w-auto"
           >
             CANCELAR
           </button>
 
           <button
             onClick={isEditMode ? handleActualizarVenta : handleGuardarVenta}
-            className="bg-[#154734] text-white px-6 py-2 rounded-lg hover:bg-[#103a2b] transition w-full sm:w-auto"
+            className="bg-[#0b1a38] text-white px-6 py-2 rounded-lg hover:bg-[#102354] transition w-full sm:w-auto"
           >
             {isEditMode ? "ACTUALIZAR VENTA" : "GUARDAR"}
           </button>
@@ -756,7 +880,7 @@ export default function RegistrarVentas() {
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setItemDeleteConfirmOpen(false)}
-                className="rounded-md border border-[#154734] text-[#154734] px-4 py-2 hover:bg-[#e8f4ef]"
+                className="rounded-md border border-[#0b1a38] text-[#0b1a38] px-4 py-2 hover:bg-[#f0f5ff]"
               >
                 Cancelar
               </button>
@@ -849,7 +973,7 @@ export default function RegistrarVentas() {
                   if (messageModal.type === "success") navigate("/ventas");
                 }}
                 className={`px-4 py-2 rounded-md font-semibold text-white transition ${messageModal.type === "success"
-                    ? "bg-emerald-700 hover:bg-emerald-800"
+                    ? "bg-[#1e408f] hover:bg-[#102354]"
                     : "bg-red-700 hover:bg-red-800"
                   }`}
               >

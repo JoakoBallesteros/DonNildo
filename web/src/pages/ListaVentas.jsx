@@ -308,6 +308,14 @@ export default function Ventas() {
       sortable: true,
     },
     {
+      id: "cliente",
+      header: "Cliente",
+      accessor: "cliente_nombre",
+      align: "center",
+      sortable: true,
+      render: (row) => row.cliente_nombre || "Consumidor Final",
+    },
+    {
       id: "tipo",
       header: "Tipo",
       align: "center",
@@ -347,7 +355,7 @@ export default function Ventas() {
       render: (row) => (
         <button
           onClick={() => handleVerDetalle(row)}
-          className="border border-[#d8e4df] rounded-md px-4 py-1.5 text-[#154734] hover:bg-[#e8f4ef] transition"
+          className="border border-[#dce8fd] rounded-md px-4 py-1.5 text-[#0b1a38] hover:bg-[#f0f5ff] transition"
         >
           Ver detalle
         </button>
@@ -375,7 +383,7 @@ export default function Ventas() {
           <div className="flex flex-wrap justify-center items-center gap-2">
             <button
               onClick={() => handleModificar(row)}
-              className="bg-[#154734] text-white px-4 py-1.5 text-xs rounded-md hover:bg-[#1E5A3E]"
+              className="bg-[#0b1a38] text-white px-4 py-1.5 text-xs rounded-md hover:bg-[#173070]"
             >
               MODIFICAR
             </button>
@@ -387,10 +395,10 @@ export default function Ventas() {
             </button>
             <button
               onClick={() => handleDownloadRemitoVenta(row)}
-              className="p-1 border border-[#d8e4df] rounded-md hover:bg-[#f7faf9] flex items-center justify-center"
+              className="p-1 border border-[#dce8fd] rounded-md hover:bg-[#f0f5ff] flex items-center justify-center"
               title="Descargar remito"
             >
-              <Download className="w-4 h-4 text-[#154734]" />
+              <Download className="w-4 h-4 text-[#0b1a38]" />
             </button>
           </div>
         );
@@ -437,8 +445,8 @@ export default function Ventas() {
             }}
             className={
               isActive
-                ? "bg-[#154734] text-white px-4 py-1.5 rounded-md text-sm"
-                : "border border-[#154734] text-[#154734] px-4 py-1.5 rounded-md text-sm hover:bg-[#e8f4ef]"
+                ? "bg-[#0b1a38] text-white px-4 py-1.5 rounded-md text-sm"
+                : "border border-[#0b1a38] text-[#0b1a38] px-4 py-1.5 rounded-md text-sm hover:bg-[#f0f5ff]"
             }
           >
             {isActive ? "Viendo" : "Ver detalle"}
@@ -464,7 +472,7 @@ export default function Ventas() {
           className={`px-3 py-1.5 rounded-md border text-sm 
           ${selected.includes(Number(r.id_remito))
               ? "bg-[#0f7a4e] text-white hover:bg-[#0d6843]"
-              : "border-[#154734] text-[#154734] hover:bg-[#e8f4ef]"
+              : "border-[#0b1a38] text-[#0b1a38] hover:bg-[#f0f5ff]"
             }`}
         >
           {selected.includes(Number(r.id_remito))
@@ -483,7 +491,7 @@ export default function Ventas() {
       actions={
         <button
           onClick={() => navigate("/ventas/nueva")}
-          className="flex items-center gap-2 bg-[#154734] text-white px-4 py-2 rounded-md hover:bg-[#103a2b] transition"
+          className="flex items-center gap-2 bg-[#0b1a38] text-white px-4 py-2 rounded-md hover:bg-[#102354] transition"
         >
           <Plus size={16} /> Añadir nueva venta
         </button>
@@ -515,7 +523,7 @@ export default function Ventas() {
         applyButton={(props) => (
           <button
             {...props}
-            className="flex items-center gap-2 bg-[#154734] text-white px-4 py-2 rounded-md hover:bg-[#103a2b] transition"
+            className="flex items-center gap-2 bg-[#0b1a38] text-white px-4 py-2 rounded-md hover:bg-[#102354] transition"
           >
             <Filter size={16} /> Aplicar Filtros
           </button>
@@ -525,14 +533,14 @@ export default function Ventas() {
       <div className="flex justify-end mb-4 gap-3">
         <button
           onClick={openRemitos}
-          className="flex items-center gap-2 border border-[#154734] text-[#154734] px-3 py-1 rounded-md hover:bg-[#e8f4ef] transition"
+          className="flex items-center gap-2 border border-[#0b1a38] text-[#0b1a38] px-3 py-1 rounded-md hover:bg-[#f0f5ff] transition"
         >
           Ver remitos
         </button>
 
         <button
           onClick={() => setMostrarAnuladas((prev) => !prev)}
-          className="border border-[#154734] text-[#154734] px-3 py-1 rounded-md hover:bg-[#e8f4ef] transition"
+          className="border border-[#0b1a38] text-[#0b1a38] px-3 py-1 rounded-md hover:bg-[#f0f5ff] transition"
         >
           {mostrarAnuladas ? "Ocultar anuladas" : "Ver anuladas"}
         </button>
@@ -550,13 +558,13 @@ export default function Ventas() {
                 data={ventasFiltradas}
                 zebra={false}
                 stickyHeader={true}
-                wrapperClass="dn-table-wrapper overflow-y-auto shadow-sm"
+                wrapperClass="hp-table-wrapper overflow-y-auto shadow-sm"
                 tableClass="w-full text-sm text-center border-collapse"
-                theadClass="bg-[#e8f4ef] text-[#154734]"
+                theadClass="bg-[#f0f5ff] text-[#0b1a38]"
                 rowClass={(row) =>
-                  `border-t border-[#edf2ef] ${row.estado === "ANULADO"
+                  `border-t border-[#e2e8f0] ${row.estado === "ANULADO"
                     ? "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                    : "bg-white hover:bg-[#f6faf7]"
+                    : "bg-white hover:bg-[#f0f5ff]"
                   }`
                 }
                 headerClass="px-4 py-3 font-semibold text-center"
@@ -586,15 +594,16 @@ export default function Ventas() {
                 return (
                   <div
                     key={row.id_venta}
-                    className={`border rounded-lg p-3 shadow-sm ${isAnulada ? "bg-gray-100 border-gray-200" : "bg-white border-[#e3e9e5]"
+                    className={`border rounded-lg p-3 shadow-sm ${isAnulada ? "bg-gray-100 border-gray-200" : "bg-white border-[#dce8fd]"
                       }`}
                   >
                     {/* Cabecera: ID y Fecha */}
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex flex-col">
-                        <span className="text-xs font-bold text-[#154734] bg-[#e8f4ef] px-2 py-0.5 rounded w-fit">
+                        <span className="text-xs font-bold text-[#0b1a38] bg-[#f0f5ff] px-2 py-0.5 rounded w-fit mb-1">
                           #{row.id_venta}
                         </span>
+                        <span className="text-sm font-semibold text-[#0b1a38]">{row.cliente_nombre || "Consumidor Final"}</span>
                         <span className="text-xs text-gray-500 mt-1">{formattedDate}</span>
                       </div>
                       <div className="text-right">
@@ -603,7 +612,7 @@ export default function Ventas() {
                             Anulada
                           </span>
                         ) : (
-                          <span className="text-lg font-bold text-[#154734]">
+                          <span className="text-lg font-bold text-[#0b1a38]">
                             {formattedTotal}
                           </span>
                         )}
@@ -635,19 +644,19 @@ export default function Ventas() {
                       <div className="flex gap-2 mt-2 pt-2 border-t border-gray-100">
                         <button
                           onClick={() => handleVerDetalle(row)}
-                          className="flex-1 text-xs text-[#154734] font-medium py-2 bg-gray-50 rounded hover:bg-gray-100"
+                          className="flex-1 text-xs text-[#0b1a38] font-medium py-2 bg-gray-50 rounded hover:bg-gray-100"
                         >
                           Detalle
                         </button>
                         <button
                           onClick={() => handleModificar(row)}
-                          className="flex-1 text-xs text-[#154734] font-medium py-2 bg-gray-50 rounded hover:bg-gray-100"
+                          className="flex-1 text-xs text-[#0b1a38] font-medium py-2 bg-gray-50 rounded hover:bg-gray-100"
                         >
                           Editar
                         </button>
                         <button
                           onClick={() => handleDownloadRemitoVenta(row)}
-                          className="w-10 flex items-center justify-center text-[#154734] bg-gray-50 rounded hover:bg-gray-100"
+                          className="w-10 flex items-center justify-center text-[#0b1a38] bg-gray-50 rounded hover:bg-gray-100"
                           title="Descargar Remito"
                         >
                           <Download className="w-4 h-4" />
@@ -766,7 +775,7 @@ export default function Ventas() {
                 })
               }
               className={`px-4 py-2 rounded-md font-semibold text-white transition ${messageModal.type === "success"
-                ? "bg-emerald-700 hover:bg-emerald-800"
+                ? "bg-[#1e408f] hover:bg-[#102354]"
                 : "bg-red-700 hover:bg-red-800"
                 }`}
             >
@@ -799,7 +808,7 @@ export default function Ventas() {
                 stickyHeader={true}
                 enableSort={true}
                 enablePagination={false}
-                wrapperClass="dn-table-wrapper-sm overflow-y-auto"
+                wrapperClass="hp-table-wrapper-sm overflow-y-auto"
               />
             </div>
 
@@ -812,10 +821,10 @@ export default function Ventas() {
                 // Determine if selected
                 const isSelected = selected.includes(Number(remito.id_remito));
                 return (
-                  <div key={remito.id_remito} className={`bg-white border rounded-lg p-3 shadow-sm ${isSelected ? 'border-emerald-500 ring-1 ring-emerald-500' : 'border-slate-200'}`}>
+                  <div key={remito.id_remito} className={`bg-white border rounded-lg p-3 shadow-sm ${isSelected ? 'border-[#3a6fd4] ring-1 ring-[#3a6fd4]' : 'border-slate-200'}`}>
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <p className="font-bold text-[#154734]">Remito: {remito.id_remito}</p>
+                        <p className="font-bold text-[#0b1a38]">Remito: {remito.id_remito}</p>
                         <span className="text-xs text-gray-600">Venta: {remito.id_venta}</span>
                       </div>
                       <span className="text-sm font-semibold">{formatFecha(remito.fecha)}</span>
@@ -833,8 +842,8 @@ export default function Ventas() {
                           }
                         }}
                         className={`flex-1 px-2 py-1.5 rounded text-xs transition ${remitoSel?.id_remito === remito.id_remito
-                            ? "bg-[#154734] text-white hover:bg-[#103a2b]"
-                            : "text-[#154734] border border-[#154734] hover:bg-[#e8f4ef]"
+                            ? "bg-[#0b1a38] text-white hover:bg-[#102354]"
+                            : "text-[#0b1a38] border border-[#0b1a38] hover:bg-[#f0f5ff]"
                           }`}
                       >
                         {remitoSel?.id_remito === remito.id_remito ? "Viendo" : "Ver detalle"}
@@ -848,7 +857,7 @@ export default function Ventas() {
                             setSelected((prev) => [...prev, id]);
                           }
                         }}
-                        className={`flex-1 px-2 py-1.5 rounded text-xs text-white transition ${isSelected ? 'bg-red-600 hover:bg-red-700' : 'bg-[#154734] hover:bg-[#103a2b]'}`}
+                        className={`flex-1 px-2 py-1.5 rounded text-xs text-white transition ${isSelected ? 'bg-red-600 hover:bg-red-700' : 'bg-[#0b1a38] hover:bg-[#102354]'}`}
                       >
                         {isSelected ? "Deseleccionar" : "Seleccionar"}
                       </button>
@@ -871,7 +880,7 @@ export default function Ventas() {
                   setCheckAll(false);
                 }
               }}
-              className="text-[#154734] border border-[#154734] px-4 py-2 rounded-md text-sm hover:bg-[#e8f4ef]"
+              className="text-[#0b1a38] border border-[#0b1a38] px-4 py-2 rounded-md text-sm hover:bg-[#f0f5ff]"
             >
               {selected.length === remitos.length && remitos.length > 0
                 ? "Deseleccionar todos"
@@ -890,7 +899,7 @@ export default function Ventas() {
 
           {remitoSel && (
             <div className="mt-6 border-t pt-4">
-              <h4 className="font-bold text-[#154734] mb-3">
+              <h4 className="font-bold text-[#0b1a38] mb-3">
                 Detalle del Remito N° {remitoSel.id_remito}
               </h4>
               <div className="grid grid-cols-2 gap-4 text-sm mb-4 bg-gray-50 p-3 rounded">
@@ -923,7 +932,7 @@ export default function Ventas() {
 
               <div className="overflow-x-auto border rounded-lg">
                 <table className="w-full text-sm text-left">
-                  <thead className="bg-[#e8f4ef] text-[#154734]">
+                  <thead className="bg-[#f0f5ff] text-[#0b1a38]">
                     <tr>
                       <th className="px-4 py-2 font-semibold">Producto</th>
                       <th className="px-4 py-2 font-semibold text-center">

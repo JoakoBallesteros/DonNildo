@@ -1,7 +1,7 @@
 {
-  "name": "dn-api",
+  "name": "hydropack-api",
   "version": "1.0.0",
-  "description": "API del proyecto Don Nildo (Express + Postgres + ESM)",
+  "description": "API del proyecto HydroPack (Express + Postgres + ESM)",
   "main": "src/server.mjs",
   "type": "module",
   "scripts": {

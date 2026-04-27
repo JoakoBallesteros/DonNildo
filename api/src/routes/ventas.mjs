@@ -22,7 +22,12 @@ router.get("/", async (req, res) => {
     else if (only === "anuladas") estadoFiltro = "ANULADO";
     else if (estado) estadoFiltro = estado;
 
-    const query = `SELECT * FROM listar_ventas_optimizada($1);`;
+    const query = `
+      SELECT lv.*, v.id_cliente, c.razon_social as cliente_nombre 
+      FROM listar_ventas_optimizada($1) lv
+      JOIN venta v ON lv.id_venta = v.id_venta
+      LEFT JOIN clientes c ON v.id_cliente = c.id_cliente
+    `;
     const { rows: ventas } = await pool.query(query, [estadoFiltro]);
 
     res.json(ventas);
@@ -49,7 +54,8 @@ router.get("/:id", requireAuth, async (req, res) => {
         v.id_venta,
         v.fecha,
         v.total,
-        v.observaciones
+        v.observaciones,
+        v.id_cliente
       FROM venta v
       WHERE v.id_venta = $1
       LIMIT 1;
@@ -110,7 +116,7 @@ router.get("/:id", requireAuth, async (req, res) => {
 // ====================
 router.put("/:id", requireAuth, async (req, res) => {
   const id = Number(req.params.id);
-  const { productos, observaciones = null } = req.body;
+  const { productos, observaciones = null, id_cliente = null } = req.body;
 
   if (!id) return res.status(400).json({ error: "Falta id de venta." });
   if (!Array.isArray(productos) || productos.length === 0) {
@@ -128,6 +134,10 @@ router.put("/:id", requireAuth, async (req, res) => {
     `;
 
     const { rows } = await pool.query(query, [id, observaciones, itemsJsonb]);
+
+    if (id_cliente !== undefined) {
+      await pool.query(`UPDATE venta SET id_cliente = $1 WHERE id_venta = $2`, [id_cliente, id]);
+    }
 
     // Auditoría (Usuario NULL si no hay token)
     const userId = await getUserIdFromToken(req.accessToken);
@@ -242,8 +252,7 @@ router.put("/:id/anular", requireAuth, async (req, res) => {
 // 4️⃣ REGISTRAR VENTA (PROTEGIDO - SIN ID_CLIENTE)
 // ====================
 router.post("/", requireAuth, async (req, res) => {
-  // 💡 Eliminamos id_cliente del body
-  const { ventas: productos, observaciones } = req.body;
+  const { ventas: productos, observaciones, id_cliente = null } = req.body;
 
   if (!Array.isArray(productos) || productos.length === 0) {
     return res.status(400).json({ error: "Faltan productos." });
@@ -261,8 +270,13 @@ router.post("/", requireAuth, async (req, res) => {
     // 💡 Pasamos solo [json, observaciones]
     const { rows } = await pool.query(query, [productosJsonb, observaciones]);
 
-    // Auditoría
     const idVenta = rows[0].id_venta_ret;
+
+    if (id_cliente !== undefined) {
+      await pool.query(`UPDATE venta SET id_cliente = $1 WHERE id_venta = $2`, [id_cliente, idVenta]);
+    }
+
+    // Auditoría
     const userId = await getUserIdFromToken(req.accessToken);
 
     registrarAuditoria(

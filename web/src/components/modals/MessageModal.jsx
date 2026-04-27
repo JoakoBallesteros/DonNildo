@@ -14,7 +14,7 @@ export default function MessageModal({
   cancelText = "Cancelar",
 }) {
   const colors = {
-    success: "text-green-700",
+    success: "text-[var(--hp-cyan-500)]",
     error: "text-red-700",
     warning: "text-yellow-700",
   };
@@ -50,7 +50,7 @@ export default function MessageModal({
           <div className="flex justify-end">
             <button
               onClick={onClose}
-              className="bg-[#154734] text-white px-4 py-2 rounded-xl hover:bg-[#103a2b]"
+              className="bg-[#0b1a38] text-white px-4 py-2 rounded-xl hover:bg-[#102354]"
             >
               Aceptar
             </button>

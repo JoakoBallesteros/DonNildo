@@ -58,20 +58,20 @@ export default function LoginForm() {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col w-full">
       {/* USUARIO */}
-      <label className="text-left text-sm text-[#154734] font-medium mb-1">
+      <label className="text-left text-sm text-[#0b1a38] font-medium mb-1">
         Usuario
       </label>
       <input
         type="email"
         placeholder="ej: usuario@empresa.com"
         autoComplete="email"
-        className="w-full px-3 py-2 mb-4 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#154734]"
+        className="w-full px-3 py-2 mb-4 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#1e3a6e]"
         value={mail}
         onChange={(e) => setMail(e.target.value)}
       />
 
       {/* CONTRASEÑA */}
-      <label className="text-left text-sm text-[#154734] font-medium mb-1">
+      <label className="text-left text-sm text-[#0b1a38] font-medium mb-1">
         Contraseña
       </label>
       <div className="relative mb-4">
@@ -79,7 +79,7 @@ export default function LoginForm() {
           type={showPassword ? "text" : "password"}
           placeholder="Contraseña"
           autoComplete="current-password"
-          className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#154734] pr-10"
+          className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#1e3a6e] pr-10"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
@@ -131,28 +131,28 @@ export default function LoginForm() {
         <label className="flex items-center gap-1 text-gray-600">
           <input
             type="checkbox"
-            className="accent-[#154734]"
+            className="accent-[#1e3a6e]"
             checked={rememberMe}
             onChange={(e) => setRememberMe(e.target.checked)}
           />
           Recordarme
         </label>
 
-        <Link to="/forgot" className="text-[#154734] hover:underline">
+        <Link to="/forgot" className="text-[#1e3a6e] hover:underline">
           Olvidé mi contraseña
         </Link>
       </div>
 
       
       {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
-      {success && <p className="text-green-600 text-sm mb-4">{success}</p>}
+      {success && <p className="text-[#06b6d4] text-sm mb-4">{success}</p>}
 
       
       <button
         type="submit"
         disabled={loading}
-        className={`bg-[#154734] text-white font-semibold py-2 rounded-md transition w-full ${
-          loading ? "opacity-75 cursor-not-allowed" : "hover:bg-[#2c865c]"
+        className={`bg-[#0b1a38] text-white font-semibold py-2 rounded-md transition w-full ${
+          loading ? "opacity-75 cursor-not-allowed" : "hover:bg-[#1e3a6e]"
         }`}
       >
         {loading ? "Iniciando sesión..." : "Iniciar sesión"}

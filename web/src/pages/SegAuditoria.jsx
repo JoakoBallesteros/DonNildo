@@ -198,52 +198,52 @@ export default function SegAuditoria() {
   return (
     <PageContainer title="Auditoría del Sistema">
       {/* Filtros superiores */}
-      <div className="bg-white rounded-2xl border border-[#e3e9e5] p-4 md:p-6 mb-5">
+      <div className="bg-white rounded-2xl border border-[#dce8fd] p-4 md:p-6 mb-5">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="text-sm font-semibold text-[#154734] mb-1 block">
+            <label className="text-sm font-semibold text-[#0b1a38] mb-1 block">
               Buscar
             </label>
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Usuario, evento o descripción…"
-              className="w-full border border-[#d8e4df] rounded-md px-3 py-2"
+              className="w-full border border-[#dce8fd] rounded-md px-3 py-2"
             />
           </div>
           <div className="grid grid-cols-2 gap-2 md:block">
             <div className="md:mb-0">
-              <label className="text-sm font-semibold text-[#154734] mb-1 block">
+              <label className="text-sm font-semibold text-[#0b1a38] mb-1 block">
                 Desde
               </label>
               <input
                 type="date"
                 value={desde}
                 onChange={(e) => setDesde(e.target.value)}
-                className="w-full border border-[#d8e4df] rounded-md px-3 py-2"
+                className="w-full border border-[#dce8fd] rounded-md px-3 py-2"
               />
             </div>
             <div className="md:hidden">
-              <label className="text-sm font-semibold text-[#154734] mb-1 block">
+              <label className="text-sm font-semibold text-[#0b1a38] mb-1 block">
                 Hasta
               </label>
               <input
                 type="date"
                 value={hasta}
                 onChange={(e) => setHasta(e.target.value)}
-                className="w-full border border-[#d8e4df] rounded-md px-3 py-2"
+                className="w-full border border-[#dce8fd] rounded-md px-3 py-2"
               />
             </div>
           </div>
           <div className="hidden md:block">
-            <label className="text-sm font-semibold text-[#154734] mb-1 block">
+            <label className="text-sm font-semibold text-[#0b1a38] mb-1 block">
               Hasta
             </label>
             <input
               type="date"
               value={hasta}
               onChange={(e) => setHasta(e.target.value)}
-              className="w-full border border-[#d8e4df] rounded-md px-3 py-2"
+              className="w-full border border-[#dce8fd] rounded-md px-3 py-2"
             />
           </div>
         </div>
@@ -256,8 +256,8 @@ export default function SegAuditoria() {
               type="button"
               onClick={() => handleSetTab(t)}
               className={`px-3 py-1.5 rounded-full text-xs md:text-sm font-medium transition ${tab === t
-                  ? "bg-[#154734] text-white"
-                  : "bg-[#e8f4ef] text-[#154734] hover:bg-[#dbeee6]"
+                  ? "bg-[#0b1a38] text-white"
+                  : "bg-[#f0f5ff] text-[#0b1a38] hover:bg-[#dbeee6]"
                 }`}
             >
               {t}
@@ -284,12 +284,12 @@ export default function SegAuditoria() {
               enableSort
               enablePagination={true}
               pageSize={10}
-              wrapperClass="dn-table-wrapper overflow-y-auto"
+              wrapperClass="hp-table-wrapper overflow-y-auto"
               tableClass="w-full text-sm border-collapse table-fixed"
-              theadClass="bg-[#e8f4ef] text-[#154734]"
-              rowClass="hover:bg-[#f6faf7] transition border-t border-[#edf2ef]"
-              headerClass="px-4 py-3 font-semibold border-r border-[#e3e9e5] last:border-none select-none text-center"
-              cellClass="px-4 py-3 border-r border-[#edf2ef] last:border-none align-top text-center"
+              theadClass="bg-[#f0f5ff] text-[#0b1a38]"
+              rowClass="hover:bg-[#f0f5ff] transition border-t border-[#e2e8f0]"
+              headerClass="px-4 py-3 font-semibold border-r border-[#dce8fd] last:border-none select-none text-center"
+              cellClass="px-4 py-3 border-r border-[#e2e8f0] last:border-none align-top text-center"
             />
           </div>
 
@@ -302,7 +302,7 @@ export default function SegAuditoria() {
               <div key={ev.id} className="bg-white border border-slate-200 p-4 rounded-lg shadow-sm">
                 <div className="flex justify-between items-start mb-2">
                   <span className={`text-xs font-bold px-2 py-1 rounded ${ev.modulo === "SEGURIDAD" ? "bg-red-100 text-red-800" :
-                      ev.modulo === "VENTAS" ? "bg-emerald-100 text-emerald-800" :
+                      ev.modulo === "VENTAS" ? "bg-[#f0f5ff] text-[#102354]" :
                         ev.modulo === "COMPRAS" ? "bg-blue-100 text-blue-800" :
                           "bg-gray-100 text-gray-800"
                     }`}>
@@ -310,7 +310,7 @@ export default function SegAuditoria() {
                   </span>
                   <span className="text-xs text-gray-400">{ev.fecha}</span>
                 </div>
-                <h4 className="font-bold text-[#154734] text-base mb-1">
+                <h4 className="font-bold text-[#0b1a38] text-base mb-1">
                   {ev.tipo}
                 </h4>
                 <p className="text-sm text-gray-600 mb-2 italic">
@@ -330,7 +330,7 @@ export default function SegAuditoria() {
                 <button
                   onClick={prevMobile}
                   disabled={mobilePage === 1}
-                  className={`px-4 py-2 rounded-lg border text-sm font-medium ${mobilePage === 1 ? "bg-slate-100 text-slate-400 border-slate-200" : "bg-white text-[#154734] border-[#154734]"
+                  className={`px-4 py-2 rounded-lg border text-sm font-medium ${mobilePage === 1 ? "bg-slate-100 text-slate-400 border-slate-200" : "bg-white text-[#0b1a38] border-[#0b1a38]"
                     }`}
                 >
                   Anterior
@@ -341,7 +341,7 @@ export default function SegAuditoria() {
                 <button
                   onClick={nextMobile}
                   disabled={mobilePage === maxMobilePages}
-                  className={`px-4 py-2 rounded-lg border text-sm font-medium ${mobilePage === maxMobilePages ? "bg-slate-100 text-slate-400 border-slate-200" : "bg-white text-[#154734] border-[#154734]"
+                  className={`px-4 py-2 rounded-lg border text-sm font-medium ${mobilePage === maxMobilePages ? "bg-slate-100 text-slate-400 border-slate-200" : "bg-white text-[#0b1a38] border-[#0b1a38]"
                     }`}
                 >
                   Siguiente

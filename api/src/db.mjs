@@ -7,7 +7,7 @@ const { Pool } = pg;
 // Construcción segura del connection string
 let cs = (process.env.DATABASE_URL || "").trim();
 if (cs && !/sslmode=/i.test(cs)) {
-  cs += (cs.includes("?") ? "&" : "?") + "sslmode=require";
+  cs += (cs.includes("?") ? "&" : "?") + "sslmode=no-verify";
 }
 
 export const pool = new Pool(

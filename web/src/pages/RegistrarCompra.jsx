@@ -119,7 +119,7 @@ export default function RegistrarCompra() {
             const categoria = p.categoria ?? p.categoria_nombre;
             const tipoDb = p.tipo ?? p.tipo_nombre;
 
-            const tipo = tipoDb ?? (categoria === "Cajas" ? "Cajas" : "Productos");
+            const tipo = tipoDb || "Desconocido";
 
             const medida = p.medida ?? p.unidad_stock ?? p.medida_simbolo ?? "u";
             const precioRef = p.precioRef ?? p.precio_unitario ?? 0;
@@ -452,21 +452,14 @@ export default function RegistrarCompra() {
     setEditRow(null);
   }
 
-  const subtotalCajas = items
-    .filter((v) => v.tipo === "Caja")
-    .reduce((a, v) => a + Number(v.subtotal), 0);
-
-  const subtotalProductos = items
-    .filter((v) => v.tipo === "Material")
-    .reduce((a, v) => a + Number(v.subtotal), 0);
-
-  const cantidadCajas = items
-    .filter((v) => v.tipo === "Caja")
-    .reduce((a, v) => a + Number(v.cantidad), 0);
-
-  const cantidadProductos = items
-    .filter((v) => v.tipo === "Material")
-    .reduce((a, v) => a + Number(v.cantidad), 0);
+  const totalesPorTipo = items.reduce((acc, v) => {
+    if (!acc[v.tipo]) {
+      acc[v.tipo] = { subtotal: 0, cantidad: 0 };
+    }
+    acc[v.tipo].subtotal += Number(v.subtotal) || 0;
+    acc[v.tipo].cantidad += Number(v.cantidad) || 0;
+    return acc;
+  }, {});
 
   const columns = [
     {
@@ -521,7 +514,7 @@ export default function RegistrarCompra() {
             <div className="flex flex-col gap-1">
               <button
                 onClick={() => abrirEditar(row)}
-                className="bg-[#154734] text-white px-3 py-1 text-xs rounded-md hover:bg-[#1E5A3E]"
+                className="bg-[#0b1a38] text-white px-3 py-1 text-xs rounded-md hover:bg-[#173070]"
               >
                 MODIFICAR
               </button>
@@ -542,7 +535,7 @@ export default function RegistrarCompra() {
     <PageContainer title={isEditMode ? "Modificar Compra" : "Registrar Compra"}>
       <div className="flex flex-col h-full">
         <div className="bg-[#f7fbf8] border border-[#e2ede8] rounded-2xl p-4 mb-4 flex-shrink-0">
-          <h2 className="text-[#154734] text-base font-semibold mb-3">
+          <h2 className="text-[#0b1a38] text-base font-semibold mb-3">
             Datos de la compra
           </h2>
 
@@ -563,7 +556,7 @@ export default function RegistrarCompra() {
 
             <div>
               <label className="block text-sm text-slate-700 mb-1">Tipo</label>
-              <div className="h-10 w-full rounded-xl border border-[#d8e4df] bg-gray-100 px-3 text-sm flex items-center">
+              <div className="h-10 w-full rounded-xl border border-[#dce8fd] bg-gray-100 px-3 text-sm flex items-center">
                 {producto ? producto.tipo : "—"}
               </div>
             </div>
@@ -681,11 +674,11 @@ export default function RegistrarCompra() {
           </div>
         </div>
 
-        <h3 className="text-[#154734] text-sm font-semibold mb-2">
+        <h3 className="text-[#0b1a38] text-sm font-semibold mb-2">
           Próximos a confirmar
         </h3>
 
-        <div className="flex-1 min-h-[150px] rounded-t-xl border-t border-[#e3e9e5]">
+        <div className="flex-1 min-h-[150px] rounded-t-xl border-t border-[#dce8fd]">
           {/* Desktop Table */}
           <div className="hidden md:block">
             <DataTable
@@ -709,10 +702,10 @@ export default function RegistrarCompra() {
                 <div key={row.id} className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm">
                   <div className="flex justify-between items-start mb-2">
                     <div>
-                      <p className="font-bold text-[#154734]">{row.producto}</p>
+                      <p className="font-bold text-[#0b1a38]">{row.producto}</p>
                       <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{row.tipo}</span>
                     </div>
-                    <p className="font-bold text-[#154734] text-lg">
+                    <p className="font-bold text-[#0b1a38] text-lg">
                       ${Number(row.subtotal).toLocaleString("es-AR")}
                     </p>
                   </div>
@@ -726,7 +719,7 @@ export default function RegistrarCompra() {
                   <div className="flex gap-2 mt-2">
                     <button
                       onClick={() => abrirEditar(row)}
-                      className="flex-1 bg-[#154734] text-white text-xs py-2 rounded hover:bg-[#1E5A3E]"
+                      className="flex-1 bg-[#0b1a38] text-white text-xs py-2 rounded hover:bg-[#173070]"
                     >
                       MODIFICAR
                     </button>
@@ -744,15 +737,18 @@ export default function RegistrarCompra() {
         </div>
 
         {items.length > 0 && (
-          <div className="flex flex-col md:flex-row justify-between items-center text-[#154734] text-sm mt-3 mb-1 flex-shrink-0 gap-2">
-            <div className="text-center md:text-left">
-              Subtotales: Cajas: {cantidadCajas} u — $
-              {subtotalCajas.toLocaleString("es-AR")}
-              <br className="md:hidden" />
-              &nbsp;&nbsp;Materiales: {cantidadProductos} kg — $
-              {subtotalProductos.toLocaleString("es-AR")}
+          <div className="flex flex-col md:flex-row justify-between items-center text-[#0b1a38] text-sm mt-3 mb-1 flex-shrink-0 gap-2">
+            <div className="text-center md:text-left text-xs text-gray-600 font-medium">
+              Subtotales: 
+              {Object.entries(totalesPorTipo).map(([tipo, vals], idx) => (
+                <span key={tipo}>
+                  {idx > 0 && <span className="hidden md:inline"> &nbsp;|&nbsp; </span>}
+                  {idx > 0 && <br className="md:hidden" />}
+                  {tipo}: {vals.cantidad} — ${vals.subtotal.toLocaleString("es-AR")}
+                </span>
+              ))}
             </div>
-            <p className="text-[#154734] font-semibold border border-[#e2ede8] bg-[#e8f4ef] px-3 py-1 rounded-md w-full md:w-auto text-center">
+            <p className="text-[#0b1a38] font-semibold border border-[#e2ede8] bg-[#f0f5ff] px-3 py-1 rounded-md w-full md:w-auto text-center">
               Total compra:&nbsp;
               <span className="font-bold">
                 ${totalCompra.toLocaleString("es-AR")}
@@ -765,7 +761,7 @@ export default function RegistrarCompra() {
           <button
             type="button"
             onClick={handleCancelClick}
-            className="w-full md:w-auto min-w-[160px] px-8 py-2.5 rounded-md border border-[#154734] text-[#154734] font-semibold hover:bg-[#e8f4ef] transition"
+            className="w-full md:w-auto min-w-[160px] px-8 py-2.5 rounded-md border border-[#0b1a38] text-[#0b1a38] font-semibold hover:bg-[#f0f5ff] transition"
           >
             CANCELAR
           </button>
@@ -773,7 +769,7 @@ export default function RegistrarCompra() {
           <button
             type="button"
             onClick={isEditMode ? handleActualizarCompra : handleGuardarCompra}
-            className="w-full md:w-auto min-w-[160px] px-8 py-2.5 rounded-md font-semibold text-white bg-[#154734] hover:bg-[#103a2b] transition"
+            className="w-full md:w-auto min-w-[160px] px-8 py-2.5 rounded-md font-semibold text-white bg-[#0b1a38] hover:bg-[#102354] transition"
           >
             {isEditMode ? "ACTUALIZAR COMPRA" : "GUARDAR"}
           </button>
@@ -841,7 +837,7 @@ export default function RegistrarCompra() {
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setItemDeleteConfirmOpen(false)}
-                className="rounded-md border border-[#154734] text-[#154734] px-4 py-2 hover:bg-[#e8f4ef]"
+                className="rounded-md border border-[#0b1a38] text-[#0b1a38] px-4 py-2 hover:bg-[#f0f5ff]"
               >
                 Cancelar
               </button>

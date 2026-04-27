@@ -26,6 +26,8 @@ import StockPesajesLista from "./pages/StockPesajeLista.jsx";
 
 import Ventas from "./pages/ListaVentas.jsx";
 import RegistrarVentas from "./pages/RegistrarVentas.jsx";
+import Clientes from "./pages/Clientes.jsx";
+import ListasPrecios from "./pages/ListasPrecios.jsx";
 
 import Reportes from "./pages/Reportes.jsx";
 
@@ -80,6 +82,8 @@ export default function App() {
               <Route index element={<Ventas />} />
               <Route path="nueva" element={<RegistrarVentas editMode={false} />} />
               <Route path="editar/:id" element={<RegistrarVentas editMode={true} />} />
+              <Route path="clientes" element={<Clientes />} />
+              <Route path="precios" element={<ListasPrecios />} />
             </Route>
 
             <Route

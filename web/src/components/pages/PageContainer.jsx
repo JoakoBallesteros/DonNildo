@@ -25,7 +25,7 @@ export default function PageContainer({
             noDivider ? "" : "pb-6"
           }`}
         >
-          <h2 className="text-3xl font-bold text-[#154734]">{title}</h2>
+          <h2 className="text-3xl font-bold text-[#0b1a38]">{title}</h2>
           <div className="flex gap-3">{actions}</div>
         </div>
 

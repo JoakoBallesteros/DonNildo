@@ -64,8 +64,9 @@ router.get(
             ON tm.id_tipo_movimiento = ms.id_tipo_movimiento
           JOIN productos p
             ON p.id_producto = ms.id_producto
+          JOIN tipo_producto tp ON tp.id_tipo_producto = p.id_tipo_producto
           WHERE tm.nombre = 'ENTRADA'
-            AND p.id_tipo_producto = 2
+            AND tp.unidad_stock != 'u'
             AND ms.fecha >= date_trunc(
                   'month',
                   (now() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date
@@ -102,19 +103,21 @@ router.get(
         pool.query(`
           SELECT
             p.nombre                               AS material,
-            COALESCE(SUM(ms.cantidad), 0)::numeric AS kilos
+            COALESCE(SUM(ms.cantidad), 0)::numeric AS kilos,
+            tp.unidad_stock                        AS unidad
           FROM movimientos_stock ms
           JOIN tipo_movimiento tm
             ON tm.id_tipo_movimiento = ms.id_tipo_movimiento
           JOIN productos p
             ON p.id_producto = ms.id_producto
+          JOIN tipo_producto tp ON tp.id_tipo_producto = p.id_tipo_producto
           WHERE tm.nombre = 'ENTRADA'
-            AND p.id_tipo_producto = 2
+            AND tp.unidad_stock != 'u'
             AND ms.fecha >= date_trunc(
                   'month',
                   (now() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date
                 )
-          GROUP BY p.nombre
+          GROUP BY p.nombre, tp.unidad_stock
           ORDER BY p.nombre
         `),
       ]);
@@ -171,20 +174,30 @@ router.get(
       const query = `
         SELECT 
           ${labelSQL} AS label,
-          SUM(CASE WHEN p.id_tipo_producto = 1 THEN d.subtotal ELSE 0 END)::numeric AS cajas,
-          SUM(CASE WHEN p.id_tipo_producto = 2 THEN d.subtotal ELSE 0 END)::numeric AS materiales
+          tp.nombre AS tipo,
+          SUM(d.subtotal)::numeric AS subtotal
         FROM ${tabla} x
         JOIN ${detalle} d ON d.${idDocumento} = x.${idDocumento}
         JOIN productos p ON p.id_producto = d.id_producto
+        JOIN tipo_producto tp ON tp.id_tipo_producto = p.id_tipo_producto
         LEFT JOIN estado e ON e.id_estado = x.id_estado
         WHERE x.fecha >= ${rangoSQL}
           AND (e.nombre = 'COMPLETADO' OR e.nombre IS NULL)
-        GROUP BY label
+        GROUP BY label, tp.nombre
         ORDER BY MIN(x.fecha);
       `;
 
       const { rows } = await pool.query(query);
-      res.json(rows);
+
+      const dataByLabel = {};
+      const tiposSet = new Set();
+      for (const row of rows) {
+         if (!dataByLabel[row.label]) dataByLabel[row.label] = { label: row.label };
+         dataByLabel[row.label][row.tipo] = parseFloat(row.subtotal);
+         tiposSet.add(row.tipo);
+      }
+
+      res.json({ data: Object.values(dataByLabel), tipos: Array.from(tiposSet) });
 
     } catch (error) {
       console.error("ERROR categoria:", error);
@@ -207,7 +220,8 @@ router.get(
           SELECT SUM(s.cantidad) AS total
           FROM stock s
           JOIN productos p ON p.id_producto = s.id_producto
-          WHERE p.id_tipo_producto = 2
+          JOIN tipo_producto tp ON tp.id_tipo_producto = p.id_tipo_producto
+          WHERE tp.unidad_stock != 'u'
         )
         SELECT 
           p.nombre AS material,
@@ -215,7 +229,8 @@ router.get(
           ROUND( (SUM(s.cantidad) / (SELECT total FROM total)) * 100 , 2 ) AS porcentaje
         FROM stock s
         JOIN productos p ON p.id_producto = s.id_producto
-        WHERE p.id_tipo_producto = 2
+        JOIN tipo_producto tp ON tp.id_tipo_producto = p.id_tipo_producto
+        WHERE tp.unidad_stock != 'u'
         GROUP BY p.nombre
         ORDER BY cantidad DESC;
       `;
@@ -274,19 +289,21 @@ router.get(
       const query = `
         SELECT 
           p.nombre AS material,
-          COALESCE(SUM(ms.cantidad), 0)::numeric AS kilos
+          COALESCE(SUM(ms.cantidad), 0)::numeric AS kilos,
+          tp.unidad_stock AS unidad
         FROM movimientos_stock ms
         JOIN tipo_movimiento tm 
           ON tm.id_tipo_movimiento = ms.id_tipo_movimiento
         JOIN productos p 
           ON p.id_producto = ms.id_producto
+        JOIN tipo_producto tp ON tp.id_tipo_producto = p.id_tipo_producto
         WHERE tm.nombre = 'ENTRADA'
-          AND p.id_tipo_producto = 2
+          AND tp.unidad_stock != 'u'
           AND ms.fecha >= date_trunc(
                 'month',
                 (now() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date
               )
-        GROUP BY p.nombre
+        GROUP BY p.nombre, tp.unidad_stock
         ORDER BY kilos DESC;
       `;
 

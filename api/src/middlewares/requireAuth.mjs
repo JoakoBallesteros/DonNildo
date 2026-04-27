@@ -12,6 +12,12 @@ const jwks = createRemoteJWKSet(jwksUrl)
 const HS_SECRET = (process.env.SUPABASE_JWT_SECRET || '').trim()
 const HS_KEY = HS_SECRET ? new TextEncoder().encode(HS_SECRET) : null
 
+// Supabase puede emitir el issuer con o sin /auth/v1 dependiendo de la versión
+const VALID_ISSUERS = [
+  `${base}/auth/v1`,
+  base,
+]
+
 export async function requireAuth(req, res, next) {
   try {
     if (req.method === 'OPTIONS') return res.sendStatus(200)
@@ -20,13 +26,13 @@ export async function requireAuth(req, res, next) {
     const token = auth.startsWith('Bearer ') ? auth.slice(7) : null
     if (!token) return res.status(401).json({ error: 'NO_TOKEN' })
 
-    // logs de diagnóstico (puedes quitar después)
     const decoded = decodeJwt(token)
     const header = decodeProtectedHeader(token)
-    console.log('[AUTH] alg:', header.alg, 'iss:', decoded.iss, 'sub:', decoded.sub)
-    console.log('[AUTH] jwks url:', jwksUrl.toString())
+    console.log('[AUTH] alg:', header.alg, '| iss:', decoded.iss, '| sub:', decoded.sub)
+    console.log('[AUTH] issuers aceptados:', VALID_ISSUERS)
 
     let payload
+
     if (header.alg && header.alg.startsWith('HS')) {
       // Supabase firmando con HS256 (JWT secret del proyecto)
       if (!HS_KEY) {
@@ -34,16 +40,39 @@ export async function requireAuth(req, res, next) {
         return res.status(401).json({ error: 'INVALID_TOKEN' })
       }
       payload = (await jwtVerify(token, HS_KEY, {
-        issuer: `${base}/auth/v1`,
         algorithms: ['HS256'],
         clockTolerance: 5 * 60,
       })).payload
     } else {
-      // RS* (GoTrue con JWKS)
-      payload = (await jwtVerify(token, jwks, {
-        issuer: `${base}/auth/v1`,
-        clockTolerance: 5 * 60,
-      })).payload
+      // ES256 / RS256 via JWKS — intentamos con cada issuer válido
+      let lastError
+      for (const issuer of VALID_ISSUERS) {
+        try {
+          payload = (await jwtVerify(token, jwks, {
+            issuer,
+            algorithms: ['ES256', 'RS256'],
+            clockTolerance: 5 * 60,
+          })).payload
+          break // éxito
+        } catch (e) {
+          lastError = e
+        }
+      }
+
+      if (!payload) {
+        // Último intento: sin validar issuer (ayuda a diagnosticar)
+        try {
+          payload = (await jwtVerify(token, jwks, {
+            algorithms: ['ES256', 'RS256'],
+            clockTolerance: 5 * 60,
+          })).payload
+          console.warn('[AUTH] Token válido pero issuer no coincide. Token iss:', decoded.iss, '| esperados:', VALID_ISSUERS)
+        } catch {
+          console.error('[AUTH] verify error:', lastError?.code, '-', lastError?.message)
+          console.error('[AUTH] issuer del token:', decoded.iss)
+          return res.status(401).json({ error: 'INVALID_TOKEN' })
+        }
+      }
     }
 
     req.user = { id: payload.sub, claims: payload }

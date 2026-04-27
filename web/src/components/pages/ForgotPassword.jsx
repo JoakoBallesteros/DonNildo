@@ -1,6 +1,7 @@
 // web/src/components/pages/ForgotPassword.jsx
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import logo from "../../img/LogoHydroPack.png";
 
 function getApiOrigin() {
   const raw = import.meta.env.VITE_API_URL?.trim();
@@ -90,40 +91,41 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div className="min-h-screen bg-emerald-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-emerald-100 p-6">
-        <div className="mb-6 select-none">
-          <div className="text-3xl leading-7 font-extrabold text-emerald-900">
-            DON<br />NILDO
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'linear-gradient(135deg, #060d1f 0%, #0b1a38 40%, #102354 100%)' }}>
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-blue-100 p-6">
+        <div className="mb-6 select-none flex flex-col items-center">
+          <img src={logo} alt="HydroPack" className="w-16 h-16 object-contain mb-3" />
+          <div className="text-2xl font-extrabold text-[#0b1a38]" style={{ fontFamily: 'Syne, sans-serif' }}>
+            HydroPack
           </div>
-          <p className="mt-2 text-emerald-900/70 text-sm">
+          <p className="mt-1 text-slate-500 text-sm">
             Recuperá el acceso a tu cuenta
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col">
-          <label className="text-left text-sm text-[#154734] font-medium mb-1">
+          <label className="text-left text-sm text-[#0b1a38] font-medium mb-1">
             Correo
           </label>
           <input
             type="email"
             placeholder="ej: usuario@empresa.com"
             autoComplete="email"
-            className="w-full px-3 py-2 mb-4 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#154734]"
+            className="w-full px-3 py-2 mb-4 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#1e3a6e]"
             value={mail}
             onChange={(e) => setMail(e.target.value)}
           />
 
           {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
-          {success && <p className="text-green-600 text-sm mb-3">{success}</p>}
+          {success && <p className="text-[#06b6d4] text-sm mb-3">{success}</p>}
 
           <button
             type="submit"
             disabled={loading || resendIn > 0}
-            className={`bg-[#154734] text-white font-semibold py-2 rounded-md transition w-full ${
+            className={`bg-[#0b1a38] text-white font-semibold py-2 rounded-md transition w-full ${
               loading || resendIn > 0
                 ? "opacity-75 cursor-not-allowed"
-                : "hover:bg-[#2c865c]"
+                : "hover:bg-[#1e3a6e]"
             }`}
           >
             {loading
@@ -137,11 +139,11 @@ export default function ForgotPassword() {
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="text-emerald-900/80 hover:underline"
+              className="text-slate-500 hover:underline"
             >
               ← Volver
             </button>
-            <Link to="/login" className="text-[#154734] hover:underline">
+            <Link to="/login" className="text-[#1e3a6e] hover:underline">
               Ir a iniciar sesión
             </Link>
           </div>

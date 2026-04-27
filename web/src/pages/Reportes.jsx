@@ -153,7 +153,7 @@ export default function Reportes() {
               setDetailRow(row);
               setDetailOpen(true);
             }}
-            className="border border-[#d8e4df] rounded-md px-4 py-1.5 text-[#154734] hover:bg-[#e8f4ef]"
+            className="border border-[#dce8fd] rounded-md px-4 py-1.5 text-[#0b1a38] hover:bg-[#f0f5ff]"
           >
             Ver Detalle
           </button>
@@ -172,7 +172,7 @@ export default function Reportes() {
               aria-label={selectedIds.length === reportes.length && reportes.length > 0 ? "Deseleccionar todos" : "Seleccionar todos"}
               className={`px-2 py-1 rounded-full flex items-center justify-center gap-2 transition-transform select-none ${selectedIds.length === reportes.length && reportes.length > 0
                   ? 'bg-[#0f7a4e] text-white shadow-md hover:scale-105'
-                  : 'bg-white text-[#154734] border border-[#d8e4df] hover:shadow-sm hover:scale-105'
+                  : 'bg-white text-[#0b1a38] border border-[#dce8fd] hover:shadow-sm hover:scale-105'
                 }`}
             >
               {selectedIds.length === reportes.length && reportes.length > 0 ? (
@@ -196,7 +196,7 @@ export default function Reportes() {
             className={
               selectedIds.includes(row.id_reporte)
                 ? 'px-4 py-1.5 rounded-md border bg-[#0f7a4e] text-white hover:bg-[#0d6843]'
-                : 'px-4 py-1.5 rounded-md border border-[#154734] text-[#154734] hover:bg-[#e8f4ef]'
+                : 'px-4 py-1.5 rounded-md border border-[#0b1a38] text-[#0b1a38] hover:bg-[#f0f5ff]'
             }
           >
             {selectedIds.includes(row.id_reporte) ? "Seleccionado" : "Seleccionar"}
@@ -292,7 +292,7 @@ export default function Reportes() {
       <div className="flex justify-end mb-4">
         <button
           onClick={() => setNuevoOpen(true)}
-          className="px-4 py-2 rounded-xl text-white bg-[#154734] hover:bg-[#103a2b]"
+          className="px-4 py-2 rounded-xl text-white bg-[#0b1a38] hover:bg-[#102354]"
         >
           Nuevo reporte
         </button>
@@ -316,11 +316,11 @@ export default function Reportes() {
                 data={reportes}
                 zebra={false}
                 stickyHeader={true}
-                wrapperClass="dn-table-wrapper-tall overflow-y-auto shadow-sm !mb-0"
+                wrapperClass="hp-table-wrapper-tall overflow-y-auto shadow-sm !mb-0"
 
                 tableClass="w-full text-sm border-collapse table-fixed"
-                theadClass="bg-[#e8f4ef] text-[#154734]"
-                rowClass="hover:bg-[#f6faf7] border-t border-[#edf2ef]"
+                theadClass="bg-[#f0f5ff] text-[#0b1a38]"
+                rowClass="hover:bg-[#f0f5ff] border-t border-[#e2e8f0]"
                 headerClass="px-4 py-3 font-semibold text-center"
                 cellClass="px-4 py-4 text-center"
                 enableSort
@@ -336,12 +336,12 @@ export default function Reportes() {
                 return (
                   <div
                     key={row.id_reporte}
-                    className={`bg-white border rounded-lg p-4 shadow-sm transition-all ${isSelected ? "border-emerald-500 ring-1 ring-emerald-500 bg-emerald-50/30" : "border-slate-200"
+                    className={`bg-white border rounded-lg p-4 shadow-sm transition-all ${isSelected ? "border-[#3a6fd4] ring-1 ring-[#3a6fd4] bg-[#f0f5ff]/30" : "border-slate-200"
                       }`}
                   >
                     <div className="flex justify-between items-start mb-3">
                       <div>
-                        <span className="font-bold text-[#154734] text-lg">#{row.id}</span>
+                        <span className="font-bold text-[#0b1a38] text-lg">#{row.id}</span>
                         <p className="text-xs text-gray-500 mt-1">{row.fechaGen}</p>
                       </div>
                       <span className="px-2 py-1 bg-slate-100 text-slate-600 text-xs rounded-full font-medium">
@@ -361,7 +361,7 @@ export default function Reportes() {
                           setDetailRow(row);
                           setDetailOpen(true);
                         }}
-                        className="flex-1 border border-[#d8e4df] text-[#154734] py-2 rounded-lg text-sm font-medium hover:bg-[#e8f4ef] active:bg-[#d1e7dd] transition-colors"
+                        className="flex-1 border border-[#dce8fd] text-[#0b1a38] py-2 rounded-lg text-sm font-medium hover:bg-[#f0f5ff] active:bg-[#d1e7dd] transition-colors"
                       >
                         Ver Detalle
                       </button>
@@ -369,7 +369,7 @@ export default function Reportes() {
                         onClick={() => toggleSelect(row.id_reporte)}
                         className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${isSelected
                             ? "bg-[#0f7a4e] text-white shadow-sm hover:bg-[#0d6843]"
-                            : "border border-[#154734] text-[#154734] hover:bg-[#e8f4ef]"
+                            : "border border-[#0b1a38] text-[#0b1a38] hover:bg-[#f0f5ff]"
                           }`}
                       >
                         {isSelected ? "Seleccionado" : "Seleccionar"}

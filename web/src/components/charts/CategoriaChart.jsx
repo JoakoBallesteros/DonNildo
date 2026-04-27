@@ -14,7 +14,7 @@ import {
 export default function CategoriaChart() {
   const [periodo, setPeriodo] = useState("meses");
   const [origen, setOrigen] = useState("ventas");
-  const [data, setData] = useState([]);
+  const [data, setData] = useState({ chartData: [], tipos: [] });
   const [loading, setLoading] = useState(false);
 
 
@@ -36,15 +36,17 @@ export default function CategoriaChart() {
         `/api/dashboard/categoria?periodo=${periodo}&origen=${origen}`
       );
 
+      const rawData = result?.data || [];
+      const rawTipos = result?.tipos || [];
 
-      const sorted = (result || []).sort((a, b) =>
+      const sorted = rawData.sort((a, b) =>
         a.label.localeCompare(b.label)
       );
 
-      setData(sorted);
+      setData({ chartData: sorted, tipos: rawTipos });
     } catch (err) {
       console.error("Error cargando gráfico:", err);
-      setData([]);
+      setData({ chartData: [], tipos: [] });
     }
 
     setLoading(false);
@@ -56,7 +58,7 @@ export default function CategoriaChart() {
 
   return (
     <div className="bg-white rounded-2xl border p-3 md:p-5 shadow-sm">
-      <h3 className="text-lg font-bold text-emerald-900 mb-4">
+      <h3 className="text-lg font-bold text-[#0b1a38] mb-4">
         Montos Obtenidos Por Categoria
       </h3>
 
@@ -84,18 +86,17 @@ export default function CategoriaChart() {
 
       {loading ? (
         <p className="text-slate-500">Cargando...</p>
-      ) : data.length === 0 ? (
+      ) : !data.chartData || data.chartData.length === 0 ? (
         <p className="text-slate-500">
           No hay datos para los filtros seleccionados.
         </p>
       ) : (
         <ResponsiveContainer width="100%" height={350}>
           <BarChart
-            data={data}
+            data={data.chartData}
             margin={{ top: 20, right: 20, left: 20, bottom: 20 }}
           >
             <CartesianGrid strokeDasharray="3 3" />
-
 
             <XAxis
               dataKey="label"
@@ -119,26 +120,20 @@ export default function CategoriaChart() {
             <Tooltip
               formatter={(value, name, props) => {
                 const key = props.dataKey;
-
-                const label =
-                  key === "cajas"
-                    ? "Cajas de Embalaje"
-                    : key === "materiales"
-                      ? "Materiales Reciclados"
-                      : key;
-
-                return [`$${Number(value).toLocaleString("es-AR")}`, label];
+                return [`$${Number(value).toLocaleString("es-AR")}`, key];
               }}
               labelFormatter={(label) => formatLabel(label, periodo)}
             />
             <Legend />
 
-            <Bar dataKey="cajas" fill="#8B5CF6" name="Cajas de Embalaje" />
-            <Bar
-              dataKey="materiales"
-              fill="#3B82F6"
-              name="Materiales Reciclados"
-            />
+            {data.tipos.map((tipo, idx) => (
+              <Bar 
+                key={tipo} 
+                dataKey={tipo} 
+                fill={`hsl(${(idx * 137.5) % 360}, 70%, 50%)`} 
+                name={tipo} 
+              />
+            ))}
           </BarChart>
         </ResponsiveContainer>
       )}

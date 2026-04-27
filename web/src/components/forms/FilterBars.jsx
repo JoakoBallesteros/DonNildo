@@ -60,8 +60,8 @@ export default function FilterBar({
               type="button"
               onClick={() => handleSelect(f)}
               className={`px-4 py-1.5 rounded-full font-medium transition ${current === f
-                  ? "bg-[#154734] text-white shadow-sm"
-                  : "bg-[#e8f4ef] text-[#154734] hover:bg-[#dbeee6]"
+                  ? "bg-[#0b1a38] text-white shadow-sm"
+                  : "bg-[#f0f5ff] text-[#0b1a38] hover:bg-[#dbeee6]"
                 }`}
             >
               {f}
@@ -79,7 +79,7 @@ export default function FilterBar({
               key={field.name}
               className={`flex flex-col ${field.containerClass || ""}`}
             >
-              <label className="text-sm text-[#154734] mb-1 font-semibold">
+              <label className="text-sm text-[#0b1a38] mb-1 font-semibold">
                 {field.label}
               </label>
 
@@ -89,7 +89,7 @@ export default function FilterBar({
                   name={field.name}
                   value={formData[field.name] ?? ""}
                   onChange={handleInputChange}
-                  className={`border border-[#d8e4df] rounded-md px-3 py-2 w-full focus:outline-none focus:ring-1 focus:ring-[#154734] ${field.inputClass || ""}`}
+                  className={`border border-[#dce8fd] rounded-md px-3 py-2 w-full focus:outline-none focus:ring-1 focus:ring-[#0b1a38] ${field.inputClass || ""}`}
                 >
                   {(field.options || []).map((opt) => (
                     <option key={String(opt.value)} value={opt.value}>
@@ -105,7 +105,7 @@ export default function FilterBar({
                   value={formData[field.name] ?? ""}
                   onChange={handleInputChange}
                   placeholder={field.placeholder}
-                  className={`border border-[#d8e4df] rounded-md px-3 py-2 w-full focus:outline-none focus:ring-1 focus:ring-[#154734] ${field.inputClass || ""}`}
+                  className={`border border-[#dce8fd] rounded-md px-3 py-2 w-full focus:outline-none focus:ring-1 focus:ring-[#0b1a38] ${field.inputClass || ""}`}
                 />
               )}
             </div>
@@ -116,7 +116,7 @@ export default function FilterBar({
             <button
               type="button"
               onClick={handleApply}
-              className="bg-[#154734] text-white px-6 py-2 rounded-md hover:bg-[#103a2b]"
+              className="bg-[#0b1a38] text-white px-6 py-2 rounded-md hover:bg-[#102354]"
             >
               {applyLabel}
             </button>
@@ -124,7 +124,7 @@ export default function FilterBar({
             <button
               type="button"
               onClick={handleReset}
-              className="text-[#154734] underline text-sm hover:text-[#0d2e22]"
+              className="text-[#0b1a38] underline text-sm hover:text-[#0d2e22]"
             >
               Reiniciar filtro
             </button>

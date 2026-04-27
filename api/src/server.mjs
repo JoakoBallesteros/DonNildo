@@ -13,7 +13,9 @@ import authRoutes from "./routes/auth.mjs";
 import usuariosRoutes from "./routes/usuarios.mjs";
 import rolesRoutes from "./routes/roles.mjs";
 import comprasRoutes from "./routes/compras.mjs";
+import clientesRoutes from "./routes/clientes.mjs";
 import proveedoresRouter from "./routes/proveedores.mjs";
+import preciosRoutes from "./routes/precios.mjs";
 import ventasRoutes from "./routes/ventas.mjs";
 import stockRoutes from "./routes/stock.mjs";
 import { supaAsUser } from "./lib/supabaseUserClient.mjs";
@@ -85,6 +87,8 @@ app.use("/api/v1/roles", rolesRoutes);
 app.use("/api/v1/admin/users", adminUsers);
 app.use("/api/v1/account", accountRouter);
 app.use("/api/v1/compras", comprasRoutes);
+app.use("/api/v1/clientes", clientesRoutes);
+app.use("/api/v1/precios", preciosRoutes);
 app.use("/api/proveedores", proveedoresRouter);
 app.use("/api/v1/ventas", ventasRoutes);
 app.use("/api/v1/stock", stockRoutes);
@@ -92,12 +96,7 @@ app.use("/api/v1/auditoria", auditoriaRoutes);
 app.use("/api/v1/remitos", remitosRoutes);
 app.use("/api/v1/reportes", reportesRoutes);
 
-// rutas viejas para compatibilidad
-app.use("/v1/auth", authRoutes);
-app.use("/v1/usuarios", usuariosRoutes);
-app.use("/v1/roles", rolesRoutes);
-app.use("/v1/admin/users", adminUsers);
-app.use("/v1/account", accountRouter);
+// rutas viejas para compatibilidad eliminadas
 
 app.use("/api/dashboard", dashboardRoutes);
 
@@ -121,10 +120,7 @@ app.get("/api/v1/health", (_req, res) => {
   res.json({ ok: true, mode: "supabase" });
 });
 
-// vieja
-app.get("/v1/health", (_req, res) => {
-  res.json({ ok: true, mode: "supabase" });
-});
+
 
 // DB health nueva
 app.get("/api/v1/health/db", async (_req, res) => {
@@ -137,16 +133,7 @@ app.get("/api/v1/health/db", async (_req, res) => {
   }
 });
 
-// DB health vieja
-app.get("/v1/health/db", async (_req, res) => {
-  try {
-    const { rows } = await pool.query("SELECT 1 AS ok");
-    res.json({ ok: rows[0]?.ok === 1, mode: "supabase" });
-  } catch (e) {
-    console.error("DB health error:", e.message);
-    res.status(500).json({ ok: false, error: e.message });
-  }
-});
+
 
 // -------- Endpoints protegidos básicos --------
 
@@ -155,10 +142,7 @@ app.get("/api/v1/me", requireAuth, (req, res) => {
   res.json({ user: req.user });
 });
 
-// viejo
-app.get("/v1/me", requireAuth, (req, res) => {
-  res.json({ user: req.user });
-});
+
 
 // productos (nueva y vieja)
 app.get("/api/v1/productos", requireAuth, async (req, res) => {
@@ -173,17 +157,7 @@ app.get("/api/v1/productos", requireAuth, async (req, res) => {
   res.json({ productos: data });
 });
 
-app.get("/v1/productos", requireAuth, async (req, res) => {
-  const s = supaAsUser(req.accessToken);
-  const { data, error } = await s
-    .from("productos")
-    .select("*")
-    .order("id_producto", { ascending: false });
 
-  if (error) return res.status(400).json({ error: { message: error.message } });
-  res.set("Cache-Control", "no-store");
-  res.json({ productos: data });
-});
 
 // -------- Start --------
 const PORT = Number(process.env.PORT || 4000);

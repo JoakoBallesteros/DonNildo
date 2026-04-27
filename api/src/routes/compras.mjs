@@ -23,12 +23,7 @@ router.get("/", async (req, res) => {
         e.nombre AS estado,
 
         CASE
-          WHEN MIN(tp.id_tipo_producto) = MAX(tp.id_tipo_producto)
-            THEN CASE
-                   WHEN MIN(tp.id_tipo_producto) = 1 THEN 'Cajas'
-                   WHEN MIN(tp.id_tipo_producto) = 2 THEN 'Materiales'
-                   ELSE 'Otros'
-                 END
+          WHEN MIN(tp.nombre) = MAX(tp.nombre) THEN MIN(tp.nombre)
           ELSE 'Mixtas'
         END AS tipo_compra,
 

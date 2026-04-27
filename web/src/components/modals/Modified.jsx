@@ -84,13 +84,13 @@
           <div className="flex justify-end gap-2">
             <button
               onClick={onClose}
-              className="rounded-md border border-[#154734] text-[#154734] px-4 py-2 hover:bg-[#e8f4ef]"
+              className="rounded-md border border-[#0b1a38] text-[#0b1a38] px-4 py-2 hover:bg-[#f0f5ff]"
             >
               Cancelar
             </button>
             <button
               onClick={handleSave}
-              className="bg-[#154734] text-white px-6 py-2 rounded-md hover:bg-[#103a2b]"
+              className="bg-[#0b1a38] text-white px-6 py-2 rounded-md hover:bg-[#102354]"
             >
               Guardar cambios
             </button>
@@ -100,7 +100,7 @@
         {columns.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse">
-              <thead className="bg-[#e8f4ef] text-[#154734]">
+              <thead className="bg-[#f0f5ff] text-[#0b1a38]">
                 <tr>
                   {columns.map((col) => (
                     <th
@@ -117,7 +117,7 @@
                 {list.map((row, i) => (
                   <tr
                     key={i}
-                    className="border-t border-slate-100 hover:bg-[#f6faf7]"
+                    className="border-t border-slate-100 hover:bg-[#f0f5ff]"
                   >
                     {columns.map((col) => (
                       <td key={col.key} className="px-3 py-2 text-center">

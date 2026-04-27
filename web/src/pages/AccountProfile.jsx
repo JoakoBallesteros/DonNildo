@@ -79,12 +79,12 @@ export default function AccountProfile() {
       <button
         type="button"
         onClick={() => navigate(-1)}
-        className="mb-4 px-3 py-1.5 rounded-md border border-emerald-200 text-emerald-900 hover:bg-emerald-50"
+        className="mb-4 px-3 py-1.5 rounded-md border border-[#dce8fd] text-[#0b1a38] hover:bg-[#f0f5ff]"
       >
         ← Volver
       </button>
 
-      <h1 className="text-2xl font-bold text-emerald-900 mb-4">Mi perfil</h1>
+      <h1 className="text-2xl font-bold text-[#0b1a38] mb-4">Mi perfil</h1>
 
       {err && (
         <div className="mb-3 rounded border border-red-200 bg-red-50 p-3 text-red-700">
@@ -92,14 +92,14 @@ export default function AccountProfile() {
         </div>
       )}
       {ok && (
-        <div className="mb-3 rounded border border-emerald-200 bg-emerald-50 p-3 text-emerald-800">
+        <div className="mb-3 rounded border border-[#dce8fd] bg-[#f0f5ff] p-3 text-[#102354]">
           {ok}
         </div>
       )}
 
       <form onSubmit={onSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-emerald-900 mb-1">
+          <label className="block text-sm font-medium text-[#0b1a38] mb-1">
             Nombre
           </label>
           <input
@@ -114,7 +114,7 @@ export default function AccountProfile() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-emerald-900 mb-1">
+          <label className="block text-sm font-medium text-[#0b1a38] mb-1">
             DNI
           </label>
           <input
@@ -127,7 +127,7 @@ export default function AccountProfile() {
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-emerald-900 mb-1">
+            <label className="block text-sm font-medium text-[#0b1a38] mb-1">
               E-mail
             </label>
             <input
@@ -138,7 +138,7 @@ export default function AccountProfile() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-emerald-900 mb-1">
+            <label className="block text-sm font-medium text-[#0b1a38] mb-1">
               Rol
             </label>
             <input
@@ -156,8 +156,8 @@ export default function AccountProfile() {
             disabled={!hasChanges || saving}
             className={`px-4 py-2 rounded text-white ${
               !hasChanges || saving
-                ? "bg-emerald-700/60 cursor-not-allowed"
-                : "bg-emerald-700 hover:bg-emerald-800"
+                ? "bg-[#1e408f]/60 cursor-not-allowed"
+                : "bg-[#1e408f] hover:bg-[#102354]"
             }`}
           >
             {saving ? "Guardando…" : "Guardar cambios"}
@@ -166,7 +166,7 @@ export default function AccountProfile() {
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="px-4 py-2 rounded border border-emerald-200 text-emerald-900 hover:bg-emerald-50"
+            className="px-4 py-2 rounded border border-[#dce8fd] text-[#0b1a38] hover:bg-[#f0f5ff]"
           >
             Cancelar
           </button>

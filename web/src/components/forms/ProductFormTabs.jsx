@@ -12,6 +12,7 @@ export default function ProductFormTabs({
     unidad: "u",
     cantidad: "",
     precio: "",
+    moneda: "ARS",
     notas: "",
   },
   lockTipo = false,
@@ -130,7 +131,7 @@ export default function ProductFormTabs({
   };
 
   const inputCls =
-    "border border-[#d8e4df] rounded-md px-3 py-2 w-full focus:outline-none focus:ring-1 focus:ring-[#154734]";
+    "border border-[#dce8fd] rounded-md px-3 py-2 w-full focus:outline-none focus:ring-1 focus:ring-[#0b1a38]";
   const areaCls = inputCls;
   const selectCls = inputCls;
 
@@ -148,8 +149,8 @@ export default function ProductFormTabs({
             onClick={() => applyTipo(t.key)}
             className={`h-10 px-6 rounded-full text-[14px] font-semibold transition ${
               active
-                ? "bg-[#154734] text-white shadow hover:bg-[#103a2b]"
-                : "bg-white text-[#154734] border border-[#cfe4db] hover:bg-[#e8f4ef]"
+                ? "bg-[#0b1a38] text-white shadow hover:bg-[#102354]"
+                : "bg-white text-[#0b1a38] border border-[#cfe4db] hover:bg-[#f0f5ff]"
             }`}
           >
             {t.label}
@@ -162,7 +163,7 @@ export default function ProductFormTabs({
   const tabCaja = (
     <div className="space-y-4">
       <div className="flex flex-col">
-        <label className="text-sm font-semibold text-[#154734] mb-1">
+        <label className="text-sm font-semibold text-[#0b1a38] mb-1">
           Nombre / Modelo
         </label>
         <input
@@ -175,20 +176,20 @@ export default function ProductFormTabs({
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="flex flex-col">
-          <label className="text-sm font-semibold text-[#154734] mb-1">
+          <label className="text-sm font-semibold text-[#0b1a38] mb-1">
             Categoría
           </label>
           <input
             readOnly
             value={form.categoria || ""}
-            className="border border-[#d8e4df] rounded-md px-3 py-2 w-full bg-gray-100 text-gray-700"
+            className="border border-[#dce8fd] rounded-md px-3 py-2 w-full bg-gray-100 text-gray-700"
             placeholder="Se calcula automáticamente"
           />
         </div>
 
         {["l", "a", "h"].map((k, i) => (
           <div key={k} className="flex flex-col">
-            <label className="text-sm font-semibold text-[#154734] mb-1">
+            <label className="text-sm font-semibold text-[#0b1a38] mb-1">
               {["Largo (cm)", "Ancho (cm)", "Alto (cm)"][i]}
             </label>
             <input
@@ -206,7 +207,7 @@ export default function ProductFormTabs({
       </div>
 
       <div className="flex flex-col">
-        <label className="text-sm font-semibold text-[#154734] mb-1">
+        <label className="text-sm font-semibold text-[#0b1a38] mb-1">
           Cantidad inicial (u) — opcional
         </label>
         <input
@@ -219,22 +220,37 @@ export default function ProductFormTabs({
         />
       </div>
 
-      <div className="flex flex-col">
-        <label className="text-sm font-semibold text-[#154734] mb-1">
-          Precio unitario
-        </label>
-        <input
-          type="number"
-          min={0}
-          value={form.precio}
-          onChange={(e) => setField("precio", e.target.value)}
-          placeholder="Ej: 1200"
-          className={inputCls}
-        />
+      <div className="grid grid-cols-2 gap-4">
+        <div className="flex flex-col">
+          <label className="text-sm font-semibold text-[#0b1a38] mb-1">
+            Precio unitario
+          </label>
+          <input
+            type="number"
+            min={0}
+            value={form.precio}
+            onChange={(e) => setField("precio", e.target.value)}
+            placeholder="Ej: 1200"
+            className={inputCls}
+          />
+        </div>
+        <div className="flex flex-col">
+          <label className="text-sm font-semibold text-[#0b1a38] mb-1">
+            Moneda
+          </label>
+          <select
+            value={form.moneda || "ARS"}
+            onChange={(e) => setField("moneda", e.target.value)}
+            className={selectCls}
+          >
+            <option value="ARS">Pesos (ARS)</option>
+            <option value="USD">Dólares (USD)</option>
+          </select>
+        </div>
       </div>
 
       <div className="flex flex-col">
-        <label className="text-sm font-semibold text-[#154734] mb-1">
+        <label className="text-sm font-semibold text-[#0b1a38] mb-1">
           Notas (opcional)
         </label>
         <textarea
@@ -251,7 +267,7 @@ export default function ProductFormTabs({
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="flex flex-col">
-          <label className="text-sm font-semibold text-[#154734] mb-1">
+          <label className="text-sm font-semibold text-[#0b1a38] mb-1">
             Nombre
           </label>
           <input
@@ -262,7 +278,7 @@ export default function ProductFormTabs({
           />
         </div>
         <div className="flex flex-col">
-          <label className="text-sm font-semibold text-[#154734] mb-1">
+          <label className="text-sm font-semibold text-[#0b1a38] mb-1">
             Unidad
           </label>
           <select
@@ -278,7 +294,7 @@ export default function ProductFormTabs({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="flex flex-col">
-          <label className="text-sm font-semibold text-[#154734] mb-1">
+          <label className="text-sm font-semibold text-[#0b1a38] mb-1">
             {form.unidad === "kg"
               ? "Cantidad (kg) — opcional"
               : "Cantidad (u) — opcional"}
@@ -292,22 +308,39 @@ export default function ProductFormTabs({
           />
         </div>
         <div className="flex flex-col">
-          <label className="text-sm font-semibold text-[#154734] mb-1">
-            {form.unidad === "kg" ? "Precio x kg" : "Precio unitario"}
-          </label>
-          <input
-            type="number"
-            min={0}
-            value={form.precio}
-            onChange={(e) => setField("precio", e.target.value)}
-            placeholder={form.unidad === "kg" ? "Ej: 7000" : "Ej: 1200"}
-            className={inputCls}
-          />
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-col">
+              <label className="text-sm font-semibold text-[#0b1a38] mb-1">
+                {form.unidad === "kg" ? "Precio x kg" : "Precio unitario"}
+              </label>
+              <input
+                type="number"
+                min={0}
+                value={form.precio}
+                onChange={(e) => setField("precio", e.target.value)}
+                placeholder={form.unidad === "kg" ? "Ej: 7000" : "Ej: 1200"}
+                className={inputCls}
+              />
+            </div>
+            <div className="flex flex-col">
+              <label className="text-sm font-semibold text-[#0b1a38] mb-1">
+                Moneda
+              </label>
+              <select
+                value={form.moneda || "ARS"}
+                onChange={(e) => setField("moneda", e.target.value)}
+                className={selectCls}
+              >
+                <option value="ARS">ARS</option>
+                <option value="USD">USD</option>
+              </select>
+            </div>
+          </div>
         </div>
       </div>
 
       <div className="flex flex-col">
-        <label className="text-sm font-semibold text-[#154734] mb-1">
+        <label className="text-sm font-semibold text-[#0b1a38] mb-1">
           Notas (opcional)
         </label>
         <textarea
@@ -345,23 +378,23 @@ export default function ProductFormTabs({
         {!lockTipo ? (
           <>
             {TabHeader}
-            <div className="border border-[#e3e9e5] rounded-md bg-white p-4">
+            <div className="border border-[#dce8fd] rounded-md bg-white p-4">
               {form.tipo === "Caja" ? tabCaja : tabMaterial}
             </div>
           </>
         ) : (
           <div className="w-full">
             <div className="mb-3">
-              <label className="text-sm font-semibold text-[#154734] mb-1">
+              <label className="text-sm font-semibold text-[#0b1a38] mb-1">
                 Tipo
               </label>
               <input
                 value={form.tipo}
                 readOnly
-                className="border border-[#d8e4df] rounded-md px-3 py-2 bg-slate-50"
+                className="border border-[#dce8fd] rounded-md px-3 py-2 bg-slate-50"
               />
             </div>
-            <div className="border border-[#e3e9e5] rounded-md bg-white p-4">
+            <div className="border border-[#dce8fd] rounded-md bg-white p-4">
               {form.tipo === "Caja" ? tabCaja : tabMaterial}
             </div>
           </div>
@@ -371,7 +404,7 @@ export default function ProductFormTabs({
           <button
             type="button"
             onClick={handleCancelClick}
-            className="h-12 px-8 rounded-xl border-2 border-[#154734] text-[#154734] font-semibold hover:bg-[#e8f4ef] w-full sm:w-auto"
+            className="h-12 px-8 rounded-xl border-2 border-[#0b1a38] text-[#0b1a38] font-semibold hover:bg-[#f0f5ff] w-full sm:w-auto"
           >
             Cancelar
           </button>
@@ -379,7 +412,7 @@ export default function ProductFormTabs({
           <button
             type="submit"
             disabled={loading}
-            className="h-12 px-10 rounded-xl bg-[#154734] text-white font-semibold shadow hover:bg-[#103a2b] w-full sm:w-auto disabled:opacity-60 disabled:cursor-not-allowed"
+            className="h-12 px-10 rounded-xl bg-[#0b1a38] text-white font-semibold shadow hover:bg-[#102354] w-full sm:w-auto disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {loading
               ? "Guardando..."

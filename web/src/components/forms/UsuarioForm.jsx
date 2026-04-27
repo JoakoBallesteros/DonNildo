@@ -50,12 +50,12 @@ export default function UsuarioForm({
       {/* DNI / Nombre */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="text-sm font-semibold text-[#154734] mb-1 block">
+          <label className="text-sm font-semibold text-[#0b1a38] mb-1 block">
             DNI
           </label>
           <input
             className={`w-full rounded-md border px-3 py-2 ${
-              errors.dni ? "border-red-300" : "border-[#d8e4df]"
+              errors.dni ? "border-red-300" : "border-[#dce8fd]"
             }`}
             value={dni}
             onChange={(e) => {
@@ -69,12 +69,12 @@ export default function UsuarioForm({
         </div>
 
         <div>
-          <label className="text-sm font-semibold text-[#154734] mb-1 block">
+          <label className="text-sm font-semibold text-[#0b1a38] mb-1 block">
             Nombre
           </label>
           <input
             className={`w-full rounded-md border px-3 py-2 ${
-              errors.nombre ? "border-red-300" : "border-[#d8e4df]"
+              errors.nombre ? "border-red-300" : "border-[#dce8fd]"
             }`}
             value={nombre}
             onChange={(e) => {
@@ -90,13 +90,13 @@ export default function UsuarioForm({
 
         {/* Email / Rol */}
         <div>
-          <label className="text-sm font-semibold text-[#154734] mb-1 block">
+          <label className="text-sm font-semibold text-[#0b1a38] mb-1 block">
             E-Mail
           </label>
           <input
             type="email"
             className={`w-full rounded-md border px-3 py-2 ${
-              errors.mail ? "border-red-300" : "border-[#d8e4df]"
+              errors.mail ? "border-red-300" : "border-[#dce8fd]"
             }`}
             value={mail}
             onChange={(e) => {
@@ -110,12 +110,12 @@ export default function UsuarioForm({
         </div>
 
         <div>
-          <label className="text-sm font-semibold text-[#154734] mb-1 block">
+          <label className="text-sm font-semibold text-[#0b1a38] mb-1 block">
             Rol
           </label>
           <select
             className={`w-full rounded-md border px-3 py-2 ${
-              errors.id_rol ? "border-red-300" : "border-[#d8e4df]"
+              errors.id_rol ? "border-red-300" : "border-[#dce8fd]"
             }`}
             value={idRol}
             onChange={(e) => setIdRol(e.target.value)}
@@ -145,13 +145,13 @@ export default function UsuarioForm({
       <div className="flex justify-end gap-2">
         <button
           onClick={onCancel}
-          className="px-4 py-2 rounded-md border border-[#d8e4df] text-[#154734] bg-white"
+          className="px-4 py-2 rounded-md border border-[#dce8fd] text-[#0b1a38] bg-white"
         >
           Cancelar
         </button>
         <button
           onClick={guardar}
-          className="px-5 py-2 rounded-md text-white bg-[#154734] hover:bg-[#103a2b]"
+          className="px-5 py-2 rounded-md text-white bg-[#0b1a38] hover:bg-[#102354]"
         >
           Guardar
         </button>

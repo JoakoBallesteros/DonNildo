@@ -31,7 +31,7 @@ export default function ReportDetail({ title = "Detalle de reporte", data = {} }
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-bold text-[#154734]">{title}</h2>
+      <h2 className="text-xl font-bold text-[#0b1a38]">{title}</h2>
 
       <div className="grid grid-cols-2 gap-3 text-sm">
         <div className="bg-[#f7fbf8] border rounded-xl p-3">

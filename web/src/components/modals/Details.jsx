@@ -17,12 +17,12 @@ export default function DetailModal({
       <div className="bg-white rounded-2xl shadow-lg w-full max-w-4xl flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="flex justify-between items-center border-b border-slate-200 p-6 flex-none">
-          <h3 className="text-xl font-bold text-[#154734]">
+          <h3 className="text-xl font-bold text-[#0b1a38]">
             {title} Nº {data?.numero || ""}
           </h3>
           <button
             onClick={onClose}
-            className="text-slate-500 hover:text-[#154734] font-semibold"
+            className="text-slate-500 hover:text-[#0b1a38] font-semibold"
           >
             ✕
           </button>
@@ -33,7 +33,7 @@ export default function DetailModal({
           {/* Desktop Table */}
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm text-left border-collapse">
-              <thead className="bg-[#e8f4ef] text-[#154734]">
+              <thead className="bg-[#f0f5ff] text-[#0b1a38]">
                 <tr>
                   {columns.map((col) => (
                     <th key={col.key} className="px-3 py-2">
@@ -46,7 +46,7 @@ export default function DetailModal({
                 {items.map((item, index) => (
                   <tr
                     key={index}
-                    className="border-t border-slate-100 hover:bg-[#f6faf7]"
+                    className="border-t border-slate-100 hover:bg-[#f0f5ff]"
                   >
                     {columns.map((col) => (
                       <td key={col.key} className="px-3 py-2">
@@ -68,7 +68,7 @@ export default function DetailModal({
                     const value = item[col.key] ?? "—";
                     return (
                       <div key={col.key} className="flex justify-between items-start border-b border-slate-50 last:border-0 pb-2 last:pb-0">
-                        <span className="text-[#154734] font-bold text-sm w-1/3">
+                        <span className="text-[#0b1a38] font-bold text-sm w-1/3">
                           {col.label}:
                         </span>
                         <span className="text-slate-700 text-sm w-2/3 text-right">
@@ -87,7 +87,7 @@ export default function DetailModal({
         <div className="border-t border-slate-200 p-6 pt-4 flex-none">
           {data.total !== undefined && (
             <div className="flex justify-end mb-4">
-              <p className="text-lg font-semibold text-[#154734]">
+              <p className="text-lg font-semibold text-[#0b1a38]">
                 Total: ${data?.total || 0}
               </p>
             </div>

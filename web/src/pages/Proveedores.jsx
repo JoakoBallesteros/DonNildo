@@ -288,7 +288,7 @@ export default function Proveedores() {
         <div className="flex justify-center gap-2">
           <button
             onClick={() => openEdit(row)}
-            className="bg-[#154734] text-white px-4 py-1.5 text-xs rounded-md hover:bg-[#1E5A3E]"
+            className="bg-[#0b1a38] text-white px-4 py-1.5 text-xs rounded-md hover:bg-[#173070]"
           >
             MODIFICAR
           </button>
@@ -309,14 +309,14 @@ export default function Proveedores() {
       actions={
         <button
           onClick={openNew}
-          className="flex items-center justify-center gap-2 bg-[#154734] text-white px-6 py-2 rounded-full hover:bg-[#103a2b] transition"
+          className="flex items-center justify-center gap-2 bg-[#0b1a38] text-white px-6 py-2 rounded-full hover:bg-[#102354] transition"
         >
           <Plus size={16} /> Nuevo proveedor
         </button>
       }
     >
       <div className="mb-4 max-w-xs">
-        <label className="block text-sm font-medium text-[#154734] mb-1">
+        <label className="block text-sm font-medium text-[#0b1a38] mb-1">
           Buscar
         </label>
         <div className="relative">
@@ -325,7 +325,7 @@ export default function Proveedores() {
           </span>
           <input
             type="text"
-            className="w-full rounded-md border border-slate-200 bg-white px-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="w-full rounded-md border border-slate-200 bg-white px-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3a6fd4]"
             placeholder="Nombre / CUIT"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -344,10 +344,10 @@ export default function Proveedores() {
             data={filtered}
             zebra={false}
             stickyHeader={true}
-            wrapperClass="dn-table-wrapper overflow-y-auto shadow-sm"
+            wrapperClass="hp-table-wrapper overflow-y-auto shadow-sm"
             tableClass="w-full text-sm text-center border-collapse"
-            theadClass="bg-[#e8f4ef] text-[#154734]"
-            rowClass="bg-white hover:bg-[#f6faf7] border-t border-[#edf2ef]"
+            theadClass="bg-[#f0f5ff] text-[#0b1a38]"
+            rowClass="bg-white hover:bg-[#f0f5ff] border-t border-[#e2e8f0]"
             headerClass="px-4 py-3 font-semibold text-center"
             cellClass="px-4 py-2 text-center"
             enableSort={true}
@@ -364,7 +364,7 @@ export default function Proveedores() {
             <div key={row.id} className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm">
               <div className="flex justify-between items-start mb-2">
                 <div className="flex flex-col">
-                  <h3 className="font-bold text-[#154734] text-base">{row.nombre}</h3>
+                  <h3 className="font-bold text-[#0b1a38] text-base">{row.nombre}</h3>
                   <span className="text-sm text-gray-600">CUIT: {row.cuit}</span>
                 </div>
               </div>
@@ -387,7 +387,7 @@ export default function Proveedores() {
               <div className="flex gap-2 mt-2 pt-2 border-t border-slate-100">
                 <button
                   onClick={() => openEdit(row)}
-                  className="flex-1 bg-[#154734] text-white text-xs py-2 rounded hover:bg-[#1E5A3E]"
+                  className="flex-1 bg-[#0b1a38] text-white text-xs py-2 rounded hover:bg-[#173070]"
                 >
                   MODIFICAR
                 </button>
@@ -413,7 +413,7 @@ export default function Proveedores() {
             <button
               type="button"
               onClick={closeForm}
-              className="px-6 py-2 rounded-full font-semibold text-[#154734] border border-slate-200 bg-white hover:bg-slate-50 transition"
+              className="px-6 py-2 rounded-full font-semibold text-[#0b1a38] border border-slate-200 bg-white hover:bg-slate-50 transition"
               disabled={saving}
             >
               Cancelar
@@ -421,7 +421,7 @@ export default function Proveedores() {
             <button
               type="submit"
               form="proveedor-form"
-              className="px-6 py-2 rounded-full font-semibold text-white bg-[#154734] hover:bg-[#103a2b] transition disabled:opacity-60"
+              className="px-6 py-2 rounded-full font-semibold text-white bg-[#0b1a38] hover:bg-[#102354] transition disabled:opacity-60"
               disabled={saving}
             >
               {saving ? "Guardando…" : "Guardar"}
@@ -431,7 +431,7 @@ export default function Proveedores() {
       >
         <form id="proveedor-form" onSubmit={handleSubmit} className="space-y-4">
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-[#154734]">CUIT</label>
+            <label className="text-sm font-medium text-[#0b1a38]">CUIT</label>
             <input
               name="cuit"
               value={form.cuit}
@@ -442,7 +442,7 @@ export default function Proveedores() {
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-[#154734]">Nombre</label>
+            <label className="text-sm font-medium text-[#0b1a38]">Nombre</label>
             <input
               name="nombre"
               value={form.nombre}
@@ -453,7 +453,7 @@ export default function Proveedores() {
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-[#154734]">Contacto</label>
+            <label className="text-sm font-medium text-[#0b1a38]">Contacto</label>
             <input
               name="contacto"
               value={form.contacto}
@@ -463,7 +463,7 @@ export default function Proveedores() {
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-[#154734]">Dirección</label>
+            <label className="text-sm font-medium text-[#0b1a38]">Dirección</label>
             <input
               name="direccion"
               value={form.direccion}
@@ -525,7 +525,7 @@ export default function Proveedores() {
             <button
               onClick={closeMessage}
               className={`px-4 py-2 rounded-md font-semibold text-white transition ${messageModal.type === "success"
-                  ? "bg-[#154734] hover:bg-[#103a2b]"
+                  ? "bg-[#0b1a38] hover:bg-[#102354]"
                   : "bg-red-700 hover:bg-red-800"
                 }`}
             >
@@ -535,7 +535,7 @@ export default function Proveedores() {
         }
       >
         <p
-          className={`text-sm ${messageModal.type === "success" ? "text-emerald-700" : "text-red-700"
+          className={`text-sm ${messageModal.type === "success" ? "text-[#1e408f]" : "text-red-700"
             }`}
         >
           {messageModal.text}

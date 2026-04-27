@@ -93,7 +93,7 @@ export default function NuevoReporte({ isOpen, onClose, onCreate }) {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl border border-[#d8e4df] text-[#154734] bg-white"
+              className="px-4 py-2 rounded-xl border border-[#dce8fd] text-[#0b1a38] bg-white"
             >
               Cancelar
             </button>
@@ -101,7 +101,7 @@ export default function NuevoReporte({ isOpen, onClose, onCreate }) {
             <button
               type="button"
               onClick={handleSubmit}
-              className="px-5 py-2 rounded-xl text-white bg-[#154734] hover:bg-[#103a2b]"
+              className="px-5 py-2 rounded-xl text-white bg-[#0b1a38] hover:bg-[#102354]"
             >
               Generar
             </button>
@@ -118,8 +118,8 @@ export default function NuevoReporte({ isOpen, onClose, onCreate }) {
                 onClick={() => setAmbito(tipo)}
                 className={`px-4 py-2 rounded-full text-sm transition ${
                   ambito === tipo
-                    ? "bg-[#154734] text-white"
-                    : "bg-[#e8f4ef] text-[#154734]"
+                    ? "bg-[#0b1a38] text-white"
+                    : "bg-[#f0f5ff] text-[#0b1a38]"
                 }`}
               >
                 {tipo}
@@ -132,7 +132,7 @@ export default function NuevoReporte({ isOpen, onClose, onCreate }) {
 
             
             <div className="md:col-span-6">
-              <label className="block text-sm text-[#154734] mb-1">Producto</label>
+              <label className="block text-sm text-[#0b1a38] mb-1">Producto</label>
               <ProductoSelect
                 productos={productosList}
                 value={productoId ? productosList.find(p => p.id_producto === Number(productoId)) : null}
@@ -142,23 +142,23 @@ export default function NuevoReporte({ isOpen, onClose, onCreate }) {
 
             {/* Fecha Desde */}
             <div className="md:col-span-3">
-              <label className="block text-sm text-[#154734] mb-1">Fecha Desde</label>
+              <label className="block text-sm text-[#0b1a38] mb-1">Fecha Desde</label>
               <input
                 type="date"
                 value={desde}
                 onChange={(e) => setDesde(e.target.value)}
-                className="w-full rounded-xl px-3 py-2 text-sm bg-white border border-[#d8e4df]"
+                className="w-full rounded-xl px-3 py-2 text-sm bg-white border border-[#dce8fd]"
               />
             </div>
 
             {/* Fecha Hasta */}
             <div className="md:col-span-3">
-              <label className="block text-sm text-[#154734] mb-1">Fecha Hasta</label>
+              <label className="block text-sm text-[#0b1a38] mb-1">Fecha Hasta</label>
               <input
                 type="date"
                 value={hasta}
                 onChange={(e) => setHasta(e.target.value)}
-                className="w-full rounded-xl px-3 py-2 text-sm bg-white border border-[#d8e4df]"
+                className="w-full rounded-xl px-3 py-2 text-sm bg-white border border-[#dce8fd]"
               />
             </div>
           </div>

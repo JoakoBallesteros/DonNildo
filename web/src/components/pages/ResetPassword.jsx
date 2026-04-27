@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import supa from "../../lib/supabaseClient";
+import logo from "../../img/LogoHydroPack.png";
 
 function hashParams() {
   const raw = (window.location.hash || "").replace(/^#/, "");
@@ -103,44 +104,45 @@ export default function ResetPassword() {
   };
 
   return (
-    <div className="min-h-screen bg-emerald-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-emerald-100 p-6">
-        <div className="mb-6 select-none">
-          <div className="text-3xl leading-7 font-extrabold text-emerald-900">
-            DON<br/>NILDO
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'linear-gradient(135deg, #060d1f 0%, #0b1a38 40%, #102354 100%)' }}>
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-blue-100 p-6">
+        <div className="mb-6 select-none flex flex-col items-center">
+          <img src={logo} alt="HydroPack" className="w-16 h-16 object-contain mb-3" />
+          <div className="text-2xl font-extrabold text-[#0b1a38]" style={{ fontFamily: 'Syne, sans-serif' }}>
+            HydroPack
           </div>
-          <p className="mt-2 text-emerald-900/70 text-sm">
+          <p className="mt-1 text-slate-500 text-sm">
             Establecé / restablecé tu contraseña
           </p>
         </div>
 
         {stage === "checking" ? (
-          <p className="text-sm text-emerald-900/80">Validando enlace…</p>
+          <p className="text-sm text-slate-500">Validando enlace…</p>
         ) : stage === "done" ? (
-          <p className="text-green-600 text-sm">
+          <p className="text-[#06b6d4] text-sm">
             ¡Contraseña actualizada! Redirigiendo al inicio de sesión…
           </p>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col">
             {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
 
-            <label className="text-left text-sm text-[#154734] font-medium mb-1">
+            <label className="text-left text-sm text-[#0b1a38] font-medium mb-1">
               Nueva contraseña
             </label>
             <input
               type="password"
-              className="w-full px-3 py-2 mb-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#154734]"
+              className="w-full px-3 py-2 mb-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#1e3a6e]"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
             />
 
-            <label className="text-left text-sm text-[#154734] font-medium mb-1">
+            <label className="text-left text-sm text-[#0b1a38] font-medium mb-1">
               Confirmar contraseña
             </label>
             <input
               type="password"
-              className="w-full px-3 py-2 mb-4 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#154734]"
+              className="w-full px-3 py-2 mb-4 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#1e3a6e]"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               placeholder="••••••••"
@@ -148,13 +150,13 @@ export default function ResetPassword() {
 
             <button
               type="submit"
-              className="bg-[#154734] text-white font-semibold py-2 rounded-md transition w-full hover:bg-[#2c865c]"
+              className="bg-[#0b1a38] text-white font-semibold py-2 rounded-md transition w-full hover:bg-[#1e3a6e]"
             >
               Guardar nueva contraseña
             </button>
 
             <div className="mt-4 text-right text-sm">
-              <Link to="/login" className="text-[#154734] hover:underline">
+              <Link to="/login" className="text-[#1e3a6e] hover:underline">
                 Volver a iniciar sesión
               </Link>
             </div>

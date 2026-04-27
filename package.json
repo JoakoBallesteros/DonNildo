@@ -1,18 +1,18 @@
 {
-  "name": "donnildo",
+  "name": "hydropack",
   "version": "1.0.0",
   "private": true,
   "workspaces": [
     "api",
     "web"
   ],
-  "description": "Monorepo del sistema de gestión Don Nildo (API + Web) mantenido por el equipo BCT.",
+  "description": "Monorepo del sistema de gestión HydroPack (API + Web) mantenido por el equipo BCT.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev:api": "npm run dev -w api",
     "dev:web": "npm run dev -w web",
-    "dev": "concurrently -n API,WEB -c cyan,green \"npm run dev:api\" \"wait-on http://localhost:4000/v1/health && npm run dev:web\"",
+    "dev": "concurrently -n API,WEB -c cyan,green \"npm run dev:api\" \"wait-on http://localhost:4000/api/v1/health && npm run dev:web\"",
     "build": "npm run build -w web",
     "start:api": "npm run start -w api"
   },

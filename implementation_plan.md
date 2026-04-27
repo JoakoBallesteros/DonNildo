@@ -8,6 +8,8 @@ Rebrand the existing **Don Nildo** inventory management system (Compras, Ventas,
 
 ---
 
+https://www.youtube.com/watch?v=t4aV1jZqLJA
+
 ## Part 1: What YOU Need to Do (ARCA Portal — Manual Steps)
 
 > [!IMPORTANT]

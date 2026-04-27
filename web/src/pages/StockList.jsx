@@ -16,17 +16,7 @@ import { apiFetch } from "../lib/apiClient";
 
 const MAX_EXPORT_ROWS = 500;
 
-function mapTipoPorId(id_tipo_producto, fallback) {
-  if (fallback) return fallback;
-  switch (id_tipo_producto) {
-    case 1:
-      return "Caja";
-    case 2:
-      return "Material";
-    default:
-      return "Material";
-  }
-}
+
 
 function calcCategoriaCaja(l, a, h) {
   const L = Number(l) || 0;
@@ -87,7 +77,7 @@ function mapDbRowToUi(row) {
 
   return {
     id: row.id_producto,
-    tipo: row.tipo || mapTipoPorId(row.id_tipo_producto),
+    tipo: row.tipo_producto_nombre || row.tipo || "Desconocido",
     referencia: row.referencia,
     categoria: row.categoria || "—",
     unidad: row.unidad_stock || row.unidad || "",
@@ -109,6 +99,11 @@ export default function StockList() {
   const [err, setErr] = useState("");
 
   const [filtroTipo, setFiltroTipo] = useState("Todo");
+  
+  const tiposDisponibles = useMemo(() => {
+    const setTipos = new Set(items.map(r => r.tipo).filter(Boolean));
+    return ["Todo", ...Array.from(setTipos)];
+  }, [items]);
   const [filtros, setFiltros] = useState({
     buscar: "",
     categoria: "",
@@ -276,20 +271,14 @@ export default function StockList() {
   ];
 
   const dataFiltrada = useMemo(() => {
-    // Mapeo directo del filtro de pestañas al tipo real
-    const tSel =
-      filtroTipo === "Cajas"
-        ? "Caja"
-        : filtroTipo === "Materiales"
-        ? "Material"
-        : null;
+    const tSel = filtroTipo !== "Todo" ? filtroTipo : null;
 
     const desde = filtros.desde || "";
     const hasta = filtros.hasta || "";
 
     return items.filter((r) => {
-      // 1️⃣ Tipo (Todo / Cajas / Materiales)
-      if (tSel && r.tipo.toLowerCase() !== tSel.toLowerCase()) return false;
+      // 1️⃣ Tipo 
+      if (tSel && r.tipo !== tSel) return false;
 
       // 2️⃣ Buscar por referencia o tipo
       if (filtros.buscar) {
@@ -467,7 +456,7 @@ export default function StockList() {
               setDetailRow(row);
               setDetailOpen(true);
             }}
-            className="border border-[#154734] text-[#154734] px-3 py-1 text-xs rounded-md hover:bg-[#e8f4ef]"
+            className="border border-[#0b1a38] text-[#0b1a38] px-3 py-1 text-xs rounded-md hover:bg-[#f0f5ff]"
           >
             Ver Detalle
           </button>
@@ -486,7 +475,7 @@ export default function StockList() {
                 setEditRow(row);
                 setEditOpen(true);
               }}
-              className="bg-[#154734] text-white px-2 py-1 text-xs rounded-md hover:bg-[#1E5A3E]"
+              className="bg-[#0b1a38] text-white px-2 py-1 text-xs rounded-md hover:bg-[#173070]"
             >
               MODIFICAR
             </button>
@@ -754,14 +743,14 @@ export default function StockList() {
           <button
             type="button"
             onClick={() => nav("pesaje")}
-            className="flex items-center gap-2 bg-[#154734] text-white px-4 py-2 rounded-md hover:bg-[#103a2b] transition"
+            className="flex items-center gap-2 bg-[#0b1a38] text-white px-4 py-2 rounded-md hover:bg-[#102354] transition"
           >
             Registrar Pesaje
           </button>
           <button
             type="button"
             onClick={() => setNewOpen(true)}
-            className="rounded-md border border-[#154734] text-[#154734] px-4 py-2 hover:bg-[#e8f4ef]"
+            className="rounded-md border border-[#0b1a38] text-[#0b1a38] px-4 py-2 hover:bg-[#f0f5ff]"
           >
             + Nuevo producto
           </button>
@@ -769,7 +758,7 @@ export default function StockList() {
       }
     >
       <FilterBar
-        filters={["Todo", "Cajas", "Materiales"]}
+        filters={tiposDisponibles}
         fields={filterFields}
         onApply={aplicarFiltros}
         onReset={reiniciarFiltros}
@@ -795,10 +784,10 @@ export default function StockList() {
                 data={dataFiltrada}
                 zebra={false}
                 stickyHeader={true}
-                wrapperClass="dn-table-wrapper-tall overflow-y-auto shadow-sm !mb-0"
+                wrapperClass="hp-table-wrapper-tall overflow-y-auto shadow-sm !mb-0"
                 tableClass="w-full table-fixed text-sm border-collapse"
-                theadClass="bg-[#e8f4ef] text-[#154734]"
-                rowClass="hover:bg-[#f6faf7] border-t border-[#edf2ef] first:border-t-0"
+                theadClass="bg-[#f0f5ff] text-[#0b1a38]"
+                rowClass="hover:bg-[#f0f5ff] border-t border-[#e2e8f0] first:border-t-0"
                 headerClass="px-4 py-3 font-semibold"
                 cellClass="px-4 py-3"
                 enableSort
@@ -807,14 +796,14 @@ export default function StockList() {
 
             <div className="md:hidden space-y-3">
               {!dataFiltrada.length && (
-                <div className="rounded-2xl border border-dashed border-[#d8e4df] bg-[#f7fbf9] px-4 py-6 text-center text-sm text-[#62736a]">
+                <div className="rounded-2xl border border-dashed border-[#dce8fd] bg-[#f7fbf9] px-4 py-6 text-center text-sm text-[#62736a]">
                   No hay productos que coincidan con los filtros.
                 </div>
               )}
               {dataFiltrada.map((row) => (
                 <div
                   key={row.id}
-                  className="rounded-2xl border border-[#e3e9e5] bg-white shadow-sm p-4 space-y-3"
+                  className="rounded-2xl border border-[#dce8fd] bg-white shadow-sm p-4 space-y-3"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -837,7 +826,7 @@ export default function StockList() {
                       <p className="text-xs font-semibold text-[#7a8b82]">
                         Disponible
                       </p>
-                      <p className="text-base font-semibold text-[#154734]">
+                      <p className="text-base font-semibold text-[#0b1a38]">
                         {formatDisponible(row)}
                       </p>
                     </div>
@@ -886,7 +875,7 @@ export default function StockList() {
                         setDetailRow(row);
                         setDetailOpen(true);
                       }}
-                      className="flex-1 rounded-md border border-[#154734] text-[#154734] px-3 py-2 text-sm font-medium hover:bg-[#e8f4ef] transition"
+                      className="flex-1 rounded-md border border-[#0b1a38] text-[#0b1a38] px-3 py-2 text-sm font-medium hover:bg-[#f0f5ff] transition"
                     >
                       Detalle
                     </button>
@@ -895,7 +884,7 @@ export default function StockList() {
                         setEditRow(row);
                         setEditOpen(true);
                       }}
-                      className="flex-1 rounded-md bg-[#154734] text-white px-3 py-2 text-sm font-medium hover:bg-[#103a2b] transition"
+                      className="flex-1 rounded-md bg-[#0b1a38] text-white px-3 py-2 text-sm font-medium hover:bg-[#102354] transition"
                     >
                       Modificar
                     </button>
@@ -916,7 +905,7 @@ export default function StockList() {
       <div className="mt-6 flex justify-end">
         <button
           onClick={onExport}
-          className="inline-flex items-center gap-2 rounded-md bg-[#154734] text-white px-4 py-2 hover:bg-[#103a2b]"
+          className="inline-flex items-center gap-2 rounded-md bg-[#0b1a38] text-white px-4 py-2 hover:bg-[#102354]"
         >
           <Download className="h-4 w-4" />
           Exportar (PDF)
@@ -1012,33 +1001,33 @@ export default function StockList() {
         >
           <div className="space-y-3 text-sm">
             <div className="grid grid-cols-3 gap-2">
-              <span className="font-semibold text-[#154734]">Tipo:</span>
+              <span className="font-semibold text-[#0b1a38]">Tipo:</span>
               <span className="col-span-2">{detailRow.tipo}</span>
 
-              <span className="font-semibold text-[#154734]">Categoría:</span>
+              <span className="font-semibold text-[#0b1a38]">Categoría:</span>
               <span className="col-span-2">
                 {detailRow.tipo === "Caja" ? detailRow.categoria || "—" : "—"}
               </span>
 
-              <span className="font-semibold text-[#154734]">Medidas:</span>
+              <span className="font-semibold text-[#0b1a38]">Medidas:</span>
               <span className="col-span-2">
                 {detailRow.tipo === "Caja" && detailRow.medidas
                   ? `${detailRow.medidas.l}x${detailRow.medidas.a}x${detailRow.medidas.h} cm`
                   : "—"}
               </span>
 
-              <span className="font-semibold text-[#154734]">Unidad:</span>
+              <span className="font-semibold text-[#0b1a38]">Unidad:</span>
               <span className="col-span-2">{detailRow.unidad}</span>
 
-              <span className="font-semibold text-[#154734]">Disponible:</span>
+              <span className="font-semibold text-[#0b1a38]">Disponible:</span>
               <span className="col-span-2">{formatDisponible(detailRow)}</span>
 
-              <span className="font-semibold text-[#154734]">Últ. mov.:</span>
+              <span className="font-semibold text-[#0b1a38]">Últ. mov.:</span>
               <span className="col-span-2">
                 {formatFechaCorta(detailRow.ultimoMov)}
               </span>
 
-              <span className="font-semibold text-[#154734]">
+              <span className="font-semibold text-[#0b1a38]">
                 Precio unit.:
               </span>
               <span className="col-span-2">
@@ -1051,7 +1040,7 @@ export default function StockList() {
             </div>
 
             <div>
-              <div className="font-semibold text-[#154734] mb-1">Notas</div>
+              <div className="font-semibold text-[#0b1a38] mb-1">Notas</div>
               <div className="rounded-md border border-[#e2e8e4] bg-[#f8fbf9] p-3 whitespace-pre-wrap">
                 {detailRow.notas?.trim() || "—"}
               </div>
@@ -1060,7 +1049,7 @@ export default function StockList() {
             <div className="mt-4 flex justify-end">
               <button
                 onClick={() => setDetailOpen(false)}
-                className="rounded-md border border-[#154734] text-[#154734] px-4 py-2 hover:bg-[#e8f4ef]"
+                className="rounded-md border border-[#0b1a38] text-[#0b1a38] px-4 py-2 hover:bg-[#f0f5ff]"
               >
                 Cerrar
               </button>

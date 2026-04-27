@@ -92,10 +92,10 @@ router.get(
           p.id_producto,
           p.nombre,
           p.precio_unitario,
-          COALESCE(tp.unidad_stock, 'kg') AS unidad_stock
+          tp.unidad_stock
         FROM productos p
         JOIN tipo_producto tp ON tp.id_tipo_producto = p.id_tipo_producto
-        WHERE p.id_tipo_producto = 2           -- 2 = Material
+        WHERE tp.unidad_stock != 'u'
           AND p.estado = TRUE
         ORDER BY p.nombre
         `
@@ -126,6 +126,7 @@ router.post(
         unidad,
         cantidad,
         precio,
+        moneda,
         notas,
       } = req.body || {};
 
@@ -133,10 +134,18 @@ router.post(
         return res.status(400).json({ error: "Faltan datos obligatorios." });
       }
 
-      const isCaja = tipo === "Caja";
-      const idTipoProducto = isCaja ? 1 : 2; // 1 = Caja, 2 = Material
-
       await client.query("BEGIN");
+
+      let idTipoProducto = null;
+      let isCaja = false;
+      const tipoRes = await client.query('SELECT id_tipo_producto, unidad_stock FROM tipo_producto WHERE nombre = $1', [tipo]);
+      if (tipoRes.rows.length > 0) {
+        idTipoProducto = tipoRes.rows[0].id_tipo_producto;
+        isCaja = tipoRes.rows[0].unidad_stock === 'u';
+      } else {
+        await client.query("ROLLBACK");
+        return res.status(400).json({ error: "Tipo de producto no válido." });
+      }
 
       // ---------- MEDIDA (solo cajas) ----------
       let idMedida = null;
@@ -252,9 +261,9 @@ router.post(
       const resultProd = await client.query(
         `
         INSERT INTO productos
-          (nombre, descripcion, id_categoria, id_tipo_producto, id_medida, precio_unitario, estado)
+          (nombre, descripcion, id_categoria, id_tipo_producto, id_medida, precio_unitario, moneda, estado)
         VALUES
-          ($1, $2, $3, $4, $5, $6, TRUE)
+          ($1, $2, $3, $4, $5, $6, $7, TRUE)
         RETURNING id_producto
         `,
         [
@@ -264,6 +273,7 @@ router.post(
           idTipoProducto,
           idMedida,
           precioNum,
+          moneda || 'ARS',
         ]
       );
 
@@ -346,13 +356,15 @@ router.put(
         id_categoria: currentCategoria,
       } = prodResult.rows[0];
 
-      const isCaja = id_tipo_producto === 1;
+      const tipoRes = await client.query('SELECT unidad_stock FROM tipo_producto WHERE id_tipo_producto = $1', [id_tipo_producto]);
+      const isCaja = tipoRes.rows.length > 0 && tipoRes.rows[0].unidad_stock === 'u';
 
       const {
         referencia,
         notas,
         disponible,
         precio,
+        moneda,
         unidad,
         medidas = {},
       } = req.body || {};
@@ -440,14 +452,16 @@ router.put(
           nombre = COALESCE($1, nombre),
           descripcion = $2,
           precio_unitario = $3,
-          id_medida = COALESCE($4, id_medida),
-          id_categoria = COALESCE($5, id_categoria)
-        WHERE id_producto = $6
+          moneda = COALESCE($4, moneda),
+          id_medida = COALESCE($5, id_medida),
+          id_categoria = COALESCE($6, id_categoria)
+        WHERE id_producto = $7
         `,
         [
           referencia || null,
           notas || null,
           precioUnitario,
+          moneda || 'ARS',
           idMedida,
           idCategoria,
           id,
@@ -601,7 +615,6 @@ router.post(
           JOIN tipo_producto tp ON tp.id_tipo_producto = p.id_tipo_producto
           WHERE p.id_producto = $1
             AND p.estado = TRUE
-            AND p.id_tipo_producto = 2 
           `,
           [idProducto]
         );
@@ -609,12 +622,12 @@ router.post(
         if (!prodRes.rows.length) {
           await client.query("ROLLBACK");
           return res.status(404).json({
-            error: `Producto ID ${idProducto} no encontrado, inactivo o no es un material válido para pesaje.`,
+            error: `Producto ID ${idProducto} no encontrado o inactivo.`,
           });
         }
 
         const { nombre, unidad_stock } = prodRes.rows[0];
-        const unidad = unidad_stock || "kg";
+        const unidad = unidad_stock || "u";
 
         const stockRes = await client.query(
           `SELECT id_stock, cantidad

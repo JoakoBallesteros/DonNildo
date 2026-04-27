@@ -133,16 +133,16 @@ export default function SegRoles() {
 
   return (
     <PageContainer title="Gestión de roles">
-      <div className="bg-white rounded-2xl border border-[#e3e9e5] p-5 md:p-6 mb-5">
+      <div className="bg-white rounded-2xl border border-[#dce8fd] p-5 md:p-6 mb-5">
         <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-4 items-end">
           <div>
-            <label className="text-sm font-semibold text-[#154734] mb-1 block">
+            <label className="text-sm font-semibold text-[#0b1a38] mb-1 block">
               Seleccione un rol
             </label>
             <select
               value={rolSel}
               onChange={(e) => setRolSel(e.target.value)}
-              className="w-full border border-[#d8e4df] rounded-md px-3 py-2"
+              className="w-full border border-[#dce8fd] rounded-md px-3 py-2"
             >
               <option value="">—</option>
               {roles.map((r) => (
@@ -153,13 +153,13 @@ export default function SegRoles() {
             </select>
           </div>
           <div>
-            <label className="text-sm font-semibold text-[#154734] mb-1 block">
+            <label className="text-sm font-semibold text-[#0b1a38] mb-1 block">
               Seleccione un usuario
             </label>
             <select
               value={usrSel}
               onChange={(e) => setUsrSel(e.target.value)}
-              className="w-full border border-[#d8e4df] rounded-md px-3 py-2"
+              className="w-full border border-[#dce8fd] rounded-md px-3 py-2"
             >
               <option value="">—</option>
               {usuarios.map((u) => (
@@ -172,7 +172,7 @@ export default function SegRoles() {
           <div className="flex md:justify-end">
             <button
               onClick={onAssign}
-              className="rounded-md bg-[#154734] text-white px-4 py-2 hover:bg-[#103a2b]"
+              className="rounded-md bg-[#0b1a38] text-white px-4 py-2 hover:bg-[#102354]"
             >
               Asignar rol
             </button>
@@ -187,10 +187,10 @@ export default function SegRoles() {
             data={rows}
             enableSort
             tableClass="w-full text-sm border-collapse table-fixed"
-            theadClass="bg-[#e8f4ef] text-[#154734]"
-            rowClass="hover:bg-[#f6faf7] transition border-t border-[#edf2ef]"
-            headerClass="px-4 py-3 font-semibold border-r border-[#e3e9e5] last:border-none select-none"
-            cellClass="px-4 py-3 border-r border-[#edf2ef] last:border-none"
+            theadClass="bg-[#f0f5ff] text-[#0b1a38]"
+            rowClass="hover:bg-[#f0f5ff] transition border-t border-[#e2e8f0]"
+            headerClass="px-4 py-3 font-semibold border-r border-[#dce8fd] last:border-none select-none"
+            cellClass="px-4 py-3 border-r border-[#e2e8f0] last:border-none"
           />
         </div>
 
@@ -203,7 +203,7 @@ export default function SegRoles() {
               <div className="flex justify-between items-start mb-3">
                 <div>
                   <span className="block text-xs text-gray-400 uppercase font-semibold">Rol</span>
-                  <span className="font-bold text-[#154734] text-lg">{row.rol}</span>
+                  <span className="font-bold text-[#0b1a38] text-lg">{row.rol}</span>
                 </div>
                 <div className="text-right">
                   <span className="block text-xs text-gray-400 uppercase font-semibold">Usuario</span>
@@ -225,7 +225,7 @@ export default function SegRoles() {
       <div className="mt-6 flex justify-center gap-2">
         <a
           href="/seguridad"
-          className="px-4 py-2 rounded-md border border-[#154734] text-[#154734] hover:bg-[#e8f4ef]"
+          className="px-4 py-2 rounded-md border border-[#0b1a38] text-[#0b1a38] hover:bg-[#f0f5ff]"
         >
           Volver
         </a>

@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS roles (
 );
 
 CREATE TABLE IF NOT EXISTS usuarios (
-  id_usuario SERIAL PRIMARY KEY,
+  id_usuario SERIAL PRIMARY KEY,                                
   dni TEXT UNIQUE,
   nombre TEXT NOT NULL,
   hash_contrasena TEXT, 

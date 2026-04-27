@@ -8,12 +8,12 @@ export default function DataTable({
   emptyLabel = "No hay datos",
 
   tableClass = "w-full text-sm border-collapse table-fixed",
-  theadClass = "bg-[#e8f4ef] text-[#154734]",
+  theadClass = "bg-[#f0f5ff] text-[#0b1a38]",
   tbodyClass = "",
-  rowClass = "hover:bg-[#f6faf7] transition",
+  rowClass = "hover:bg-[#f0f5ff] transition",
   headerClass =
-    "px-4 py-3 font-semibold border-r border-[#e3e9e5] last:border-none select-none",
-  cellClass = "px-4 py-3 border-r border-[#edf2ef] last:border-none",
+    "px-4 py-3 font-semibold border-r border-[#dce8fd] last:border-none select-none",
+  cellClass = "px-4 py-3 border-r border-[#e2e8f0] last:border-none",
   zebra = false,
   stickyHeader = true,
 
@@ -170,11 +170,11 @@ export default function DataTable({
     : processed;
 
   const stickyHeadRowClass = stickyHeader
-    ? "sticky top-0 bg-[#e8f4ef] z-20 shadow-sm"
+    ? "sticky top-0 bg-[#f0f5ff] z-20 shadow-sm"
     : "";
 
   return (
-    <div className="relative bg-white rounded-xl border border-[#e3e9e5]">
+    <div className="relative bg-white rounded-xl border border-[#dce8fd]">
       {/* contenedor con scroll (antes era el root) */}
       <div
         className={[
@@ -193,7 +193,7 @@ export default function DataTable({
           </colgroup>
 
           <thead
-            className={[theadClass, "border-b border-[#edf2ef]"].join(" ")}
+            className={[theadClass, "border-b border-[#e2e8f0]"].join(" ")}
           >
             <tr className={stickyHeadRowClass}>
               {columns.map((col, i) => (
@@ -338,7 +338,7 @@ export default function DataTable({
             {pageRows.length === 0 ? (
               <tr>
                 <td
-                  className="px-4 py-6 text-slate-500 text-center border-t border-[#edf2ef]"
+                  className="px-4 py-6 text-slate-500 text-center border-t border-[#e2e8f0]"
                   colSpan={columns.length}
                 >
                   {emptyLabel}
@@ -390,7 +390,7 @@ export default function DataTable({
 
       {/* Footer de paginación SIEMPRE visible (fuera del scroll) */}
       {enablePagination && totalRows > 0 && (
-        <div className="flex items-center justify-between px-4 py-2 border-t border-[#e3e9e5] bg-[#f9fbfa] text-xs text-slate-600">
+        <div className="flex items-center justify-between px-4 py-2 border-t border-[#dce8fd] bg-[#f9fbfa] text-xs text-slate-600">
           <span>
             Mostrando{" "}
             <strong>
